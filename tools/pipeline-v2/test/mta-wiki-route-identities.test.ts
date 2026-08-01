@@ -676,8 +676,7 @@ async function upgradeFixtureToManifestV6(value: Fixture): Promise<string> {
     operational_occurrence_member_grain:
       "study-frontier-closure/data/contracts/operational-occurrence-member-grain/v1/manifest.json",
     quality_provenance: "quality-provenance/manifest.json",
-    study_readiness_v2:
-      "study-frontier-closure/data/quality/study-readiness/v2/manifest.json",
+    study_readiness_v2: "study-frontier-closure/data/quality/study-readiness/v2/manifest.json",
   });
   for (const [path, bytes] of Object.entries(manifestV6PointerFiles)) {
     const absolutePath = join(value.release, path);

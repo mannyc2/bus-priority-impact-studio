@@ -68,6 +68,10 @@ import {
   routeTimelineIndex,
   sourceMonthCoverage,
 } from "../schema.js";
+import {
+  D1_GENERATED_CANDIDATE_TABLES,
+  D1_MIXED_LEGACY_TABLES,
+} from "../serving-table-ownership.js";
 
 type SeedRowIssue = {
   path: string;
@@ -1574,6 +1578,73 @@ export function buildD1SeedSql(input: D1SeedInput): D1SeedSqlResult {
   return buildD1SeedSqlWithMode(input, "standard");
 }
 
+const candidateSeedTables = new Set<string>([
+  ...D1_GENERATED_CANDIDATE_TABLES,
+  ...D1_MIXED_LEGACY_TABLES,
+]);
+
+function sqlString(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function candidateSeedStatement(statement: string, candidateId: string): string {
+  const deletion = /^delete from "([a-z0-9_]+)"(?: where (.+))?;$/iu.exec(statement);
+  if (deletion !== null) {
+    const [, table, predicate] = deletion;
+    if (table === undefined || !candidateSeedTables.has(table)) {
+      throw new Error(`Plan 098 candidate seed cannot delete from ${table ?? "an unknown table"}.`);
+    }
+    const candidatePredicate = `"candidate_id" = ${sqlString(candidateId)}`;
+    return `delete from "${table}_v2" where ${candidatePredicate}${predicate === undefined ? "" : ` and (${predicate})`};`;
+  }
+
+  const insertion = /^insert into "([a-z0-9_]+)" \((.+)\) values \((.+)\);$/iu.exec(statement);
+  if (insertion !== null) {
+    const [, table, columns, values] = insertion;
+    if (
+      table === undefined ||
+      columns === undefined ||
+      values === undefined ||
+      !candidateSeedTables.has(table)
+    ) {
+      throw new Error(`Plan 098 candidate seed cannot insert into ${table ?? "an unknown table"}.`);
+    }
+    return `insert into "${table}_v2" (${columns}, "candidate_id") values (${values}, ${sqlString(candidateId)});`;
+  }
+
+  throw new Error(`Plan 098 candidate seed encountered unsupported SQL: ${statement}`);
+}
+
+export type D1CandidateSeedSqlResult = D1SeedSqlResult & {
+  candidateId: string;
+};
+
+/**
+ * Builds the additive Plan 098 projection seed for exactly one candidate.
+ *
+ * The legacy renderer remains the canonical column/value serializer. This
+ * boundary rewrites only its checked DELETE/INSERT grammar: deletes are
+ * limited to the same candidate namespace and inserts carry candidate_id.
+ */
+export function buildD1CandidateSeedSql(
+  input: D1SeedInput,
+  candidateId: string,
+): D1CandidateSeedSqlResult {
+  if (!/^[a-f0-9]{64}$/u.test(candidateId)) {
+    throw new Error("Plan 098 candidateId must be a lowercase SHA-256 digest.");
+  }
+  const legacy = buildD1SeedSql(input);
+  const statements = legacy.seedSql
+    .split("\n")
+    .filter((statement) => statement.length > 0)
+    .map((statement) => candidateSeedStatement(statement, candidateId));
+  return {
+    ...legacy,
+    candidateId,
+    seedSql: `${statements.join("\n")}\n`,
+  };
+}
+
 export function buildPlan097RecoverySeedSql(input: D1SeedInput): D1SeedSqlResult {
   return buildD1SeedSqlWithMode(input, "plan097-recovery");
 }
@@ -1677,5 +1748,24 @@ export function buildD1AppendixSeedSql(input: D1AppendixSeedInput): D1AppendixSe
     month,
     routeObservedReliabilitySummaryRowCount: input.routeObservedReliabilitySummaries.length,
     routeMonthSourceStatusRowCount: reliabilityStatuses.length,
+  };
+}
+
+/**
+ * Independently refreshed current-signal rows. These tables are intentionally
+ * unversioned and are never changed by candidate activation or rollback.
+ */
+export function buildD1CurrentSignalAppendixSeedSql(
+  input: D1AppendixSeedInput,
+): D1AppendixSeedSqlResult {
+  const legacy = buildD1AppendixSeedSql(input);
+  return {
+    ...legacy,
+    seedSql: legacy.seedSql
+      .replaceAll(
+        '"route_observed_reliability_summary"',
+        '"route_observed_reliability_current_signal"',
+      )
+      .replaceAll('"route_month_source_status"', '"route_month_source_status_current_signal"'),
   };
 }

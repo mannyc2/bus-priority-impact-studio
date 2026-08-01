@@ -34,8 +34,9 @@
 
 ## Status
 
-- **State**: TODO — producer handoff verified; executable now on a fresh branch
-  from current `origin/main`; activation remains blocked on Plan 098
+- **State**: DONE — strict import, v2 candidate projection, both site readers,
+  serving allowlist, deterministic candidate, and Plan 098 handoff complete;
+  activation remains blocked on Plan 098
 - **Priority**: P0
 - **Effort**: XL
 - **Risk**: HIGH (public identity, wording, release activation, and two user
@@ -764,3 +765,54 @@ Stop and report instead of improvising if any of the following occurs:
 - No Tracker `LATEST` mutation, pin, deployment, or implicit release activation
   occurred under this plan; the already published producer release was only
   acquired and verified.
+
+## Completion receipt (2026-08-01)
+
+Plan 106 completed on `codex/106-resolved-transit-public-pack`, rebased onto
+`origin/main@5224c1a0`. The implementation strictly verified all 60 files in
+the published release's outer manifest, decoded and reconciled the exact 11
+public and five build-only conformance resources, removed the local
+reconciliation authority, and cut the public model and both readers to the v2
+authority-tagged contract. The public artifact contains no operator ledger or
+receipt field, Tracker release id, publication/activation time, local path,
+fabricated route role, or lifecycle claim.
+
+The unpublished candidate is
+`b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`.
+Its normalized producer pack SHA-256 is
+`c9721e5488226869affaa59de637d21fa11f694bd2597031dcbd1b83e2aee425`;
+the global serving artifact is
+`605270b477210f289f95f1dccc0e4e257a9c8575d683ecb29f4c3cd76b23120b`;
+the 190-entry artifact map is
+`403d9d570d42b8284b6c86b0db64d75b14ede3f2b5f67298cf26995b79e684b5`;
+the operator conformance artifact is
+`fb74e802a472a134a911162966cc6bad4de27a579b112c5c099ad16f5abffbb8`;
+and the candidate handoff is
+`91e8d2f4f52c9ab38bfef10ace20eedc465d40f2625150632b8823013d3d3e23`.
+Two complete writes produced the same 192-file aggregate SHA-256,
+`c86b70a8ecb1fdb1129b1646fb6bbe4b3d47f13287d9d86f45a314d113f9b639`.
+
+The candidate is exactly 222 episodes (157 producer and 65 accepted Tracker
+ACE enrichments), 188 route artifacts, and 268 episode-route memberships. The
+private audit records all 204 legacy rows and 26 additions through the accepted
+131/65/8/26 partition with zero unexplained dispositions. Producer inventory
+is exactly 343 components, 104 placements, 170 route keys, ten treatment
+families, 447 history rows, zero confirmed-current rows, and 54 sources.
+
+Verification passed: 141 domain tests, 535 pipeline-v2 tests, 961 aggregate
+unit tests, 445 web tests, and 32 Worker tests; typecheck, architecture, web
+release build/budgets, focused Biome, strict production import, candidate
+content audit, and deterministic replay all passed. `bun run check` still
+stops at `check:style` on the two unchanged repository-baseline formatting
+errors already recorded by Plans 113 and 114
+(`packages/db/migrations-drizzle/d1/20260722141255_sleepy_gunslinger/snapshot.json`
+and `tools/pipeline-v2/test/mta-wiki-route-identities.test.ts`); Plan 106 does
+not modify either file, and the later gates were run independently.
+
+No stable logical key, `LATEST`, Tracker pin, publication state, or deployment
+was changed. The artifact map is the closed Plan 098 input: one
+`bp.studio.public_intervention_episodes.v2` logical key and 188
+`bp.studio.route_intervention_history.v2` route keys, each with physical key,
+content hash, media type, schema id, and exact route-key expansion. Plan 098
+must stage and activate that entire set atomically before the already approved
+Plan 057 Tracker pin and deployment proceed.

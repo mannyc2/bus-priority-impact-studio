@@ -203,7 +203,7 @@ describe("production boundary harness", () => {
     }
   });
 
-  test("Plan 097 centralizes Studio R2 reads and leaves only the verified map loader direct", async () => {
+  test("Plan 098 centralizes Studio R2 reads behind the release-qualified loader", async () => {
     const publicApi = await Bun.file("packages/studio-api/src/public-api.ts").text();
     const projections = await Bun.file("packages/studio-api/src/studio/projections.ts").text();
     const readHandlers = await Bun.file("packages/studio-api/src/studio/read-handlers.ts").text();
@@ -212,7 +212,8 @@ describe("production boundary harness", () => {
     expect(projections.match(directGetPattern) ?? []).toHaveLength(0);
     expect(readHandlers.match(directGetPattern) ?? []).toHaveLength(0);
     expect(publicApi.match(directGetPattern) ?? []).toHaveLength(1);
-    expect(publicApi).toContain("env.ARTIFACTS.get(catalog.manifestKey)");
+    expect(publicApi).toContain("env.ARTIFACTS.get(artifact.key)");
+    expect(publicApi).not.toContain("env.ARTIFACTS.get(catalog.manifestKey)");
     expect(publicApi).toContain("PLAN097_RECOVERY_NAMESPACE");
   });
 
@@ -241,14 +242,26 @@ describe("production boundary harness", () => {
     expect(recoveryCli).not.toContain("d1 execute");
     expect(operationHandler.match(/\.batch\(/g) ?? []).toHaveLength(1);
 
+    const plan098OperationPath = "/operations/plan098-serving-release.ts";
     for (const file of workerFiles) {
-      if (file.path.endsWith("/operations/plan097-recovery.ts")) {
+      if (
+        file.path.endsWith("/operations/plan097-recovery.ts") ||
+        file.path.endsWith(plan098OperationPath)
+      ) {
         continue;
       }
       expect(file.text.includes(".batch("), `${file.path} bypasses the Plan 097 batch owner`).toBe(
         false,
       );
     }
+
+    const plan098OperationHandler = workerFiles.find((file) =>
+      file.path.endsWith(plan098OperationPath),
+    );
+    expect(plan098OperationHandler).toBeDefined();
+    expect(plan098OperationHandler?.text).toContain("env.DB.batch(");
+    expect(plan098OperationHandler?.text).toContain("PLAN098_EXECUTION_TOKEN");
+    expect(plan098OperationHandler?.text).toContain("PLAN098_OPERATOR_ENABLED");
   });
 
   test("Plan 097 proof template cannot bind or route to production", async () => {

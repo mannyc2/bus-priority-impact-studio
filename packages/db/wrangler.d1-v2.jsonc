@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-impact-studio-db-v2",
+  "account_id": "7aa7065a7e971d97435b3f22098d78b0",
+  "compatibility_date": "2026-04-27",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bus-priority-serving",
+      "database_id": "d9cd87e2-1f77-44eb-b712-e834b23497b0",
+      "migrations_dir": "./migrations/d1-v2",
+      "migrations_table": "bp_d1_migrations_v2"
+    }
+  ]
+}

@@ -56,6 +56,22 @@ const artifactKeyParameter = {
   description: "Slash-delimited public R2 artifact key.",
 };
 
+const releaseIdParameter = {
+  name: "releaseId",
+  in: "path" as const,
+  required: true,
+  schema: { type: "string", pattern: "^pub_[0-9TZ]+$" },
+  description: "Immutable public serving release identifier.",
+};
+
+const logicalArtifactIdParameter = {
+  name: "logicalId",
+  in: "path" as const,
+  required: true,
+  schema: { type: "string" },
+  description: "Slash-delimited logical artifact identifier declared by the release.",
+};
+
 const monthQueryParameter = {
   name: "month",
   in: "query" as const,
@@ -176,6 +192,15 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       tags: ["Public"],
       responseSchema: { type: "object", additionalProperties: true },
       parameters: [artifactKeyParameter],
+    }),
+  },
+  "/api/v1/releases/{releaseId}/artifacts/{logicalId}": {
+    get: getOperation({
+      operationId: "getReleaseArtifact",
+      summary: "Fetch an immutable artifact from a retained public release.",
+      tags: ["Public"],
+      responseSchema: { type: "object", additionalProperties: true },
+      parameters: [releaseIdParameter, logicalArtifactIdParameter],
     }),
   },
   "/api/v1/studio/routes": {

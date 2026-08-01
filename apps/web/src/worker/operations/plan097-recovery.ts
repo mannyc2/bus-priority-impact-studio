@@ -217,8 +217,11 @@ async function signPlan097PreflightReceipt(
   };
 }
 
-async function verifyPlan097PreflightReceiptSignature(
-  env: Env,
+export async function verifyPlan097PreflightReceiptSignature(
+  env: Pick<
+    Env,
+    "PLAN097_PREFLIGHT_SIGNING_KEY_ID" | "PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64"
+  >,
   receipt: Plan097PreflightReceipt,
 ): Promise<void> {
   const keyId = env.PLAN097_PREFLIGHT_SIGNING_KEY_ID;

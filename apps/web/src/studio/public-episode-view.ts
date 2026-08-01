@@ -14,63 +14,48 @@ import {
   type NetworkBuildout,
 } from "@/studio/network-change-record";
 
-const KIND_LABELS: Readonly<Record<string, string>> = {
-  bus_lane: "Bus lanes",
-  busway: "Busways",
-  buses: "Buses",
-  camera_enforcement: "Camera enforcement",
-  fares: "Fare payment",
-  other: "Other work",
-  passenger_information: "Passenger information",
-  route_and_schedule: "Routes and schedules",
-  select_bus_service: "Select Bus Service",
-  signal_priority: "Signal priority",
-  stops: "Stops and boarding",
-  street_design: "Street design",
-};
-
-export function publicKindLabel(kindKey: string): string {
-  return KIND_LABELS[kindKey] ?? "Other work";
-}
-
 export function compareEpisodesNewestFirst(
   left: PublicInterventionEpisode,
   right: PublicInterventionEpisode,
 ): number {
   return (
-    compareChangeDatesNewestFirst(left.date as ChangeDate, right.date as ChangeDate) ||
+    compareChangeDatesNewestFirst(comparableDate(left), comparableDate(right)) ||
     left.title.localeCompare(right.title)
   );
 }
 
 function episodeStartKey(episode: PublicInterventionEpisode): string {
-  return episode.date.precision === "unknown" ? "9999" : episode.date.start;
+  return episode.date.intervalStart ?? episode.date.intervalEnd ?? "9999";
 }
 
-/** Exact route match. B44 never picks up a B44+ episode. */
+/** Exact public route-key match. Distinct B44 producer keys never collapse. */
 export function episodesForRoute(
   episodes: readonly PublicInterventionEpisode[],
-  routeId: string,
+  routeKey: string,
 ): PublicInterventionEpisode[] {
   return episodes
-    .filter((episode) => episode.routes.some((route) => route.routeId === routeId))
+    .filter((episode) => episode.routes.some((route) => route.routeKey === routeKey))
     .toSorted(compareEpisodesNewestFirst);
 }
 
 export type KindFacet = { kindKey: string; label: string; episodeCount: number };
 
 export function publicKindFacets(episodes: readonly PublicInterventionEpisode[]): KindFacet[] {
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { label: string; episodeCount: number }>();
   for (const episode of episodes) {
-    for (const kindKey of episode.kindKeys) {
-      counts.set(kindKey, (counts.get(kindKey) ?? 0) + 1);
+    for (const family of episode.treatmentFamilies) {
+      const current = counts.get(family.treatmentFamilyKey);
+      counts.set(family.treatmentFamilyKey, {
+        label: family.label,
+        episodeCount: (current?.episodeCount ?? 0) + 1,
+      });
     }
   }
   return [...counts.entries()]
-    .map(([kindKey, episodeCount]) => ({
+    .map(([kindKey, value]) => ({
       kindKey,
-      label: publicKindLabel(kindKey),
-      episodeCount,
+      label: value.label,
+      episodeCount: value.episodeCount,
     }))
     .toSorted(
       (left, right) =>
@@ -84,11 +69,18 @@ export function filterEpisodes(
 ): PublicInterventionEpisode[] {
   const query = filters.routeQuery.trim().toLowerCase();
   return episodes.filter((episode) => {
-    if (filters.kindKey !== null && !episode.kindKeys.includes(filters.kindKey)) return false;
+    if (
+      filters.kindKey !== null &&
+      !episode.treatmentFamilies.some((family) => family.treatmentFamilyKey === filters.kindKey)
+    ) {
+      return false;
+    }
     if (query.length === 0) return true;
     return episode.routes.some(
       (route) =>
-        route.label.toLowerCase().includes(query) || route.routeId.toLowerCase().includes(query),
+        route.label.toLowerCase().includes(query) ||
+        route.routeId.toLowerCase().includes(query) ||
+        route.routeKey.includes(query),
     );
   });
 }
@@ -121,8 +113,12 @@ export function chronologyAxis(
 ): ChronologyAxis {
   const years: number[] = [];
   for (const episode of episodes) {
-    if (episode.date.precision === "unknown") continue;
-    years.push(Number(episode.date.start.slice(0, 4)), Number(episode.date.end.slice(0, 4)));
+    if (episode.date.intervalStart !== null) {
+      years.push(Number(episode.date.intervalStart.slice(0, 4)));
+    }
+    if (episode.date.intervalEnd !== null) {
+      years.push(Number(episode.date.intervalEnd.slice(0, 4)));
+    }
   }
   for (const month of months) years.push(Number(month.slice(0, 4)));
   const finite = years.filter((year) => Number.isFinite(year));
@@ -164,9 +160,9 @@ export function packChronologyBands(
   const rowEnds: number[] = [];
   const bands: ChronologyBand[] = [];
   for (const episode of byStart) {
-    if (episode.date.precision === "unknown") continue;
-    const start = axisFraction(episode.date.start, axis);
-    const end = axisFraction(episode.date.end, axis);
+    if (episode.date.intervalStart === null || episode.date.intervalEnd === null) continue;
+    const start = axisFraction(episode.date.intervalStart, axis);
+    const end = axisFraction(episode.date.intervalEnd, axis);
     const shape = episode.date.precision === "day" ? "point" : "bar";
     const packEnd = Math.max(end, start + MIN_BAND_FRACTION);
     let row = rowEnds.findIndex((rowEnd) => start >= rowEnd + BAND_GUTTER_FRACTION);
@@ -183,11 +179,24 @@ export function chronologyOverlaps(
   const spans: { start: string; end: string; episodeIds: Set<string> }[] = [];
   for (const [index, left] of episodes.entries()) {
     for (const right of episodes.slice(index + 1)) {
-      if (left.date.precision === "unknown" || right.date.precision === "unknown") continue;
-      if (!changeDatesOverlap(left.date as ChangeDate, right.date as ChangeDate)) continue;
+      if (
+        left.date.intervalStart === null ||
+        left.date.intervalEnd === null ||
+        right.date.intervalStart === null ||
+        right.date.intervalEnd === null
+      ) {
+        continue;
+      }
+      if (!changeDatesOverlap(comparableDate(left), comparableDate(right))) continue;
       spans.push({
-        start: left.date.start >= right.date.start ? left.date.start : right.date.start,
-        end: left.date.end <= right.date.end ? left.date.end : right.date.end,
+        start:
+          left.date.intervalStart >= right.date.intervalStart
+            ? left.date.intervalStart
+            : right.date.intervalStart,
+        end:
+          left.date.intervalEnd <= right.date.intervalEnd
+            ? left.date.intervalEnd
+            : right.date.intervalEnd,
         episodeIds: new Set([left.episodeId, right.episodeId]),
       });
     }
@@ -230,8 +239,9 @@ export function trendMarkers(
   for (const episode of [...episodes].sort((left, right) =>
     episodeStartKey(left).localeCompare(episodeStartKey(right)),
   )) {
-    if (episode.date.precision === "unknown") continue;
-    const month = episode.date.start.slice(0, 7);
+    const start = episode.date.intervalStart ?? episode.date.intervalEnd;
+    if (start === null) continue;
+    const month = start.slice(0, 7);
     if (month < first || month > last) continue;
     const group = byMonth.get(month) ?? [];
     group.push(episode.episodeId);
@@ -266,8 +276,28 @@ export function episodesOutsideSeries(
   const first = [...months].sort()[0];
   if (first === undefined) return [...episodes];
   return episodes.filter(
-    (episode) => episode.date.precision !== "unknown" && episode.date.end.slice(0, 7) < first,
+    (episode) => episode.date.intervalEnd !== null && episode.date.intervalEnd.slice(0, 7) < first,
   );
+}
+
+function comparableDate(episode: PublicInterventionEpisode): ChangeDate {
+  const { date } = episode;
+  if (date.intervalStart === null || date.intervalEnd === null) {
+    return { precision: "unknown", display: date.display, raw: date.value };
+  }
+  const precision =
+    date.precision === "season"
+      ? "quarter"
+      : date.precision === "upper_bound_day"
+        ? "range"
+        : date.precision;
+  return {
+    precision,
+    start: date.intervalStart,
+    end: date.intervalEnd,
+    display: date.display,
+    raw: date.value,
+  };
 }
 
 export function networkBuildoutModel(snapshot: PublicNetworkBuildoutSnapshot): NetworkBuildout {
@@ -336,7 +366,7 @@ export function networkChangeGroups(
     const first = bucket[0];
     if (first === undefined) continue;
     const routeCount = new Set(
-      bucket.flatMap((episode) => episode.routes.map((route) => route.routeId)),
+      bucket.flatMap((episode) => episode.routes.map((route) => route.routeKey)),
     ).size;
     if (bucket.length < GROUP_THRESHOLD) {
       for (const episode of bucket) {
@@ -345,7 +375,7 @@ export function networkChangeGroups(
           heading: null,
           dateDisplay: episode.date.display,
           sourceLabel: episode.citations[0]?.label ?? null,
-          routeCount: new Set(episode.routes.map((route) => route.routeId)).size,
+          routeCount: new Set(episode.routes.map((route) => route.routeKey)).size,
           episodes: [episode],
         });
       }

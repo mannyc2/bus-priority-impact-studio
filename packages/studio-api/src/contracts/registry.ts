@@ -65,6 +65,17 @@ export const studioApiRoutes = [
     idempotency: noIdempotency,
   }),
   route({
+    id: "public.releaseArtifact",
+    operationId: "getReleaseArtifact",
+    method: "GET",
+    path: "/api/v1/releases/:releaseId/artifacts/:logicalId*",
+    tags: ["Public"],
+    summary: "Fetch an immutable artifact from a retained public release.",
+    auth: publicAuth,
+    cache: publicStudioCache,
+    idempotency: noIdempotency,
+  }),
+  route({
     id: "public.artifact",
     operationId: "getArtifact",
     method: "GET",

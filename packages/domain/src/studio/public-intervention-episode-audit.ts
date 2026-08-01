@@ -4,93 +4,49 @@ const NonEmptyStringSchema = Schema.String.check(Schema.isMinLength(1));
 const NonNegativeIntegerSchema = Schema.Number.check(Schema.isInt()).check(
   Schema.isGreaterThanOrEqualTo(0),
 );
+const Sha256Schema = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
 
-const AuditRecordSchema = Schema.Struct({
-  recordId: NonEmptyStringSchema,
-  disposition: Schema.Literals(["included", "supporting", "excluded", "unresolved"]),
-  note: NonEmptyStringSchema,
-});
-
-/**
- * Operator-only resolution evidence. This contract intentionally lives apart
- * from the public serving contract so its states cannot enter consumer bundles.
- */
+/** Operator-only cutover evidence. This contract is never a public serving input. */
 export const PublicEpisodeResolutionAuditArtifactSchema = Schema.Struct({
-  artifactKind: Schema.Literal("bp.quality.intervention_episode_resolution.v1"),
-  schemaVersion: Schema.Literal(1),
-  releaseId: NonEmptyStringSchema,
-  generatedAt: NonEmptyStringSchema,
-  scope: Schema.Struct({
-    upstreamOccurrenceCount: NonNegativeIntegerSchema,
-    reconciliationDecisionCount: NonNegativeIntegerSchema,
-    localMintedEpisodeCount: NonNegativeIntegerSchema,
-    registryEventCount: NonNegativeIntegerSchema,
-    registryAttachedEventCount: NonNegativeIntegerSchema,
-    registryMintedEpisodeCount: NonNegativeIntegerSchema,
-    episodeCount: NonNegativeIntegerSchema,
-    routeReachCount: NonNegativeIntegerSchema,
-    reviewedRouteCount: NonNegativeIntegerSchema,
-    releasePins: Schema.Array(
-      Schema.Struct({
-        label: NonEmptyStringSchema,
-        value: NonEmptyStringSchema,
-      }),
-    ),
+  artifactKind: Schema.Literal("bp.quality.intervention_episode_resolution.v2"),
+  schemaVersion: Schema.Literal(2),
+  candidateId: Sha256Schema,
+  producer: Schema.Struct({
+    releaseId: Schema.Literal("resolved-pack-v1-production"),
+    asOfDate: NonEmptyStringSchema,
+    releaseManifestSha256: Sha256Schema,
+    publicManifestSha256: Sha256Schema,
   }),
-  audits: Schema.Array(
+  conformance: Schema.Struct({
+    acceptedLedgerSha256: Sha256Schema,
+    acceptedReceiptSha256: Sha256Schema,
+    trackerBaselineEpisodeCount: NonNegativeIntegerSchema,
+    useProducerIdentityCount: NonNegativeIntegerSchema,
+    trackerEnrichmentOnlyCount: NonNegativeIntegerSchema,
+    dropLegacyEpisodeCount: NonNegativeIntegerSchema,
+    addProducerEpisodeCount: NonNegativeIntegerSchema,
+    unexplainedDispositionCount: NonNegativeIntegerSchema,
+  }),
+  candidate: Schema.Struct({
+    episodeCount: NonNegativeIntegerSchema,
+    producerEpisodeCount: NonNegativeIntegerSchema,
+    trackerEnrichmentEpisodeCount: NonNegativeIntegerSchema,
+    routeArtifactCount: NonNegativeIntegerSchema,
+    episodeRouteMembershipCount: NonNegativeIntegerSchema,
+  }),
+  enrichments: Schema.Array(
     Schema.Struct({
       episodeId: NonEmptyStringSchema,
-      decisionKind: Schema.Literals([
-        "reviewed_occurrence",
-        "reviewed_reconciliation",
-        "ace_registry",
-      ]),
-      decisionIds: Schema.Array(NonEmptyStringSchema),
-      occurrenceId: Schema.NullOr(NonEmptyStringSchema),
+      originIds: Schema.Array(NonEmptyStringSchema),
       sourceEventIds: Schema.Array(NonEmptyStringSchema),
-      records: Schema.Array(AuditRecordSchema),
-      reviewerNotes: Schema.Array(NonEmptyStringSchema),
-      replacementState: Schema.NullOr(
-        Schema.Literals(["active", "shadowed_by_upstream", "stale", "conflicted"]),
-      ),
+      routeKeys: Schema.Array(NonEmptyStringSchema),
     }),
   ),
-  withheld: Schema.Array(
+  exclusions: Schema.Array(
     Schema.Struct({
-      recordId: NonEmptyStringSchema,
-      routeId: NonEmptyStringSchema,
-      routeSlug: NonEmptyStringSchema,
-      date: Schema.String,
-      precision: Schema.String,
-      title: NonEmptyStringSchema,
-      reason: Schema.Literals([
-        "no_reviewed_decision",
-        "unresolved_relationship",
-        "reviewed_and_excluded",
-        "programme_scoped",
-        "other_route_change",
-        "undated",
-        "ambiguous_registry_match",
-      ]),
-      note: NonEmptyStringSchema,
-    }),
-  ),
-  reviewRoutes: Schema.Array(
-    Schema.Struct({
-      routeId: NonEmptyStringSchema,
-      slug: NonEmptyStringSchema,
-      label: NonEmptyStringSchema,
-      corridor: Schema.NullOr(NonEmptyStringSchema),
-      timelineCount: NonNegativeIntegerSchema,
-      treatmentCount: NonNegativeIntegerSchema,
-      projectCount: NonNegativeIntegerSchema,
-      changeCandidateCount: NonNegativeIntegerSchema,
-      speed: Schema.Array(
-        Schema.Struct({
-          month: NonEmptyStringSchema,
-          value: Schema.NullOr(Schema.Number),
-        }),
-      ),
+      trackerEpisodeId: NonEmptyStringSchema,
+      originIds: Schema.Array(NonEmptyStringSchema),
+      reasonCode: NonEmptyStringSchema,
     }),
   ),
 });

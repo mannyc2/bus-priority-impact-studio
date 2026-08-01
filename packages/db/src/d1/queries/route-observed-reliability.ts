@@ -1,7 +1,14 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { asc, desc, eq, ne } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
-import { routeObservedReliabilitySummary } from "../schema.js";
-import { groupSourceStatuses, listRouteMonthSourceStatuses } from "./source-statuses.js";
+import {
+  routeObservedReliabilityCurrentSignal,
+  routeObservedReliabilitySummary,
+} from "../schema.js";
+import {
+  groupSourceStatuses,
+  listCurrentRouteMonthSourceStatuses,
+  listRouteMonthSourceStatuses,
+} from "./source-statuses.js";
 
 export type RouteObservedReliabilitySummary = {
   routeId: string;
@@ -75,6 +82,54 @@ export async function listRouteObservedReliabilitySummaries(
   return rows.map((row) => toRouteObservedReliabilitySummary(row, statuses));
 }
 
+export async function listCurrentObservedReliabilitySummaries(
+  db: D1ServingDb,
+  month: string,
+): Promise<RouteObservedReliabilitySummary[]> {
+  const rows = await selectCurrentObservedReliabilitySummaryRows(db, month);
+  const statuses = groupSourceStatuses(
+    await listCurrentRouteMonthSourceStatuses(db, month, "reliability"),
+  );
+  return rows.map((row) => toRouteObservedReliabilitySummary(row, statuses));
+}
+
+async function selectCurrentObservedReliabilitySummaryRows(db: D1ServingDb, month: string) {
+  return db
+    .select({
+      route_id: routeObservedReliabilityCurrentSignal.routeId,
+      month: routeObservedReliabilityCurrentSignal.month,
+      run_id: routeObservedReliabilityCurrentSignal.runId,
+      reliability_status: routeObservedReliabilityCurrentSignal.reliabilityStatus,
+      min_sample_threshold: routeObservedReliabilityCurrentSignal.minSampleThreshold,
+      sample_count: routeObservedReliabilityCurrentSignal.sampleCount,
+      stop_count: routeObservedReliabilityCurrentSignal.stopCount,
+      direction_count: routeObservedReliabilityCurrentSignal.directionCount,
+      average_observed_headway_minutes:
+        routeObservedReliabilityCurrentSignal.averageObservedHeadwayMinutes,
+      median_observed_headway_minutes:
+        routeObservedReliabilityCurrentSignal.medianObservedHeadwayMinutes,
+      p90_observed_headway_minutes: routeObservedReliabilityCurrentSignal.p90ObservedHeadwayMinutes,
+      max_observed_headway_minutes: routeObservedReliabilityCurrentSignal.maxObservedHeadwayMinutes,
+      scheduled_median_headway_minutes:
+        routeObservedReliabilityCurrentSignal.scheduledMedianHeadwayMinutes,
+      bunching_threshold_minutes: routeObservedReliabilityCurrentSignal.bunchingThresholdMinutes,
+      long_gap_threshold_minutes: routeObservedReliabilityCurrentSignal.longGapThresholdMinutes,
+      observed_bunching_share: routeObservedReliabilityCurrentSignal.observedBunchingShare,
+      observed_long_gap_share: routeObservedReliabilityCurrentSignal.observedLongGapShare,
+      expected_wait_minutes: routeObservedReliabilityCurrentSignal.expectedWaitMinutes,
+      scheduled_expected_wait_minutes:
+        routeObservedReliabilityCurrentSignal.scheduledExpectedWaitMinutes,
+      excess_wait_minutes: routeObservedReliabilityCurrentSignal.excessWaitMinutes,
+      wait_reliability_ratio: routeObservedReliabilityCurrentSignal.waitReliabilityRatio,
+    })
+    .from(routeObservedReliabilityCurrentSignal)
+    .where(eq(routeObservedReliabilityCurrentSignal.month, month))
+    .orderBy(
+      asc(routeObservedReliabilityCurrentSignal.routeId),
+      asc(routeObservedReliabilityCurrentSignal.runId),
+    );
+}
+
 async function selectRouteObservedReliabilitySummaryRows(db: D1ServingDb, month: string) {
   return db
     .select({
@@ -128,4 +183,17 @@ export async function findLatestObservedMonthExcluding(
     }
   }
   return null;
+}
+
+export async function findLatestCurrentObservedMonthExcluding(
+  db: D1ServingDb,
+  excludedMonth: string,
+): Promise<string | null> {
+  const rows = await db
+    .select({ month: routeObservedReliabilityCurrentSignal.month })
+    .from(routeObservedReliabilityCurrentSignal)
+    .where(ne(routeObservedReliabilityCurrentSignal.month, excludedMonth))
+    .orderBy(desc(routeObservedReliabilityCurrentSignal.month))
+    .limit(1);
+  return rows[0]?.month ?? null;
 }

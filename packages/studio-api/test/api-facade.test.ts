@@ -1359,6 +1359,7 @@ describe("Studio API facade", () => {
         "/api/v1/studio/routes/{routeId}/speed-history": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/timeline": expect.any(Object),
         "/api/v1/studio/snapshot": expect.any(Object),
+        "/api/v1/releases/{releaseId}/artifacts/{logicalId}": expect.any(Object),
       }),
     );
   });
@@ -1805,11 +1806,11 @@ describe("Studio API facade", () => {
     const routeBody = '{"artifactKind":"public_route_intervention_history"}';
     const env = {
       ARTIFACTS: new FakeR2Bucket({
-        "studio/v2/interventions/public-episodes.json": new FakeR2Object(
+        "studio/v2/interventions/public-episodes-v2.json": new FakeR2Object(
           networkBody,
           "application/json",
         ),
-        "studio/v2/routes/m15-sbs/intervention-history.json": new FakeR2Object(
+        "studio/v2/routes/m15-sbs/intervention-history-v2.json": new FakeR2Object(
           routeBody,
           "application/json",
         ),
@@ -1818,8 +1819,8 @@ describe("Studio API facade", () => {
     };
 
     const [networkResponse, routeResponse] = await Promise.all([
-      fetchApi("/api/v1/artifacts/studio/v2/interventions/public-episodes.json", env),
-      fetchApi("/api/v1/artifacts/studio/v2/routes/m15-sbs/intervention-history.json", env),
+      fetchApi("/api/v1/artifacts/studio/v2/interventions/public-episodes-v2.json", env),
+      fetchApi("/api/v1/artifacts/studio/v2/routes/m15-sbs/intervention-history-v2.json", env),
     ]);
 
     expect(networkResponse.status).toBe(200);

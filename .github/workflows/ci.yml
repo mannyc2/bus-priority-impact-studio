@@ -72,6 +72,101 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Verify Plan 097 trust anchor and apply atomic serving migration
+        id: plan098-expand
+        timeout-minutes: 15
+        if: steps.cloudflare.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
+          PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$PLAN097_SIGNING_KEY_ID"
+          test -n "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64"
+          test "$PLAN097_SIGNING_KEY_ID" = "plan097-20260725-rc28"
+          output_dir=/tmp/plan098-expand
+          endpoint=https://bus-priority-plan098-operator.c20carroll.workers.dev/__operations/plan098
+          mkdir -p "$output_dir"
+          execution_token="$(openssl rand -hex 32)"
+          jq -n \
+            --arg executionToken "$execution_token" \
+            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
+            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
+            '{
+              PLAN098_EXECUTION_TOKEN:$executionToken,
+              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
+              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey
+            }' > "$output_dir/secrets.json"
+          bunx wrangler deploy \
+            --config apps/web/wrangler.plan098-operator.example.jsonc \
+            --secrets-file "$output_dir/secrets.json"
+          rm "$output_dir/secrets.json"
+
+          for attempt in $(seq 1 30); do
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --request POST --header 'Content-Type: application/json' \
+              --header "Authorization: Bearer $execution_token" \
+              --data '{"action":"verify-plan097-preflight"}' "$endpoint")"
+            if [ "$status" = 200 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Plan 098 operator did not converge: HTTP $status" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $execution_token" \
+            --data '{"action":"verify-plan097-preflight"}' \
+            "$endpoint" > "$output_dir/preflight-before.json"
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $execution_token" \
+            --data '{"action":"protected-fingerprints","scope":"legacy-live"}' \
+            "$endpoint" > "$output_dir/protected-before.json"
+          jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
+            "$output_dir/preflight-before.json"
+
+          bun --filter @bp/db db:migrate:d1:v2:remote
+
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $execution_token" \
+            --data '{"action":"verify-plan097-preflight"}' \
+            "$endpoint" > "$output_dir/preflight-after.json"
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $execution_token" \
+            --data '{"action":"protected-fingerprints","scope":"legacy-live"}' \
+            "$endpoint" > "$output_dir/protected-after.json"
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $execution_token" \
+            --data '{"action":"status"}' \
+            "$endpoint" > "$output_dir/pointer.json"
+          test "$(jq -S -c '.result.fingerprints' "$output_dir/protected-before.json")" = \
+            "$(jq -S -c '.result.fingerprints' "$output_dir/protected-after.json")"
+          jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
+            "$output_dir/preflight-after.json"
+          jq -e '.ok == true and (.result.kind == "legacy" or .result.kind == "pointed")' \
+            "$output_dir/pointer.json"
+          sha256sum packages/db/migrations/d1-v2/0000_atomic_serving_release.sql \
+            packages/db/migrations/d1-v2/checksums.json \
+            "$output_dir"/*.json > "$output_dir/plan098-expand.receipt.sha256"
+          echo "operator_endpoint=$endpoint" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Plan 098 expand evidence
+        timeout-minutes: 2
+        if: always() && steps.plan098-expand.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan098-expand-${{ github.sha }}
+          path: /tmp/plan098-expand/
+          if-no-files-found: error
+
       - name: Audit exact route serving D1 before deploy
         id: exact-route-pre
         timeout-minutes: 8
@@ -108,6 +203,15 @@ jobs:
           bunx wrangler deployments status --json --config apps/web/wrangler.jsonc | jq -c '{id, created_on, versions: [.versions[] | {version_id, percentage}]}' > /tmp/plan097/worker-deployment-pre.json
           PLAN097_PRIOR_VERSION_ID="$(jq -er 'if (.versions | length) == 1 and .versions[0].percentage == 100 then .versions[0].version_id else error("production is not on one stable Worker version") end' /tmp/plan097/worker-deployment-pre.json)"
           echo "prior_version_id=$PLAN097_PRIOR_VERSION_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Capture active release before reader deploy
+        id: active-release
+        timeout-minutes: 2
+        if: steps.cloudflare.outputs.deploy == 'true'
+        run: |
+          ACTIVE_RELEASE_ID="$(curl --fail --silent --show-error \
+            'https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/status' | jq -er '.releaseId')"
+          echo "release_id=$ACTIVE_RELEASE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Build web release
         timeout-minutes: 5
@@ -165,7 +269,7 @@ jobs:
           PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
         run: |
           for attempt in $(seq 1 30); do
-            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260725T164123260Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --version-override-worker bus-priority-impact-studio --output /tmp/plan097/plan097-reader-staged.receipt.json --failure-output "/tmp/plan097/staged-attempt-${attempt}.failure.json"; then
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release "${{ steps.active-release.outputs.release_id }}" --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --version-override-worker bus-priority-impact-studio --output /tmp/plan097/plan097-reader-staged.receipt.json --failure-output "/tmp/plan097/staged-attempt-${attempt}.failure.json"; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
@@ -203,7 +307,7 @@ jobs:
           PLAN097_CANDIDATE_VERSION_ID: ${{ steps.plan097-reader-upload.outputs.candidate_version_id }}
         run: |
           for attempt in $(seq 1 30); do
-            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release pub_20260725T164123260Z --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json --failure-output "/tmp/plan097/deploy-attempt-${attempt}.failure.json"; then
+            if bun tools/pipeline-v2/scripts/check-plan097-recovery-reader.ts --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ --expected-release "${{ steps.active-release.outputs.release_id }}" --repo-sha "$GITHUB_SHA" --workflow-run-id "$GITHUB_RUN_ID" --worker-version-id "$PLAN097_CANDIDATE_VERSION_ID" --output /tmp/plan097/plan097-reader-deploy.receipt.json --failure-output "/tmp/plan097/deploy-attempt-${attempt}.failure.json"; then
               break
             fi
             if [ "$attempt" -eq 30 ]; then
@@ -316,3 +420,10 @@ jobs:
           name: plan097-reader-predeploy-rollback-${{ github.sha }}
           path: /tmp/plan097-rollback/
           if-no-files-found: error
+
+      - name: Remove temporary Plan 098 operator
+        timeout-minutes: 3
+        if: always() && steps.plan098-expand.outcome != 'skipped'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: bunx wrangler delete bus-priority-plan098-operator --force

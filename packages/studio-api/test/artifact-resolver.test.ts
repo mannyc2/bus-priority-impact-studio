@@ -93,8 +93,8 @@ function manifest(logicalKey = "studio/v1/routes.json") {
 
 describe("Plan 097 release artifact resolver", () => {
   test("allows only the independent public intervention release outside recovery manifests", async () => {
-    const networkKey = "studio/v2/interventions/public-episodes.json";
-    const routeKey = "studio/v2/routes/m15-sbs/intervention-history.json";
+    const networkKey = "studio/v2/interventions/public-episodes-v2.json";
+    const routeKey = "studio/v2/routes/m15-sbs/intervention-history-v2.json";
     const network = new FakeR2Object(networkKey, { public: true });
     const route = new FakeR2Object(routeKey, { route: true });
     const bucket = new FakeR2Bucket(
@@ -106,6 +106,12 @@ describe("Plan 097 release artifact resolver", () => {
 
     expect(isPublicInterventionArtifactKey(networkKey)).toBe(true);
     expect(isPublicInterventionArtifactKey(routeKey)).toBe(true);
+    expect(isPublicInterventionArtifactKey("studio/v2/interventions/public-episodes.json")).toBe(
+      false,
+    );
+    expect(
+      isPublicInterventionArtifactKey("studio/v2/routes/m15-sbs/intervention-history.json"),
+    ).toBe(false);
     expect(isPublicInterventionArtifactKey("studio/v2/interventions/corpus.json")).toBe(false);
     expect(isPublicInterventionArtifactKey("studio/v2/routes/m15-sbs/dossier.json")).toBe(false);
     expect(isPublicInterventionArtifactKey("quality/intervention-episode-resolution.json")).toBe(

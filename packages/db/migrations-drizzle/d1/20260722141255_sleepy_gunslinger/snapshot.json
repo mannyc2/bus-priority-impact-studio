@@ -2,9 +2,7 @@
   "version": "7",
   "dialect": "sqlite",
   "id": "88f5cfdc-dd7a-4134-860b-672fe4a6d976",
-  "prevIds": [
-    "e2eb2460-db03-4e56-927e-2007e2a93933"
-  ],
+  "prevIds": ["e2eb2460-db03-4e56-927e-2007e2a93933"],
   "ddl": [
     {
       "name": "alert",
@@ -4857,450 +4855,315 @@
       "table": "studio_actor_token"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "artifact_name"
-      ],
+      "columns": ["corridor_id", "month", "artifact_name"],
       "nameExplicit": false,
       "name": "corridor_artifact_corridor_id_month_artifact_name_pk",
       "entityType": "pks",
       "table": "corridor_artifact"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "corridor_hotspot_rank"
-      ],
+      "columns": ["corridor_id", "month", "corridor_hotspot_rank"],
       "nameExplicit": false,
       "name": "corridor_hotspot_corridor_id_month_corridor_hotspot_rank_pk",
       "entityType": "pks",
       "table": "corridor_hotspot"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "context_rank"
-      ],
+      "columns": ["corridor_id", "month", "context_rank"],
       "nameExplicit": false,
       "name": "corridor_intervention_context_corridor_id_month_context_rank_pk",
       "entityType": "pks",
       "table": "corridor_intervention_context"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month"
-      ],
+      "columns": ["corridor_id", "month"],
       "nameExplicit": false,
       "name": "corridor_month_summary_corridor_id_month_pk",
       "entityType": "pks",
       "table": "corridor_month_summary"
     },
     {
-      "columns": [
-        "corridor_id",
-        "month",
-        "route_id"
-      ],
+      "columns": ["corridor_id", "month", "route_id"],
       "nameExplicit": false,
       "name": "corridor_route_member_corridor_id_month_route_id_pk",
       "entityType": "pks",
       "table": "corridor_route_member"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "artifact_name"
-      ],
+      "columns": ["route_id", "month", "artifact_name"],
       "nameExplicit": false,
       "name": "route_artifact_route_id_month_artifact_name_pk",
       "entityType": "pks",
       "table": "route_artifact"
     },
     {
-      "columns": [
-        "month",
-        "route_rank"
-      ],
+      "columns": ["month", "route_rank"],
       "nameExplicit": false,
       "name": "route_batch_built_route_month_route_rank_pk",
       "entityType": "pks",
       "table": "route_batch_built_route"
     },
     {
-      "columns": [
-        "month",
-        "issue_rank"
-      ],
+      "columns": ["month", "issue_rank"],
       "nameExplicit": false,
       "name": "route_batch_issue_month_issue_rank_pk",
       "entityType": "pks",
       "table": "route_batch_issue"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "route_brief_peak_window_route_id_month_window_rank_pk",
       "entityType": "pks",
       "table": "route_brief_peak_window"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "route_brief_slowest_window_route_id_month_window_rank_pk",
       "entityType": "pks",
       "table": "route_brief_slowest_window"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_brief_summary_route_id_month_pk",
       "entityType": "pks",
       "table": "route_brief_summary"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_build_plan_route_id_month_pk",
       "entityType": "pks",
       "table": "route_build_plan"
     },
     {
-      "columns": [
-        "route_id",
-        "trip_type_rank"
-      ],
+      "columns": ["route_id", "trip_type_rank"],
       "nameExplicit": false,
       "name": "route_catalog_trip_type_pk",
       "entityType": "pks",
       "table": "route_catalog_trip_type"
     },
     {
-      "columns": [
-        "route_id",
-        "type_rank"
-      ],
+      "columns": ["route_id", "type_rank"],
       "nameExplicit": false,
       "name": "route_catalog_type_route_id_type_rank_pk",
       "entityType": "pks",
       "table": "route_catalog_type"
     },
     {
-      "columns": [
-        "month",
-        "rank"
-      ],
+      "columns": ["month", "rank"],
       "nameExplicit": false,
       "name": "route_comparison_rank_month_rank_pk",
       "entityType": "pks",
       "table": "route_comparison_rank"
     },
     {
-      "columns": [
-        "route_id",
-        "direction_id"
-      ],
+      "columns": ["route_id", "direction_id"],
       "nameExplicit": false,
       "name": "route_direction_route_id_direction_id_pk",
       "entityType": "pks",
       "table": "route_direction"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_equity_context_route_id_month_pk",
       "entityType": "pks",
       "table": "route_equity_context"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "event_id"
-      ],
+      "columns": ["route_id", "month", "event_id"],
       "nameExplicit": false,
       "name": "route_intervention_comparison_route_id_month_event_id_pk",
       "entityType": "pks",
       "table": "route_intervention_comparison"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_month_coverage_route_id_month_pk",
       "entityType": "pks",
       "table": "route_month_coverage"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "source_scope",
-        "source_id"
-      ],
+      "columns": ["route_id", "month", "source_scope", "source_id"],
       "nameExplicit": false,
       "name": "route_month_source_status_route_id_month_source_scope_source_id_pk",
       "entityType": "pks",
       "table": "route_month_source_status"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_month_trend_route_id_month_pk",
       "entityType": "pks",
       "table": "route_month_trend"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "run_id"
-      ],
+      "columns": ["route_id", "month", "run_id"],
       "nameExplicit": false,
       "name": "route_observed_reliability_summary_route_id_month_run_id_pk",
       "entityType": "pks",
       "table": "route_observed_reliability_summary"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_readiness_route_id_month_pk",
       "entityType": "pks",
       "table": "route_readiness"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "input_rank"
-      ],
+      "columns": ["route_id", "month", "input_rank"],
       "nameExplicit": false,
       "name": "route_readiness_missing_input_route_id_month_input_rank_pk",
       "entityType": "pks",
       "table": "route_readiness_missing_input"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_reliability_baseline_route_id_month_pk",
       "entityType": "pks",
       "table": "route_reliability_baseline"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "window_rank"
-      ],
+      "columns": ["route_id", "month", "window_rank"],
       "nameExplicit": false,
       "name": "route_reliability_gap_window_route_id_month_window_rank_pk",
       "entityType": "pks",
       "table": "route_reliability_gap_window"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_scorecard_route_id_month_pk",
       "entityType": "pks",
       "table": "route_scorecard"
     },
     {
-      "columns": [
-        "route_id",
-        "month",
-        "citation_rank"
-      ],
+      "columns": ["route_id", "month", "citation_rank"],
       "nameExplicit": false,
       "name": "route_scorecard_citation_route_id_month_citation_rank_pk",
       "entityType": "pks",
       "table": "route_scorecard_citation"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_speed_history_coverage_pk",
       "entityType": "pks",
       "table": "route_speed_history_coverage"
     },
     {
-      "columns": [
-        "route_id",
-        "month"
-      ],
+      "columns": ["route_id", "month"],
       "nameExplicit": false,
       "name": "route_timeline_index_pk",
       "entityType": "pks",
       "table": "route_timeline_index"
     },
     {
-      "columns": [
-        "source_id",
-        "month"
-      ],
+      "columns": ["source_id", "month"],
       "nameExplicit": false,
       "name": "source_month_coverage_pk",
       "entityType": "pks",
       "table": "source_month_coverage"
     },
     {
-      "columns": [
-        "alert_id"
-      ],
+      "columns": ["alert_id"],
       "nameExplicit": false,
       "name": "alert_pk",
       "table": "alert",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "corridor_id"
-      ],
+      "columns": ["corridor_id"],
       "nameExplicit": false,
       "name": "corridor_pk",
       "table": "corridor",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "release_id"
-      ],
+      "columns": ["release_id"],
       "nameExplicit": false,
       "name": "exact_route_identity_release_pk",
       "table": "exact_route_identity_release",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "identity_id"
-      ],
+      "columns": ["identity_id"],
       "nameExplicit": false,
       "name": "identity_pk",
       "table": "identity",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "session_id"
-      ],
+      "columns": ["session_id"],
       "nameExplicit": false,
       "name": "identity_session_pk",
       "table": "identity_session",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "event_id"
-      ],
+      "columns": ["event_id"],
       "nameExplicit": false,
       "name": "intervention_event_pk",
       "table": "intervention_event",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "release_id"
-      ],
+      "columns": ["release_id"],
       "nameExplicit": false,
       "name": "map_release_catalog_pk",
       "table": "map_release_catalog",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "comment_id"
-      ],
+      "columns": ["comment_id"],
       "nameExplicit": false,
       "name": "public_comment_pk",
       "table": "public_comment",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "month"
-      ],
+      "columns": ["month"],
       "nameExplicit": false,
       "name": "route_batch_status_pk",
       "table": "route_batch_status",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "route_id"
-      ],
+      "columns": ["route_id"],
       "nameExplicit": false,
       "name": "route_catalog_pk",
       "table": "route_catalog",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "saved_search_id"
-      ],
+      "columns": ["saved_search_id"],
       "nameExplicit": false,
       "name": "saved_search_pk",
       "table": "saved_search",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "actor_id"
-      ],
+      "columns": ["actor_id"],
       "nameExplicit": false,
       "name": "studio_actor_pk",
       "table": "studio_actor",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "role_id"
-      ],
+      "columns": ["role_id"],
       "nameExplicit": false,
       "name": "studio_actor_role_pk",
       "table": "studio_actor_role",
       "entityType": "pks"
     },
     {
-      "columns": [
-        "token_id"
-      ],
+      "columns": ["token_id"],
       "nameExplicit": false,
       "name": "studio_actor_token_pk",
       "table": "studio_actor_token",

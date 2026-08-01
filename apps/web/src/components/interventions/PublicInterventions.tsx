@@ -256,7 +256,7 @@ function ChangeGroup({ group }: { group: NetworkChangeGroup }) {
                 .flatMap((episode) =>
                   episode.routes.map((route) => (
                     <RouteBadge
-                      key={`${episode.episodeId}:${route.routeId}`}
+                      key={`${episode.episodeId}:${route.routeKey}`}
                       route={route.routeId}
                       displayLabel={route.label}
                       size="sm"

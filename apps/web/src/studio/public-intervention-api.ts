@@ -3,6 +3,10 @@ import type {
   PublicRouteInterventionHistoryArtifact,
 } from "@bp/domain/studio/public-intervention-episodes";
 import {
+  publicInterventionEpisodesKey,
+  publicRouteInterventionHistoryKey,
+} from "@bp/domain/studio/public-intervention-episodes";
+import {
   loadNullableStudioJson,
   publicArtifactPath,
   type StudioQueryOptions,
@@ -12,7 +16,7 @@ export async function fetchPublicInterventionEpisodes(
   options?: StudioQueryOptions,
 ): Promise<PublicInterventionEpisodesArtifact | null> {
   return loadNullableStudioJson<PublicInterventionEpisodesArtifact>(
-    publicArtifactPath("studio/v2/interventions/public-episodes.json"),
+    publicArtifactPath(publicInterventionEpisodesKey()),
     options,
   );
 }
@@ -22,7 +26,7 @@ export async function fetchPublicRouteInterventionHistory(
   options?: StudioQueryOptions,
 ): Promise<PublicRouteInterventionHistoryArtifact | null> {
   return loadNullableStudioJson<PublicRouteInterventionHistoryArtifact>(
-    publicArtifactPath(`studio/v2/routes/${routeSlug}/intervention-history.json`),
+    publicArtifactPath(publicRouteInterventionHistoryKey(routeSlug)),
     options,
   );
 }

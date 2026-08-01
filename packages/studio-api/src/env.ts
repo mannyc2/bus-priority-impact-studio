@@ -1,3 +1,5 @@
+import type { PointedServingReleaseContext } from "@bp/db/d1";
+
 export type StudioApiEnv = {
   DB?: D1Database;
   ARTIFACTS?: R2Bucket;
@@ -10,6 +12,11 @@ export type StudioApiEnv = {
   ENVIRONMENT?: string;
   PLAN097_RECOVERY_ENABLED?: string;
   PLAN097_PREVIOUS_RELEASE_ID?: string;
+  SERVING_POINTER_ENABLED?: string;
+  /** Request-local only; never a Worker binding or client-selectable value. */
+  SERVING_RELEASE_CONTEXT?: PointedServingReleaseContext;
+  /** Request-local original binding used only for current signals and the final pointer guard. */
+  SERVING_UNSCOPED_DB?: D1Database;
 };
 
 export type StudioApiRequestContext = {

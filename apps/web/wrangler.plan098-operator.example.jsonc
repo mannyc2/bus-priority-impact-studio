@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bus-priority-plan098-operator",
+  "account_id": "7aa7065a7e971d97435b3f22098d78b0",
+  "workers_dev": true,
+  "preview_urls": false,
+  "main": "./src/worker/plan098-operator.ts",
+  "compatibility_date": "2026-04-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "PLAN098_OPERATOR_ENABLED": "true"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bus-priority-serving",
+      "database_id": "d9cd87e2-1f77-44eb-b712-e834b23497b0"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "bus-priority-artifacts"
+    },
+    {
+      "binding": "PLAN097_OPERATIONS",
+      "bucket_name": "bus-priority-plan097-production-operations"
+    }
+  ]
+}

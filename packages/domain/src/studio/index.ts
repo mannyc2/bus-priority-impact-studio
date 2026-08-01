@@ -386,6 +386,22 @@ export {
   StudioAiNoteEvidenceKeySchema,
   StudioAiPublicNoteSchema,
 } from "./segment-evidence.js";
+export type {
+  ServingCandidateId,
+  ServingCandidateManifestV1,
+  ServingCandidateSemanticPayloadV1,
+  ServingReleaseV1,
+} from "./serving-release.js";
+export {
+  canonicalServingCandidateSemanticJson,
+  canonicalServingJson,
+  ServingCandidateArtifactSchema,
+  ServingCandidateIdSchema,
+  ServingCandidateManifestV1Schema,
+  ServingReleaseV1Schema,
+  ServingSha256Schema,
+  servingCandidateSemanticPayload,
+} from "./serving-release.js";
 export type { ComparableRoute, StudioQuality } from "./shared.js";
 export { ComparableRouteSchema, StudioQualitySchema } from "./shared.js";
 export type {
