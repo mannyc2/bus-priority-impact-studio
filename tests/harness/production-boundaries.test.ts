@@ -280,6 +280,9 @@ describe("production boundary harness", () => {
     expect(plan098OperationHandler?.text).toContain("env.DB.batch(");
     expect(plan098OperationHandler?.text).toContain("PLAN098_EXECUTION_TOKEN");
     expect(plan098OperationHandler?.text).toContain("PLAN098_OPERATOR_ENABLED");
+    expect(plan098OperationHandler?.text).toContain("return { absentTables, fingerprints }");
+    expect(plan098OperationHandler?.text).toContain("Required current-signal table");
+    expect(workflow).toContain("jq -S -c '.result'");
   });
 
   test("Plan 097 proof template cannot bind or route to production", async () => {

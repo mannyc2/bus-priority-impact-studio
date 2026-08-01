@@ -158,8 +158,8 @@ jobs:
             "$output_dir/pointer.json" \
             "$output_dir/pointer-status.json" \
             pointer-status
-          test "$(jq -S -c '.result.fingerprints' "$output_dir/protected-before.json")" = \
-            "$(jq -S -c '.result.fingerprints' "$output_dir/protected-after.json")"
+          test "$(jq -S -c '.result' "$output_dir/protected-before.json")" = \
+            "$(jq -S -c '.result' "$output_dir/protected-after.json")"
           jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
             "$output_dir/preflight-after.json"
           jq -e '.ok == true and (.result.kind == "legacy" or .result.kind == "pointed")' \

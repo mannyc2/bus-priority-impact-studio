@@ -460,19 +460,20 @@ async function jsonAction(
       .filter(([, ownership]) => ownership.owner === "live_write")
       .map(([table]) => table)
       .toSorted();
-    const tables = legacyLiveOnly
-      ? liveTables
-      : [
-          ...liveTables,
-          "route_month_source_status_current_signal",
-          "route_observed_reliability_current_signal",
-        ];
+    const currentSignalTables = [
+      "route_month_source_status_current_signal",
+      "route_observed_reliability_current_signal",
+    ];
+    const tables = legacyLiveOnly ? liveTables : [...liveTables, ...currentSignalTables];
     const fingerprints = [];
     const absentTables = [];
     for (const table of tables) {
       if (!/^[a-z][a-z0-9_]*$/u.test(table)) throw new Error("Unsafe protected table name.");
       const info = await env.DB.prepare(`PRAGMA table_info("${table}")`).all<{ name: string }>();
       if (!info.success || info.results.length === 0) {
+        if (currentSignalTables.includes(table)) {
+          throw new Error(`Required current-signal table ${table} is absent.`);
+        }
         absentTables.push(table);
         continue;
       }
@@ -489,10 +490,7 @@ async function jsonAction(
         sha256: await sha256(`${canonicalServingJson(rows.results)}\n`),
       });
     }
-    if (absentTables.length > 0) {
-      throw new Error(`Protected tables are absent: ${absentTables.join(", ")}.`);
-    }
-    return { fingerprints };
+    return { absentTables, fingerprints };
   }
   if (action === "candidate-status") {
     const candidateId = stringField(payload, "candidateId");

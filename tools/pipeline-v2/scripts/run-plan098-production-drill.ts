@@ -314,7 +314,10 @@ async function main(): Promise<void> {
     });
     await operatorJson({ action: "bootstrap-current-signals", coverageEnd: "2026-05" });
   }
-  const fingerprintsBefore = await operatorJson<{ fingerprints: unknown[] }>({
+  const fingerprintsBefore = await operatorJson<{
+    absentTables: string[];
+    fingerprints: unknown[];
+  }>({
     action: "protected-fingerprints",
   });
   if (pointer.generation === 0) {
@@ -409,7 +412,10 @@ async function main(): Promise<void> {
   ) {
     throw new Error(`Plan 098 drill ended in unexpected pointer generation ${pointer.generation}.`);
   }
-  const fingerprintsAfter = await operatorJson<{ fingerprints: unknown[] }>({
+  const fingerprintsAfter = await operatorJson<{
+    absentTables: string[];
+    fingerprints: unknown[];
+  }>({
     action: "protected-fingerprints",
   });
   if (JSON.stringify(fingerprintsAfter) !== JSON.stringify(fingerprintsBefore)) {
