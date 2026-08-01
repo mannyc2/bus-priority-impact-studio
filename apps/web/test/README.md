@@ -6,7 +6,6 @@ Keep web tests outside `src/`; production trees should not contain `*.test.ts`,
 Use these directories:
 
 - `shared/` for Bun tests of pure UI helpers, generated manifests, and fixture contracts.
-- `route-scorecards/` for Bun tests around route scorecard fixtures and UI-facing data shapes.
 - `worker/` for Cloudflare Worker runtime tests only. These files must end in
   `.worker.test.ts` and run through `bun --filter @bp/web test:worker`.
 
