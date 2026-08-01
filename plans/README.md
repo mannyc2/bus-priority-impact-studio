@@ -132,16 +132,16 @@ claim bundle-size wins.
 Plan 106 was refreshed against `origin/main@5dd08062` after `mta-wiki` Plans
 053-056 completed and the final non-prerelease
 `resolved-pack-v1-production` GitHub Release was published. The exact release,
-archive, manifest, resource, and accepted-conformance hashes are now pinned in
-the plan. The producer gate is clear; implementation must start in a clean
-current-main worktree. Plan 098 remains a hard prerequisite for activation,
-not for building and reviewing the Tracker candidate.
+archive, manifest, resource, and accepted-conformance hashes are pinned in the
+plan. The strict v2 importer, projection, readers, and deterministic unpublished
+candidate are complete. Plan 098 remains a hard prerequisite for activation,
+not for the completed Tracker candidate handoff.
 
 ## Execution order & status (gen 19)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 106 | Cut the site over to the reviewed resolved-transit public pack | P0 | XL | final producer release (satisfied); local 098 for activation; Plan 057 pin/deploy | TODO (producer handoff verified; executable now on a clean current-main branch) |
+| 106 | Cut the site over to the reviewed resolved-transit public pack | P0 | XL | final producer release (satisfied); local 098 for activation; Plan 057 pin/deploy | DONE (candidate `b647f0f1…`; activation handed to 098) |
 
 ## Dependency and safety notes (gen 19)
 

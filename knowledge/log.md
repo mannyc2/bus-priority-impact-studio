@@ -9807,3 +9807,45 @@ pass (which exercises the three surviving v1 routes against real D1/R2 in worker
 the curl smoke the plan asked for); `check:architecture` 0; biome clean on all changed files.
 `check:style` repo-wide still exits 1 on the same 2 pre-existing errors recorded in the Plan 113
 entry, in files this branch does not touch.
+
+## [2026-08-01] engineering | Plan 106 consumes the final resolved-transit pack without activating it
+
+Completed Plan 106 on `codex/106-resolved-transit-public-pack`, based on current main after PR #127
+landed the recovered plan body. The site now has a strict, hash-pinned boundary for the final
+`resolved-pack-v1-production` producer release: all 60 outer-manifest files verify before decode;
+the exact 11 public resources and five build-only Tracker-conformance resources decode through
+closed Effect schemas and reconcile their identities, joins, indexes, history, current footprint,
+summary counts, semantic counts, and accepted 230-row disposition partition. The old rc25 inputs,
+local eight-row reconciliation authority, family-derived role/lifecycle copy, and local episode
+minting were removed from the public episode builder.
+
+The v2 serving union preserves all 157 producer `occurrence:*` identities and adds only the 65
+accepted existing Tracker ACE `ep_*` enrichments. Producer components carry reviewed action,
+extent, applicability, caveats, exact route keys, placements, dates, and citations; Tracker rows are
+separately tagged and cannot carry producer component or placement fields. `/interventions`, route
+history, the Studio API independent-artifact allowlist, and the local candidate seeder all use the
+new `public-episodes-v2.json` / `intervention-history-v2.json` logical keys. The empty producer
+current footprint remains authoritative: 95 `last_confirmed_active` and nine `unknown` placements
+are rendered only as historical evidence, never as current-active claims.
+
+The unpublished candidate id is
+`b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`. It contains exactly 222
+episodes (157 producer, 65 Tracker enrichment), 188 route artifacts, and 268 memberships; the
+private audit accounts for 131 producer-identity mappings, 65 enrichments, eight exclusions, and 26
+additions with zero unexplained rows. Producer counts are 343 components, 104 placements, 170 route
+keys, ten treatment families, 447 history rows, zero current-footprint rows, and 54 sources. The
+normalized pack hash is `c9721e5488226869affaa59de637d21fa11f694bd2597031dcbd1b83e2aee425`;
+global artifact `605270b477210f289f95f1dccc0e4e257a9c8575d683ecb29f4c3cd76b23120b`;
+artifact map `403d9d570d42b8284b6c86b0db64d75b14ede3f2b5f67298cf26995b79e684b5`;
+handoff `91e8d2f4f52c9ab38bfef10ace20eedc465d40f2625150632b8823013d3d3e23`.
+Two full writes produced the same 192-file aggregate hash
+`c86b70a8ecb1fdb1129b1646fb6bbe4b3d47f13287d9d86f45a314d113f9b639`.
+
+Verification: domain 141/141; pipeline-v2 535/535; aggregate unit 961/961; web 445/445; Worker
+32/32; typecheck, architecture, web release/bundles, focused Biome, pinned production import,
+content audit, and deterministic replay passed. The top-level `bun run check` still stops at the
+same two untouched baseline `check:style` errors recorded by Plans 113/114 (the Drizzle snapshot and
+`mta-wiki-route-identities.test.ts`); later gates passed independently. No stable logical key,
+`LATEST`, Tracker pin, release/publication timestamp, or deployment changed. The 190-entry artifact
+map is the closed Plan 098 staging/activation/rollback input; only after Plan 098 activates it
+atomically may the separately approved Plan 057 Tracker pin and deployment proceed.
