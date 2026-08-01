@@ -12,8 +12,7 @@
     "./recovery/plan097": "./recovery/plan097/index.ts",
     "./recovery/plan097/artifacts": "./recovery/plan097/artifacts.ts",
     "./local": "./src/local/index.ts",
-    "./local/schema": "./src/local/schema.ts",
-    "./shared": "./src/shared/index.ts"
+    "./local/schema": "./src/local/schema.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",

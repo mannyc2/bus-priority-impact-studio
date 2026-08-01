@@ -10,8 +10,7 @@
     "./client/fetch": "./src/client/fetch.ts",
     "./server": "./src/server/index.ts",
     "./server/worker": "./src/server/worker.ts",
-    "./server/scheduled": "./src/server/scheduled.ts",
-    "./server/testing": "./src/server/testing/index.ts"
+    "./server/scheduled": "./src/server/scheduled.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit --pretty false",
