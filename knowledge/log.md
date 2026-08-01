@@ -9934,9 +9934,16 @@ current-signal tables are still mandatory after migration. No nonexistent auth/e
 created, and production's exact pre-existing presence/absence boundary becomes durable evidence.
 
 Expand run `30719529746` passed the signed preflight and protected absence sentinel, then reached
-the first remote v2 migration apply. D1 reset the storage object after the 64,196-byte,
-303-statement file exceeded its operation timeout (`7429`); Wrangler reported the migration failed
+the first remote v2 migration apply. D1 reset the storage object after the 64,196-byte file,
+initially miscounted as 303 statements, exceeded its operation timeout (`7429`); Wrangler reported the migration failed
 and rolled it back. No reader or pointer step ran. The exact failed `0000` file/checksum remains
 retained, while Wrangler's active `migrations_pattern` now selects 14 mechanically equivalent,
 ordered files capped at 30 statements and roughly 6 KiB. The checksum checker verifies every split
 file and proves their normalized concatenation is exactly the retained failed statement stream.
+
+Expand run `30720050586` applied `active/0001` successfully, then failed and rolled back `0002`
+with SQLite `incomplete input` before any reader or pointer step. The first splitter had treated an
+inner `CASE ... END;` as a trigger terminator. The applied `0001` remains byte-identical; the failed
+14-file set is checksum-retained under `failed-split-30720050586`, and only the unapplied tail is
+regenerated with trigger-aware statement boundaries. A focused parser regression covers the nested
+`CASE` form and establishes the correct 301-statement stream before the remote retry.

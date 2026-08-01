@@ -49,6 +49,10 @@ or "is this data product complete enough?" decisions here. Pure policy belongs i
   manifest retain the exact oversized first attempt. Cloudflare rolled that
   failed migration back; Wrangler discovers only the mechanically equivalent
   bounded files under `active/` through `migrations_pattern`.
+- `migrations/d1-v2/failed-split-30720050586` retains the first bounded split.
+  Production committed only its byte-identical `active/0001`; `0002` rolled back
+  after a nested `CASE ... END;` parser boundary, so the trigger-aware active
+  tail replaces only migrations that were never applied.
 - `migrations-drizzle/d1` remains the full-schema Drizzle snapshot cache, not
   an application ledger. Snapshot-only catch-up entries may have no-op
   `migration.sql` files when live Wrangler SQL already applied the change.
