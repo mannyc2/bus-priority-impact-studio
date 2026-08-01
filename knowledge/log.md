@@ -9682,3 +9682,67 @@ relation to this chain) — split 3 fail / 3 pass across six runs this session,
 including both with and without this plan's step-4 changes present
 (isolated via `git stash`), confirming pre-existing timing flakiness rather
 than a regression.
+
+## [2026-08-01] docs | Plan 113 cuts the doc corpus over to living documents only
+
+Completed Plan 113 on `advisor/113-docs-corpus-cutover`. The doc corpus taught a retired
+architecture as current: 98 of 106 numbered plans were closed, ~24K lines of wiki documented five
+programs that no longer exist in this repo, and `knowledge/index.md` — the file every agent is told
+to read first — opened with "Generation 4 status" and linked 60+ pages. Net −63,135 lines across 196
+files. Plan bodies and wiki pages are preserved in git history; numbering stays monotonic.
+
+Step 1: deleted 98 closed plan files (34,162 lines), keeping README.md, the open plans (026, 045,
+090, 098-101) and the generation-20 set (107-114). Step 2: deleted all mockup comps (13 files, 5,216
+lines) — `082-overview-trend-markers/` lost its keep-reason when plan 105 landed via PR #115. Step 3:
+rewrote `plans/README.md` from 2,163 to 691 lines, collapsing generations 1-16 to one line each and
+consolidating every per-generation "considered and rejected" ledger into a single standing-rejections
+appendix, which is now the "do not re-audit" surface. Step 4: deleted 61 retired-programs wiki pages
+(22,385 lines); six files failed the stale-gate and were kept per the plan's instruction, listed
+below. Step 5: rewrote `knowledge/index.md` around the 47 surviving pages, repointed
+`knowledge/AGENTS.md` and `knowledge/README.md`, and deleted `knowledge/docs/`. Step 6: hardened
+`check:knowledge`.
+
+Two judgment calls worth recording. The citation gate fired in step 1: keep-plan 090 hard-cites five
+DONE plans (084/085/086/088/091) that were on the delete list. Resolved the same way the committed
+plan-113 body already resolved it — dangling provenance citations inside DONE keep-plans are fine,
+because git history is the archive; 090 keeps its citations and the five dependencies were deleted.
+And `route_treatment_summary_materializer_plan.md` looked like an obvious delete (its index blurb
+called it a historical materializer plan, and plan 111 had just deleted the materializer command),
+but the file was repurposed to "Route Intervention Inventory Operations" — status active, last
+updated 2026-07-20 — and only keeps the old filename for stable wiki links. It stays; its index entry
+now describes what it actually is.
+
+Kept on failed stale-gate (six engineering pages, all re-read individually):
+`route_treatment_summary_materializer_plan` (live, see above), `drizzle_query_modernization_plan`,
+`drizzle_modernization_completion_audit`, `pipeline_raw_prepare_audit` (completed-work audits whose
+measurements are still the record for the Drizzle RC upgrade), `sources_adapter_cutover_plan`
+(completed cutover, still the boundary doctrine for `@bp/sources`), and
+`generated_cli_distribution_plan` (status active, 2026-07-05).
+
+`check:knowledge` previously asserted only that three files exist, which is exactly why the index
+could rot for a generation without failing anything. It now resolves every `[[wiki/...]]` link in
+`index.md`, fails on any wiki page with no index entry, and fails on any frontmatter `status:`
+outside the enum `AGENTS.md` declares — parsed from `AGENTS.md` so the doc stays the single source of
+truth. The check body became an exported `checkKnowledge(root)` behind an `import.meta.main` guard so
+its six tests run against temp fixture trees rather than asserting on source text. Normalizing to
+that gate required fixing eight pages: six carried `complete`/`completed`/`planning` (mapped to
+`archived`/`active`) and `studio_design_pass_status.md` and `ui_copy_doctrine.md` had no frontmatter
+at all. Also swept 18 stale bare `tools/pipeline` pointers out of 8 keep-pages (that directory is
+`tools/pipeline-v2` and has been for a long time).
+
+Deliberately NOT done: `knowledge/wiki/engineering/cli_commands.md` and `etl_plan.md` still show ~33
+example commands under the non-existent `@bp/pipeline` filter. Renaming them mechanically to
+`@bp/pipeline-v2` would assert that those ~30 command names are valid under pipeline-v2, which was
+not verified — a visibly stale package name is safer than a plausible false one. Flagged for a future
+truth sweep against the real command registry.
+
+Verification: `bun run check:knowledge` exits 0 on the cleaned tree, and exits 1 (reporting both the
+dangling link and the newly orphaned page) when one index link is retyped, then returns to 0 on
+revert. `bun run check:types` exits 0; `bun run check:architecture` exits 0 (production-boundaries,
+design-doctrine, month-doctrine, claude-config); `bun run test` exits 0 (957 unit + 446 web + 32
+worker). `bun run check:style` still exits 1 on 2 pre-existing errors — the oversize SHA-pinned
+`candidate-set-v3-*.study-events.json` (1.1 MiB against a 1.0 MiB cap; it is in plan 112's
+load-bearing keep-set) and a `packages/db/migrations-drizzle` snapshot format diff — neither in a
+file this branch touches, confirmed against `git diff --name-only origin/main...HEAD`. So `bun run
+check`, which chains style, does not reach exit 0; every other component does. `knowledge/log.md`
+untouched except this appended entry.

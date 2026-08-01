@@ -1,7 +1,7 @@
 ---
 title: Sources Adapter Cutover Plan
 type: engineering
-status: completed
+status: archived
 last_updated: 2026-07-03
 owner: codex
 source_count: 3

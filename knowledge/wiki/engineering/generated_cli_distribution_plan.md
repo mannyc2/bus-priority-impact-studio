@@ -259,7 +259,7 @@ workspace:
 file:
 apps/web
 packages/db
-tools/pipeline
+tools/pipeline-v2
 .github
 node_modules
 ```

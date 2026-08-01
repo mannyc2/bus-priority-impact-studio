@@ -81,7 +81,7 @@ When the user asks a question:
 2. Read relevant wiki pages.
 3. If exact facts depend on current data, run source probes or fetch metadata.
 4. Answer with citations to wiki pages and raw source URLs.
-5. If the answer produces durable analysis, create a new `wiki/analysis/*.md` page and update `index.md`/`log.md`.
+5. If the answer produces durable analysis, add it to the relevant `wiki/` page and update `index.md`/`log.md`. Every wiki page needs an `index.md` entry — `check:knowledge` fails on orphans.
 
 ## Build workflow
 
@@ -89,7 +89,7 @@ Before implementation work:
 
 1. Read repo root `../CLAUDE.md` and `../AGENTS.md`.
 2. Validate the source registry.
-3. Probe schemas through Bun-run TypeScript commands in `../tools/pipeline`, not Python scripts.
+3. Probe schemas through Bun-run TypeScript commands in `../tools/pipeline-v2`, not Python scripts.
 4. Decide MVP scope in `wiki/project/mvp.md`.
 5. Implement ingestion before dashboards.
 6. Write data-quality tests before metric claims.
@@ -103,7 +103,7 @@ Current MVP stack:
 - React + Vite frontend and Cloudflare Worker API in `apps/web`.
 - Cloudflare D1 as the compact serving database.
 - Cloudflare R2 for generated artifacts.
-- Bun-run local TypeScript pipeline jobs in `tools/pipeline`.
+- Bun-run local TypeScript pipeline jobs in `tools/pipeline-v2`.
 - DuckDB/Turf may be used locally for analytical/geospatial work.
 - No pnpm, Python, FastAPI, hosted Postgres/PostGIS, or VPS unless a documented requirement forces escalation.
 
@@ -124,13 +124,12 @@ For every ingested dataset, maintain:
 
 ## LLM/RAG rules
 
-The LLM assistant is not the product. The product is bus-priority analytics and route evidence
-brief building. Follow [[wiki/project/ai_interaction_model|AI Interaction Model]] when adding any
-AI-facing UI, pipeline artifact, or composer behavior.
+The LLM assistant is not the product. The product is bus-priority analytics and route evidence.
+Follow [[wiki/project/ai_interaction_model|AI Interaction Model]] when adding any AI-facing UI or
+pipeline artifact.
 
 Use LLMs for:
 
-- Cited route-improvement briefs.
 - Source search across MTA docs and wiki pages.
 - Explaining methods/caveats to nontechnical readers.
 - Generating analyst memos from computed metrics.

@@ -133,7 +133,7 @@ Do not implement drag-to-select, custom drawing tools, realtime bus animations, 
 
 - `apps/web` renders MapLibre layers and owns interaction state.
 - `packages/domain` owns shared GeoJSON/map artifact contracts.
-- `tools/pipeline` owns geospatial construction, validation, and artifact writes.
+- `tools/pipeline-v2` owns geospatial construction, validation, and artifact writes.
 - `packages/sources` owns MTA, Socrata, NYC DOT, and Census source clients/adapters.
 - `packages/db` owns artifact indexes and serving-table repositories.
 

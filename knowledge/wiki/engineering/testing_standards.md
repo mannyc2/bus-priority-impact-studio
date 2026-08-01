@@ -69,7 +69,7 @@ Use these locations:
 | Code area | Test location | Runner |
 |---|---|---|
 | `packages/<name>/src/` | `packages/<name>/test/*.test.ts` | Bun test |
-| `tools/pipeline/src/` | `tools/pipeline/test/*.test.ts` | Bun test |
+| `tools/pipeline-v2/src/` | `tools/pipeline-v2/test/*.test.ts` | Bun test |
 | `apps/web/src/worker/` | `apps/web/test/**/*.worker.test.ts` | Cloudflare Vitest pool |
 | Cross-cutting architecture rules | `tests/harness/*.test.ts` | Bun test |
 
@@ -116,7 +116,7 @@ Keep this harness small:
 
 `tests/harness/production-boundaries.test.ts` uses Bun test to make import-boundary failures obvious:
 
-- `apps/web` must not import `@bp/analytics`, `@bp/sources`, `tools/pipeline`, or `knowledge/`.
+- `apps/web` must not import `@bp/analytics`, `@bp/sources`, `tools/pipeline-v2`, or `knowledge/`.
 - `packages/domain` must not import infrastructure or local packages.
 
 This catches a common failure mode: accidentally moving heavy source fetching or analytics into public request paths.
