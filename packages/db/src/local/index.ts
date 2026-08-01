@@ -65,22 +65,10 @@ export type {
   ListContextEventRouteTouchesArgs,
   LocalContextEvent,
   LocalContextEventRouteTouch,
-  LocalFindingCandidate,
-  LocalFindingCoverageAudit,
-  LocalFindingEvidenceLink,
-  ReplaceFindingsForMonthArgs,
 } from "./repositories/findings.js";
 export {
   countContextEvents,
-  insertCoverageAudit,
-  insertCoverageAuditIgnore,
-  insertFindingCandidate,
-  insertFindingEvidenceLinks,
-  listCandidatesByRoute,
   listContextEventRouteTouchesForWindow,
-  listEvidenceForCandidate,
-  replaceFindingRun,
-  replaceFindingsForMonth,
   upsertContextEvents,
 } from "./repositories/findings.js";
 export type { LocalGeocodeCacheRow } from "./repositories/geocode-cache.js";
