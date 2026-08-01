@@ -851,42 +851,6 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         ],
       },
       {
-        id: "route_treatment_summary_artifact",
-        label: "Route treatment summary artifact",
-        kind: "artifact_family",
-        owner: "tools/pipeline-v2/studio",
-        grain: "route x month x treatment source/segment/source-gap summary",
-        producerCommand: "studio route-treatment-summary",
-        expectedUniverse: {
-          description:
-            "Deterministic route treatment, segment overlap, and source-gap summary rows for the latest covered month.",
-          routes: "route_catalog",
-          months: "latest_month",
-        },
-        requiredInputs: [
-          "local_intervention_events_release",
-          "local_context_event_route_touches_history",
-          "map_base_geojson_artifacts",
-          "mta_wiki_route_evidence_release",
-        ],
-        downstreamConsumers: [
-          "Studio intervention timeline",
-          "route evidence panels",
-          "data notes",
-        ],
-        freshnessPolicy: { cadence: "latest_month" },
-        checks: [
-          {
-            id: "summary_json",
-            label: "Route treatment summary JSON",
-            type: "json_artifact",
-            pathTemplate:
-              "{artifactRoot}/studio/v2/route-treatment-summary/{releaseMonth}/route-treatment-summary.json",
-            validateReleaseMonth: true,
-          },
-        ],
-      },
-      {
         id: "mta_wiki_route_evidence_release",
         label: "mta-wiki route evidence release",
         kind: "artifact_family",

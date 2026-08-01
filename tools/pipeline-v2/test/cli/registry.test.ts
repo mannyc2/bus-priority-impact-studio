@@ -125,7 +125,6 @@ const expectedRegistry = {
     "route-speed-history",
     "route-speed-spine",
     "route-speed-spines",
-    "route-treatment-summary",
   ],
   verify: ["d1"],
 };
@@ -133,7 +132,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(114);
+    expect(commands).toHaveLength(113);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 
