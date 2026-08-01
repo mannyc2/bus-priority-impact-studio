@@ -38,7 +38,7 @@ This page is the package-structure decision that follows [[wiki/project/managed_
 
 - The MVP does **not** require Python. Source probing, Socrata fetches, static GTFS/GeoJSON handling, route score computation, artifact generation, D1 seed generation, and the public app can all be written in TypeScript.
 - D1 should be treated as the **serving database**, not the analytics warehouse. Its job is to serve compact read models and artifact metadata.
-- Heavy geospatial work should run locally through `tools/pipeline`, using TypeScript plus SQL/DuckDB/Turf as needed. The public Worker should only read precomputed outputs.
+- Heavy geospatial work should run locally through `tools/pipeline-v2`, using TypeScript plus SQL/DuckDB/Turf as needed. The public Worker should only read precomputed outputs.
 - Hosted Postgres/PostGIS and Python are later escalation tools, not day-one dependencies.
 
 ## Evaluation criteria
@@ -111,18 +111,18 @@ bus-priority-impact-studio/
 | `packages/sources` | `@bp/sources` | Socrata/MTA/NYC DOT/Census adapters, source metadata probe adapters, raw DTO parsing | `@bp/domain` | UI, D1 repositories, route scoring, local artifact writes |
 | `packages/analytics` | `@bp/analytics` | Deterministic transforms, hotspot scoring, route score computation, ACE impact calculations | `@bp/domain`, `@bp/sources` | React, Worker handlers |
 | `packages/db` | `@bp/db` | D1 serving schema/queries plus local SQLite pipeline schema, migrations, and repositories | `@bp/domain` | source fetchers, heavy analytics |
-| `tools/pipeline` | `@bp/pipeline` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
+| `tools/pipeline-v2` | `@bp/pipeline-v2` | Local CLI for probes, fetches, transforms, artifact builds, D1 seed generation | all packages | public request handlers |
 | `knowledge` | none | LLM-maintained wiki and raw source notes | none at runtime | app runtime imports |
 | `data` | none | Local generated data and test fixtures | none | committed large datasets |
 
 ## Pipeline internal layout
 
-`tools/pipeline` is an orchestration package, not the place where all data logic should accumulate.
+`tools/pipeline-v2` is an orchestration package, not the place where all data logic should accumulate.
 
 Use this internal structure:
 
 ```text
-tools/pipeline/src/
+tools/pipeline-v2/src/
   cli.ts
   checks/
   jobs/
@@ -463,14 +463,14 @@ packages/studio-api   -> packages/domain, packages/db
 packages/db           -> packages/domain
 packages/analytics    -> packages/domain, packages/sources
 packages/sources      -> packages/domain
-tools/pipeline        -> packages/domain, packages/sources, packages/analytics, packages/db
+tools/pipeline-v2        -> packages/domain, packages/sources, packages/analytics, packages/db
 ```
 
 Forbidden:
 
 ```text
 packages/*            -> apps/*
-apps/web              -> tools/pipeline
+apps/web              -> tools/pipeline-v2
 apps/web              -> packages/analytics
 apps/web              -> packages/applied-research
 apps/web              -> packages/sources
@@ -629,7 +629,7 @@ Start with this order:
 
 1. `packages/domain`: define route IDs, direction IDs, month type, metric names, and scorecard types.
 2. `packages/sources`: implement source manifest loader and one Socrata metadata probe.
-3. `tools/pipeline`: add `sources probe` command that writes `knowledge/raw/metadata/*.json`.
+3. `tools/pipeline-v2`: add `sources probe` command that writes `knowledge/raw/metadata/*.json`.
 4. `packages/db`: add D1 migrations for compact route scorecard tables.
 5. `packages/analytics`: add one deterministic hotspot builder using fixture data.
 6. `apps/web`: add route scorecard page reading from D1 and route geometry artifact from R2/static path.
@@ -647,7 +647,7 @@ Start with this order:
 
 ## Local spatialite (allowed; not hosted PostGIS)
 
-`tools/pipeline` loads `mod_spatialite` into the local SQLite database for the
+`tools/pipeline-v2` loads `mod_spatialite` into the local SQLite database for the
 route ⇄ LION corridor join and for nearest-segment snapping during address
 geocoding. Spatialite is offline, local-only, and never reaches D1 or the
 Worker — the output is a flat `local_route_lion_link` lookup table. See
@@ -779,7 +779,7 @@ packages/db/
 | `packages/db` | Drizzle schemas, migrations, derived-row repository SQL construction, local/D1 clients, and D1 seed/import helpers with small writer-boundary validators. |
 | `packages/sources` | Public source clients and source DTO validation. No Drizzle imports. |
 | `packages/analytics` | Pure deterministic transforms over source/domain inputs. No Drizzle table imports. |
-| `tools/pipeline` | Orchestrates source fetches, analytics, artifact builds, D1 exports, and future Postgres backfills through `@bp/db` repository/export APIs. |
+| `tools/pipeline-v2` | Orchestrates source fetches, analytics, artifact builds, D1 exports, and future Postgres backfills through `@bp/db` repository/export APIs. |
 | `apps/web` | Calls Worker handlers and `@bp/db` public repository functions only. It must not import Drizzle tables directly. |
 
 ### Dependency boundary rules
@@ -787,8 +787,8 @@ packages/db/
 - `@bp/db` may import `@bp/domain`, `drizzle-orm`, and Drizzle drivers. It does not depend on `zod`.
 - `@bp/domain` must not import `@bp/db`, Drizzle, Cloudflare types, or source clients.
 - `@bp/analytics` should not import Drizzle tables; it produces typed domain/read-model outputs.
-- `tools/pipeline` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
-- `tools/pipeline` may call `@bp/db/local` repositories for canonical local build state.
+- `tools/pipeline-v2` may call `@bp/db/d1/seed` helpers while seed generation still writes SQL files; it should not own schema DDL or Worker read queries.
+- `tools/pipeline-v2` may call `@bp/db/local` repositories for canonical local build state.
 - `apps/web/src/worker` may create a D1 Drizzle client and call repository functions; it must not run source ingestion or analytics.
 - `apps/web/src/worker` may host Cloudflare Think / Workers AI authoring agents. Those agents must
   mutate Studio drafts only through Worker-local tools and `@bp/db/d1` helpers, never by importing

@@ -12,7 +12,7 @@ tags: [etl, ingestion, data-quality, typescript, bun, drizzle, d1, postgres, loc
 
 ## Why this matters
 
-The MVP should separate batch computation from public serving. Source probing, historical backfills, geospatial joins, hotspot scoring, and ACE analysis run locally through `tools/pipeline`. The public app reads compact D1 tables and generated artifacts.
+The MVP should separate batch computation from public serving. Source probing, historical backfills, geospatial joins, hotspot scoring, and ACE analysis run locally through `tools/pipeline-v2`. The public app reads compact D1 tables and generated artifacts.
 
 See [[wiki/engineering/package_structure|Repo Package Structure]] and [[wiki/engineering/data_model|Data Model]].
 
@@ -267,7 +267,7 @@ The branch already has a rich local Bun pipeline: source probes, route catalog/c
 
 ### Local historical setup and backfill
 
-Keep these local through `tools/pipeline`:
+Keep these local through `tools/pipeline-v2`:
 
 - full Socrata/schema probes,
 - MTA route/stop/schedule source fetches,

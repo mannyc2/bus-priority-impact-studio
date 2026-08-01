@@ -1,3 +1,13 @@
+---
+title: UI copy doctrine
+type: engineering
+status: active
+last_updated: 2026-06-11
+owner: codex
+source_count: 0
+tags: [design, studio, ui, copy, doctrine]
+---
+
 # UI copy doctrine
 
 Rules for what user-facing copy on Studio pages is allowed to say. These exist because backend-flavored prose keeps leaking into headers, subheads, and inline help — usually written by agents who are working on the pipeline or projection schema and don't realize they're writing for a different audience.

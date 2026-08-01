@@ -409,7 +409,7 @@ CREATE INDEX idx_route_artifact_route_kind
 | Source DTOs | `packages/sources` |
 | Analytics outputs | `packages/analytics` |
 | D1 migrations and repositories | `packages/db` |
-| Seed/artifact generation | `tools/pipeline` |
+| Seed/artifact generation | `tools/pipeline-v2` |
 | Public reads | `apps/web` via `packages/db` |
 
 ## Migration path to PostGIS

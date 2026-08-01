@@ -1,7 +1,7 @@
 ---
 title: Studio API hard-cutover refactor
 type: engineering
-status: planning
+status: active
 last_updated: 2026-06-06
 owner: codex
 source_count: 0

@@ -26,7 +26,7 @@ The Worker API remains a thin edge BFF:
 - Read D1 serving projections and R2 artifacts.
 - Return strict `packages/domain` response contracts.
 - Add observability headers/logs.
-- Never import source adapters, analytics transforms, `tools/pipeline`, or `knowledge/`.
+- Never import source adapters, analytics transforms, `tools/pipeline-v2`, or `knowledge/`.
 
 Brief/composer/data-loading support is tracked in
 [[web_app_support_plan|Web App Support Plan]]. Use that page for route-loader cache policy, deferred

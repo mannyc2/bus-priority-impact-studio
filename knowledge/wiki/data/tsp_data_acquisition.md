@@ -1,7 +1,7 @@
 ---
 title: Transit Signal Priority Data Acquisition
 type: data
-status: planning
+status: active
 last_updated: 2026-06-06
 owner: codex
 source_count: 20
