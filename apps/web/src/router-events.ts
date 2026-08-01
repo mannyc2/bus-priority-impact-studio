@@ -3,7 +3,6 @@ import type { router } from "./router.js";
 type AppRouter = typeof router;
 
 export const NAVIGATION_RENDERED_EVENT = "bp:navigation:rendered";
-export const NAVIGATION_RESOLVED_EVENT = "bp:navigation:resolved";
 
 export type NavigationEventDetail = {
   fromHref?: string;
@@ -29,10 +28,6 @@ export function installRouterEventObservers(appRouter: AppRouter): void {
     performance.mark("bp:navigation:start");
   });
 
-  const unsubscribeResolved = appRouter.subscribe("onResolved", (event) => {
-    dispatchNavigationEvent(NAVIGATION_RESOLVED_EVENT, navigationDetail(event));
-  });
-
   const unsubscribeRendered = appRouter.subscribe("onRendered", (event) => {
     measureNavigation();
     dispatchNavigationEvent(NAVIGATION_RENDERED_EVENT, navigationDetail(event));
@@ -40,7 +35,6 @@ export function installRouterEventObservers(appRouter: AppRouter): void {
 
   window.__bpRouterEventObserversCleanup = () => {
     unsubscribeBeforeNavigate();
-    unsubscribeResolved();
     unsubscribeRendered();
   };
 }

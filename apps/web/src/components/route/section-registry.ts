@@ -197,16 +197,6 @@ export function routeSectionCanNavigate(
   return registry.presentations[sectionValue].mode !== "hidden";
 }
 
-export function routeSectionNavigationTarget(
-  registry: Pick<RouteSectionRegistry, "presentations">,
-  sectionValue: RouteDetailSectionValue,
-  fallback: RouteDetailSectionValue | null = "evidence",
-): RouteDetailSectionValue | null {
-  if (routeSectionCanNavigate(registry, sectionValue)) return sectionValue;
-  if (fallback === null) return null;
-  return routeSectionCanNavigate(registry, fallback) ? fallback : null;
-}
-
 /* ---------------------------------------------------------------------------
  * Tab layer (frontend §4 redesign, plan 053)
  *

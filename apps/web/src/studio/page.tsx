@@ -18,9 +18,3 @@ export function StudioPanel({ children }: { children: ReactNode }) {
 export function Rule() {
   return <div className="h-px bg-[var(--bp-color-rule)]" />;
 }
-
-export function toneForMetric(value: number, warning: number, bad: number): string {
-  if (value <= bad) return "var(--bp-color-bad)";
-  if (value <= warning) return "var(--bp-color-warn)";
-  return "var(--bp-color-good)";
-}

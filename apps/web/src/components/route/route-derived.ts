@@ -2,7 +2,6 @@ import type {
   RouteDossierMetricSummary,
   RouteDossierSummaryForDetail,
   StudioRoute,
-  StudioRouteHistoryResponse,
   StudioSegment,
 } from "@/studio/api-contract";
 
@@ -13,14 +12,6 @@ import type {
 
 // C2 dossier series: the detail response embeds monthly sparkline vectors, so the
 // sections read them off `data.dossier` (no separate history fetch on this page).
-
-export function dossierSpeedSeries(dossier: RouteDossierSummaryForDetail | null): number[] {
-  return (
-    dossier?.speed.sparkline.flatMap((point) =>
-      point.value === null ? [] : [Number(point.value.toFixed(2))],
-    ) ?? []
-  );
-}
 
 export type TrendPoint = {
   month: string;
@@ -85,29 +76,7 @@ export function routePerformanceSummary(
   };
 }
 
-export function routeHistorySpeedSeries(history: StudioRouteHistoryResponse | null): number[] {
-  return (
-    history?.points.flatMap((point) =>
-      point.averageSpeedMph === null ? [] : [Number(point.averageSpeedMph.toFixed(2))],
-    ) ?? []
-  );
-}
-
-export function routeHistoryRidershipSeries(history: StudioRouteHistoryResponse | null): number[] {
-  return (
-    history?.points.flatMap((point) =>
-      point.ridership === null ? [] : [Number((point.ridership / 1000).toFixed(1))],
-    ) ?? []
-  );
-}
-
-export function routeHistoryWindow(history: StudioRouteHistoryResponse | null): string | null {
-  if (history?.coverage.startMonth === null || history?.coverage.endMonth === null) return null;
-  if (history === null) return null;
-  return `${history.coverage.startMonth} to ${history.coverage.endMonth}`;
-}
-
-export function averageHourlySeverity(segments: readonly StudioSegment[]): number[] {
+function averageHourlySeverity(segments: readonly StudioSegment[]): number[] {
   if (segments.length === 0) return Array.from({ length: 24 }, () => 0);
   return Array.from({ length: 24 }, (_, hour) => {
     const total = segments.reduce((sum, segment) => sum + (segment.hours[hour] ?? 0), 0);
