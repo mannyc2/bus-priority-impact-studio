@@ -1,5 +1,6 @@
-import type { AnalyticsDetectorScopeKind } from "../core/detector.js";
 import type { FeatureCoverageStatus, FeatureQuality } from "./quality.js";
+
+type AnalyticsDetectorScopeKind = "route" | "segment" | "corridor" | "system";
 
 export const ROUTE_METRIC_HISTORY_FEATURE_GRAIN = "route_metric_history" as const;
 
