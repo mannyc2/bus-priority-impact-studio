@@ -2,6 +2,44 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-08-01] engineering | Plan 112 purges the frozen receipt corpora (~1.63M tracked lines)
+
+Completed Plan 112. Deleted seven clusters of frozen JSON/markdown receipts across `data/` and
+`docs/`, all preserved in git history: (1) the 15 `data/artifacts/detector-calibration-*/`
+directories, 183 files, 828,329 lines — the top-level `detector-calibration-register.json` (read by
+`packages/domain/test/studio-route-insights.test.ts`) was kept; (2) 26 of 28 files in
+`docs/research/artifacts/`, 497,054 lines — kept the SHA-256-pinned rc26 study-events cut and the
+rc24 route-fixture receipt, both still read by `tools/pipeline-v2` tests; (3) 69 of 72 files in
+`docs/research/reviews/` (rc19/rc25/rc26/rc27-member-grain/review-cut-5298f37a), 287,080 lines —
+kept `plan097/`, the gen-17 production-recovery attestations; (4) six unreferenced data receipts,
+18,896 lines; (5) four superseded authoring-era `docs/architecture/` specs, 1,332 lines (governing
+ADRs 0014/0015/0016 already carry Superseded/Retired markers); (6) six superseded
+`docs/research/*.md` handoffs, 1,141 lines; (7) `docs/screenshots/`, 14 PNGs (plan 022/025
+before/after evidence, both DONE). Also added a `.gitignore` negation for
+`data/artifacts/detector-calibration-register.json` beneath the `data/artifacts/*` blanket rule, so
+the surviving tracked file no longer drifts from what git tracks. An ignore-drift probe over the
+remaining 36 tracked `data/` paths found two pre-existing, plan-112-unrelated drifts left as-is per
+the plan's explicit "report, don't chase" instruction: `data/artifacts/detector-calibration-register.NOTE.md`
+and `data/artifacts/studio/v2/routes/route-capability-manifest.json` both match un-negated blanket
+ignore rules despite being tracked; both predate this plan.
+
+Verification passed: `bun run test` (1050 unit + 448 web + 32 worker, 0 fail), `bun run check:types`,
+`bun run check:architecture`, `bun run check:knowledge`. `bun run check:style` (`biome check .`)
+stays red on both sides of this change, but for reasons entirely outside plan 112's scope: at the
+`origin/main` baseline it reports 7 errors / 39 warnings (1108 files checked); after this plan, 2
+errors / 24 warnings (1046 files checked). The prior Plan 108 log entry's "7 pre-existing errors —
+all 'file exceeds 1.0 MiB' warnings" characterization conflated two different biome diagnostics: the
+7 baseline *errors* are formatter diffs (5 inside files this plan deletes — one in
+`docs/research/artifacts/`, four in `docs/research/reviews/rc25/` — plus 2 pre-existing and
+unrelated, in `packages/db/migrations-drizzle/.../snapshot.json` and
+`tools/pipeline-v2/test/mta-wiki-route-identities.test.ts`); the oversized-file diagnostic is a
+separate *warning* class, and there were 13 of them in `docs/research/artifacts/` alone at baseline,
+not 7. This plan's cluster-2 deletion removes 12 of those 13; the 13th,
+`candidate-set-v3-80050ed598f3b2ab0d0a1e99.study-events.json` (1.1 MiB), is the SHA-256-pinned keep
+file and will keep tripping the size warning permanently — it is out of scope to shrink, move, or
+exclude. The 2 remaining errors after this plan are exactly the 2 pre-existing/unrelated ones above;
+`check:style`'s exit code will stay non-zero until those are fixed on their own, unrelated track.
+
 ## [2026-08-01] engineering | Plan 108 deletes pipeline-v2's completed-operation and no-ship code
 
 Completed Plan 108. Removed ~9,520 LOC of `tools/pipeline-v2` machinery for finished, adjudicated
