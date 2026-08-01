@@ -7,6 +7,7 @@ import {
   ServingCandidateManifestV1Schema,
 } from "@bp/domain/studio/serving-release";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
+import { createPlan098OperatorClient } from "../src/lib/plan098-operator-client.ts";
 
 type Args = {
   endpoint: string;
@@ -27,8 +28,6 @@ type UploadEntry = {
   sourcePath: string;
   bytes: number;
 };
-
-type OperatorEnvelope<T> = { ok: true; result: T };
 
 type PointerStatus =
   | { kind: "legacy"; generation: 0 }
@@ -79,22 +78,7 @@ function sha256(value: string | Uint8Array): string {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const operatorJson = async <T>(payload: Record<string, unknown>): Promise<T> => {
-    const response = await fetch(args.endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${args.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-    const body = (await response.json()) as OperatorEnvelope<T> | { message?: string };
-    if (!response.ok || !("ok" in body) || body.ok !== true) {
-      const action = Object.entries(payload).find(([key]) => key === "action")?.[1];
-      throw new Error(`Plan 098 operator ${String(action)} failed: ${JSON.stringify(body)}`);
-    }
-    return body.result;
-  };
+  const operatorJson = createPlan098OperatorClient({ endpoint: args.endpoint, token: args.token });
   const [stagePlan, manifestAValue, manifestBValue, uploadInventory] = await Promise.all([
     Bun.file(join(args.candidateRoot, "stage-plan.json")).json() as Promise<StagePlan>,
     Bun.file(join(args.candidateRoot, "candidate-a.manifest.json")).json(),
