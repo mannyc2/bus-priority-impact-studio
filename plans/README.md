@@ -1,69 +1,48 @@
 # Implementation Plans
 
-**Current generations: 7 (plans 061-067, the determinism/LOC-reduction
-track), 8 (plans 068-076, the 2026-07-09 audit fix-pack + the
-business-problem arc), 9 (plans 077-081, the truthful interactive-map
-overhaul), 10 (plans 082-083, the route-detail annotation layer +
-study-coverage spike), 11 (plans 084-088, the de-month cutover: monthly
-baselines/releases retired for coverage windows, a freshness ledger, and a
-harness gate), 12 (plans 090-093 plus amended 082: exact, lossless route
-intervention inventory; typed relevance; complete UI recognition; and the
-first non-ACE observation expansion), 13 (Plan 089: the approved typed
-`/interventions` network-ledger redesign), 14 (Plan 094: the route-detail
-Treatments & History redesign), 15 (Plan 095: exact route-index v3 serving
-recovery), 16 (Plan 096: exact member-grain study consumer), and 17 (Plans
-097-101: safe catch-up, atomic releases, full-history freshness, publication
-control plane, and deterministic incremental de-month completion), and 18
-(Plans 102-105: the approved interventions and route-history rethink — typed
-change dates, the route change chronology, the network change record, and the
-metric-tab annotation layer — all below).** Generation 6 (048-060, the MTA-visual-language UI/UX
-overhaul) is DONE — all thirteen landed through commit `cd878f7`. Gen-7 owns
-`packages/*` and `tools/pipeline-v2`; gen-8's fix-pack is cross-cutting and its
-business arc adds new pipeline/domain/web surfaces; gen-9 repairs map runtime,
-identity, and evidence contracts before redesigning the two existing map
-experiences. Interleaving constraints are in each generation's dependency
-notes. Generations 4 (030-035) and 5 (036-047) are DONE; generation 3
-(019-029) is complete except 026 (BLOCKED); generations 1-2 (001-018) are
-complete or superseded; older sections are kept further down as history and
-rationale. Each executor: read your plan fully before starting, honor its STOP
-conditions, and update your row when done.
+This is the execution index for numbered implementation plans. Each plan
+file is a self-contained spec — goals, verification commands, STOP
+conditions — with its status tracked below. Each executor: read your plan
+fully before starting, honor its STOP conditions, and update your row when
+done. Plan bodies for completed generations live in git history (deleted
+from the working tree 2026-08; numbering stays monotonic — never reuse a
+number).
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
 
 ---
 
 # Generation 20 — aggressive LOC cleanup (2026-08-01)
 
 Planned at commit `292d2bd0` on the dirty `ops/gen18-artifact-publication`
-tree by an `improve` read-only audit (six parallel scoped audits — pipeline-v2,
-packages, apps/web, docs+data receipts, knowledge+plans, and a
-reference-graph safety rail — with every load-bearing claim re-verified
-against source by the lead session). Only `plans/**` changed. Operator
-direction: aggressive cleanup — delete docs, one-off files, and legacy code;
-reduce LOC significantly. Session ran non-interactively; plans were written
-for all high-confidence findings per that direction, with the
-operator-judgment deletions isolated in 114.
+tree by an `improve` read-only audit (six parallel scoped audits —
+pipeline-v2, packages, apps/web, docs+data receipts, knowledge+plans, and a
+reference-graph safety rail — every load-bearing claim re-verified against
+source by the lead session). Only `plans/**` changed. Operator direction:
+aggressive cleanup — delete docs, one-off files, and legacy code; reduce
+LOC significantly. Plans were written for all high-confidence findings,
+with operator-judgment deletions isolated in 114.
 
 Measured baseline (tracked lines at `292d2bd0`): ~248K code, ~2.5M JSON,
-~104K markdown. The plans remove ~24.4K code LOC and ~1.69M receipt/doc lines
-outright, plus up to ~152K more behind 114's operator gates — roughly 60% of
-all tracked lines, ~10% of code. Honest caveat recorded from the audit: none
-of the deleted web code ships in the production bundle (already tree-shaken),
-so no plan may claim bundle-size wins.
+~104K markdown. The plans remove ~24.4K code LOC and ~1.69M receipt/doc
+lines outright, plus up to ~152K more behind 114's operator gates —
+roughly 60% of all tracked lines, ~10% of code. None of the deleted web
+code ships in the production bundle (already tree-shaken), so no plan may
+claim bundle-size wins.
 
 ## Execution order & status (gen 20)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 107 | Truth sweep: stale pointers + reclaim-script footgun | P1 | S | none | DONE (executed, reviewer-verified, MERGED PR #118 2026-08-01) |
-| 108 | pipeline-v2 dead code (forensics, one-offs, no-ship spike; ~9.5K LOC) | P1 | M | none | DONE (executed, reviewer-verified, MERGED PR #119 2026-08-01; −9,520 lines; registry 115→114; the 7 pre-existing oversize-receipt `check:style` errors clear when plan 112 deletes those files) |
-| 109 | packages dead code (records policy, detector primitives, identity; ~7.7K LOC) | P1 | M | none (111 needs its step 8) | IN PROGRESS (executor dispatched 2026-08-01) |
-| 112 | Receipts purge: docs/research + tracked data receipts (~1.63M lines) | P1 | M | 108 hard; 107 rec. | TODO |
-| 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | TODO |
-| 110 | apps/web dead code (~3.5K LOC + 41 CSS) | P2 | S-M | none (coordinate branch base) | TODO |
-| 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | TODO |
-| 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | TODO (all three operator tokens APPROVED 2026-08-01 — recorded in the plan's Status block; executable once deps land) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
+| 108 | pipeline-v2 dead code (forensics, one-offs, no-ship spike; ~9.5K LOC) | P1 | M | none | DONE (executed, reviewer-verified, MERGED PR #119 2026-08-01; −9,520 lines; registry 115→114; the 7 pre-existing oversize-receipt `check:style` errors cleared once 112 landed) |
+| 109 | packages dead code (records policy, detector primitives, identity; ~7.7K LOC) | P1 | M | none (111 needs its step 8) | DONE (executed, MERGED PR #122 2026-08-01) |
+| 112 | Receipts purge: docs/research + tracked data receipts (~1.63M lines) | P1 | M | 108 hard; 107 rec. | DONE (executed, MERGED PR #121 2026-08-01) |
+| 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | IN PROGRESS (executor running 2026-08-01) |
+| 110 | apps/web dead code (~3.5K LOC + 41 CSS) | P2 | S-M | none (coordinate branch base) | DONE (executed, MERGED PR #123 2026-08-01) |
+| 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | IN PROGRESS (executor running 2026-08-01) |
+| 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | TODO (all three operator tokens APPROVED 2026-08-01 — recorded in the plan's Status block; runs after 111) |
 
 ## Dependency and safety notes (gen 20)
 
@@ -88,13 +67,19 @@ REJECTED (with one-line rationale)
   commands, so executors reconcile against the live count, not this note.
 - **Rebaseline (2026-08-01, mid-execution)**: main advanced to `90dd5282`
   (PRs #114-#117 merged — plan 105 landed; the gen-19 public-episodes work
-  committed). Executors 107-109 run against that baseline; targeted diffs
+  committed). Executors 107-109 ran against that baseline; targeted diffs
   verified all deletion targets byte-identical, with only the registry-test
   count (114→115, new `public-intervention-episodes` command) and 10 new
   out-of-scope `packages/domain/package.json` export lines as in-scope-adjacent
-  drift. Plans 108/109/113 carry rebaseline blocks; 105's landing moves
+  drift. Plans 108/109/113 carry rebaseline blocks; 105's landing moved
   103/105/mockups-082 into 113's delete-list. The "gen-19 merged" gates on
-  110/111/113 are now satisfied.
+  110/111/113 are satisfied.
+- **113's pre-gate adjudication (2026-08-01)**: keep-plan 090 cites
+  084/085/086/088/091 (all DONE, all deleted) in a "Depends on" provenance
+  field. Reviewer ruling: dangling file-path citations inside a DONE
+  keep-plan's body are acceptable by design — same precedent as 113's own
+  citations of 103/105 — because git history is the archive. 090's body was
+  left untouched; the five files were deleted with the rest.
 
 ## Findings considered and rejected / deferred (gen 20 — do not re-audit)
 
@@ -142,178 +127,62 @@ REJECTED (with one-line rationale)
 
 ---
 
+# Generation 19 — reviewed resolved-transit public-pack cutover (2026-07-31): plan 106 (BLOCKED upstream) lives on the operator's unmerged branch with its full section; re-add here when that branch lands.
+
 ---
 
 # Generation 18 — the interventions and route-history rethink (2026-07-24)
 
-Planned against `origin/main@b25542b0` from an operator-approved design concept
-(revision 2, 2026-07-24). Only `plans/**` changed. The concept was reviewed
-against the live deployment and the pinned artifacts rather than against the
-plan record, and every count below was measured on that date.
+Planned against `origin/main@b25542b0` from an operator-approved design
+concept (revision 2, 2026-07-24), reviewed against the live deployment and
+pinned artifacts. **Governing rule (decides every placement below): if it
+has a date, it is history; if it is a condition, it belongs to the metric
+that measures it.** The Treatments & history tab survives on exactly one
+justification — it shows the **order, duration, and overlap** of dated
+changes, which no metric tab can. Metric tabs keep current condition and
+receive pointers only. `/interventions` becomes the network's change
+record, led by how bus priority spread across the system.
 
-**The rule the operator approved, which decides every placement in this
-generation:**
-
-> If it has a date, it is history. If it is a condition, it belongs to the
-> metric that measures it.
-
-The route Treatments & history tab survives on exactly one justification: it
-shows what no metric tab can, which is the **order, duration and overlap** of
-dated changes. The metric tabs keep current condition and receive pointers
-only. `/interventions` stops being a longer list and becomes the network's
-change record, led by how bus priority spread across the system.
-
-Operator decisions (2026-07-24, binding):
-
-- **D1** Keep the history tab, on the tense rule above. If the chronology and
-  overlap work does not land, the tab should be deleted rather than kept as an
-  inventory.
-- **D2** Treatment extents render on the existing route map with a real legend,
-  deep-linked from a change. No map inside history, and no route strip.
-- **D3** Agency-stated figures render inline inside the citing sentence,
-  attributed, never in a verdict slot and never on the same axis as our own
-  series.
-- **D4** The network build-out chart leads `/interventions`.
-- **D5** Sequence: typed dates, then the route chronology, then the network
-  page. Per-change evidence fills in incrementally as each treatment kind
-  becomes measurable.
-
-What the audit measured on the live deployment, 2026-07-24:
-
-- the ledger holds 2,253 rows, 61% of them from 12 of 389 routes, with 366
-  exact duplicates over 176 groups, and 52% of the wiki timeline rows are
-  process events (meetings, contract awards, presentations);
-- `/interventions` sorts on the raw date string, so free text outranks every
-  ISO date; page one shows 8 dated rows in the year order 2025, 2020, 2010,
-  2018, 2026 plus 22 rows in the undated rollup;
-- 205 rows carry free-text dates, but 183 of them (89%) hold a resolvable year
-  or range and 167 are already the machine form `2026-spring`;
-- routes reached by a bus lane went from 11 in 2007 to 323 today, camera
-  enforcement from none before 2019 to 58, while Select Bus Service has been
-  flat at 36 since 2017 and signal priority flat at 4 since 2013;
-- the 7 routes with a published study and the 12 routes with a source-cited
-  evidence bundle are **disjoint sets**.
-
-> **Re-measured 2026-07-26 against release `pub_20260725T164123260Z`.** The
-> bullets above are the audit as taken on 2026-07-24 and are kept as the dated
-> record; Plan 097's production catch-up republished serving on 2026-07-25 and
-> moved most of them. Do not plan against the 2026-07-24 numbers.
->
-> - The route projection now carries 500 intervention records over 293 of 389
->   routes, 96 with none — was 569 over 323 with 66 empty.
-> - Routes running on a street with a bus lane went from 11 in 2007 to **293**,
->   not 323; camera enforcement reaches **54**, not 58; Select Bus Service is
->   flat at **30 since 2019**, not 36 since 2017; signal priority is flat at
->   **3 since 2013**, not 4. The full regenerated series is in
->   `plans/104-network-change-record.md`.
-> - The published study index holds **5** studies, 3 matched and 2 descriptive,
->   with 1 `worsened`, 4 `no_detectable_change` and **no `improved` study** —
->   was 7 studies, 2 improved.
-> - **The disjointness bullet is now false.** The schema-3 route index carries
->   375 routes and every one of them has an `available` `route_timeline`
->   projection, so evidence is no longer a 12-route sample. All five study
->   routes carry substantial evidence bundles: `bx28` and `bx38` 20 timeline
->   rows and 53 citations each, `bx9` 56 and 152, `m79-sbs` 63 and 246,
->   `b82-sbs` 79 and 258. Any plan that assumes study routes and evidence
->   routes cannot overlap needs re-reading.
-> - The reviewed corpus is unchanged: 310 records, 248 proposed across 22 source
->   plans.
+Operator decisions (2026-07-24, binding): **D1** keep the history tab on
+the tense rule above (delete it, not degrade to inventory, if chronology/
+overlap don't land); **D2** treatment extents render on the existing route
+map with a real legend, deep-linked from a change (no map inside history,
+no route strip); **D3** agency-stated figures render inline in the citing
+sentence, attributed, never in a verdict slot or on our own axis; **D4**
+the network build-out chart leads `/interventions`; **D5** sequence typed
+dates → route chronology → network page, with per-change evidence filled
+in as each treatment kind becomes measurable.
 
 ## Execution order & status (gen 18)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 102 | Typed change dates and correct chronological order | P1 | M | none | DONE (verified 2026-07-26; all 67 free-text literals pinned; total-JS cap raised 400 -> 410 KB because main had zero headroom; the repository-wide style gate remains red on 7 pre-existing errors outside the Plan 102 diff) |
-| 103 | Route Treatments & history as a change chronology | P1 | L | 102 | DONE (PR #111, draft for review; the overlap STOP condition fired against live `v1-rc28` evidence — clusters reach 127 of 151 dated changes on `q52-sbs` and 28 of 32 on `bx41`, caused by record multiplicity rather than year-precision intervals — and the operator resolved it 2026-07-26 by capping the display, not the claim; the upstream mta-wiki fix of one record per real change is owed and out of this repo's scope) |
-| 104 | `/interventions` as the network change record | P1 | M | 102 | DONE (2026-07-26; the plan's measured-data section was re-derived against release `pub_20260725T164123260Z` in the first commit because Plan 097's republish invalidated every figure taken at `b25542b0`; the repository-wide style gate remains red on the same 7 pre-existing errors outside this diff) |
-| 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | DONE (2026-07-26, amended; Additions 1-2 shipped and the `recordAnchorId` field with them. Addition 3's marker *link* is deferred to its own comp-gated plan: the label is a Recharts `ReferenceLine` in the lazy `SpeedTrend.chart.tsx`, not HTML in `OverviewSection` as the plan assumed. The Step 4 STOP condition fired on a false premise — two whole-object `toEqual` assertions gained the new field, no eligibility assertion moved. Two files outside the In-scope list were required and are justified in the plan's amendments section) |
+| 102 | Typed change dates and correct chronological order | P1 | M | none | DONE (verified 2026-07-26; all 67 free-text literals pinned) |
+| 103 | Route Treatments & history as a change chronology | P1 | L | 102 | DONE (PR #111; the overlap STOP condition fired against live evidence and the operator resolved it 2026-07-26 by capping the display, not the claim) |
+| 104 | `/interventions` as the network change record | P1 | M | 102 | DONE (2026-07-26; measured-data section re-derived against release `pub_20260725T164123260Z` after Plan 097's republish invalidated the original figures) |
+| 105 | Metric-tab annotation layer and the no-duplication sweep | P2 | M | 103 | DONE (2026-07-26, amended; Additions 1-2 shipped with the `recordAnchorId` field; Addition 3's marker link deferred to a separate comp-gated plan) |
 
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
+## Notes (gen 18)
 
-## Dependency and safety notes (gen 18)
+- **Standing prerequisite for plan 098** (not itself a plan here): the Plan
+  091 inventory and Plan 090 observation-bundle artifacts were never
+  exported/published, so reading them returned HTTP 500 — indistinguishable
+  from absent, since `PLAN097_RECOVERY_ENABLED` routes every artifact read
+  through the active release's recovery manifest, and an absent key throws
+  `logical_entry_missing`. Uploading to the logical key changes nothing
+  until Plan 098's pointer is active; until then `/interventions`'s Kind
+  filter stays disabled, Overview shows no markers, route history has no
+  typed inventory — none of 102-105 is blocked, every one degrades
+  honestly. **Serving any new artifact key is blocked on plan 098.**
+- The citywide evidence endpoint was down (HTTP 503, Cloudflare 1102 — a
+  Worker resource limit, not missing data); fixed in code by PR #114
+  (mta-wiki plan 106), which moved the reduction into the pipeline, but
+  serving the new precomputed artifact is still gated on plan 098 above.
+- Numbering: mta-wiki's tracker plan for member-grain outcome certification
+  takes the next free number after this generation (106+); don't renumber
+  102-105.
 
-- 102 is a hard prerequisite for both 103 and 104. Its `changeDatesOverlap` is
-  what 103's central claim is computed from; without it the chronology would be
-  guessing.
-- 103 and 104 are independent of each other and may run in parallel after 102.
-- 105 needs 103's `RouteChange.anchorId` to link to and is therefore last. It
-  is also the most gated: Overview's trend markers will render nothing until
-  the artifacts named in the prerequisite below are published, so its Overview
-  work is deliberately verified by unit test rather than by eye.
-- **Standing prerequisite, not a plan in this generation**: the Plan 091
-  route-intervention inventory (`studio/v2/routes/<slug>/intervention-inventory.json`,
-  `studio/v2/interventions/route-inventory-index.json`,
-  `studio/v2/interventions/facet-index.json`) and the Plan 090 observation
-  bundles all return **HTTP 500**, not 404, verified 2026-07-26:
-  `{"error":{"code":"INTERNAL","message":"Internal error."}}`. The exporters
-  exist and Plan 091 is DONE; the artifacts have never been exported and
-  published. Until they are, the `/interventions` Kind filter stays disabled,
-  Overview shows no markers, and route history has no typed inventory. None of
-  plans 102-105 is blocked by this — every one degrades honestly.
-  **This is not a data operation and cannot be run as one** (diagnosed
-  2026-07-26). Production sets `PLAN097_RECOVERY_ENABLED: "true"`, so
-  `loadReleaseArtifact` never reads the logical key: it resolves through the
-  active release's recovery manifest, maps `logicalKey` -> physical key, and
-  verifies size, media type and `customMetadata.sha256`. A key absent from that
-  manifest throws `logical_entry_missing`, which surfaces as the same generic
-  500. Uploading a new artifact to its logical key therefore changes nothing —
-  confirmed by publishing `studio/v2/interventions/evidence-index.json` (object
-  present in R2 by S3 HEAD) and still getting 500 while `corpus.json` in the
-  same prefix served 200. The operations runbook forbids the shortcut:
-  "Never use this recovery path for a later artifact/schema cutover; Plan 098's
-  pointer must be active first." **Serving any new artifact key is blocked on
-  plan 098.**
-- **A missing artifact is not distinguishable by status code.** The 500 above is
-  the generic Worker envelope, and an ordinary absent artifact returns it too:
-  `.../routes/bx41/studies.json` → 500 while `.../routes/bx28/studies.json` →
-  200. No frontend code may branch on the status code to decide whether an
-  artifact exists; treat any non-200 as unavailable and degrade. Repairing the
-  envelope so absence returns 404 is Plan 031's territory and has not landed.
-- **`GET /api/v1/studio/interventions/evidence` is down**, verified 2026-07-26:
-  HTTP 503 with Cloudflare error 1102, the Worker resource limit, reproducibly
-  over a minute of retries. This is the citywide evidence fetch on the
-  `/interventions` loader. It fails closed — the loader catches it and renders
-  the ledger from route records only — so the page is honest but its wiki rows
-  are missing in production. The per-route
-  `GET /api/v1/studio/routes/:routeId/timeline` is healthy and returns 200 with
-  full bundles, so this is a fan-out cost problem in the citywide handler, not
-  missing data. **Fixed in code by PR #114** (plan 106): the reduction moved
-  into the pipeline and the page now reads one precomputed artifact, so the
-  endpoint is gone and returns 404. The artifact was built from the real 375
-  bundles and verified — 59,216 ledger rows, 30.92 MiB minified / 2.58 MiB
-  gzipped, matching the merged code's own measurements — and uploaded, but it
-  is subject to the plan-098 gate above, so `/interventions` still renders from
-  route records only.
-- Frontend plans 103 and 104 are comp-gated. Their approved comps are
-  `plans/mockups/103-route-change-chronology/route-history-comp.html` and
-  `plans/mockups/104-network-change-record/interventions-comp.html`; each
-  directory's README records what was approved and what was rejected in
-  revision 1.
-- Plans 074/075 estimator and causal gates stay byte-unchanged across this
-  generation. No plan here activates a study, publishes an artifact, mutates
-  D1 or R2, or deploys.
-- **Numbering**: mta-wiki plan 042 will add its own tracker plan for
-  member-grain outcome certification. It must take the next free number after
-  this generation, which is 106 or later. Do not renumber 102-105.
-
-## Findings considered and rejected (gen 18)
-
-- **Changing the serving payload's date shape.** Plan 102 normalizes at the
-  presentation boundary instead. Retyping the artifact would force a
-  republication, which generation 17 owns and which is not worth coupling to a
-  UI fix.
-- **Deriving Overview trend markers from `route.interventions[]` when the
-  observation bundle is missing.** It would bypass the Plan 090/093 relevance
-  gate for a cosmetic win. Recorded as an explicit STOP condition in plan 105.
-- **A separate plan to publish the Plan 091 artifacts.** It is a data operation
-  against an exporter that already exists, not an implementation plan, and it
-  sits inside generation 17's publication discipline. Recorded as a standing
-  prerequisite above instead.
-- **Segment-level tags for camera enforcement or signal priority.** Both have
-  zero within-route variance; Plan 081 removed them from segment rows for that
-  reason and this generation does not reintroduce them. Lane coverage genuinely
-  varies within a route and keeps its segment-grain tag.
+---
 
 # Generation 17 — production currency + atomic incremental publication (2026-07-22)
 
@@ -322,1842 +191,501 @@ by an `improve` read-only audit. Only `plans/**` changed. The audit replaced
 four untracked, stale drafts whose numbering collided with landed Plan 096 and
 whose proposed D1 ledger baseline was unsafe.
 
-Operator decisions (2026-07-22, binding): remove month as release identity but
-retain it as source grain/coordinate/partition; run detection daily; publish a
-new complete critical-source partition within seven days and never remain more
-than one source period behind; serve each dataset's full trustworthy range
-without forcing a global intersection; optimize Cloudflare cost, local build
-time, upload bytes, and request latency together; require zero-downtime staging
-and one-pointer rollback for future cutovers; keep publication reviewed rather
-than automatic; and make a semantic no-change run a non-release.
+Operator decisions (2026-07-22, binding): remove month as release identity
+but retain it as source grain/coordinate/partition; run detection daily;
+publish a new complete critical-source partition within seven days and
+never remain more than one source period behind; serve each dataset's full
+trustworthy range without forcing a global intersection; optimize
+Cloudflare cost, build time, upload bytes, and latency together; require
+zero-downtime staging and one-pointer rollback; keep publication reviewed
+rather than automatic; make a semantic no-change run a non-release.
 
-The approved sequence has one bounded bootstrap exception because production
-does not yet have a pointer: Plan 097 may perform the same-schema catch-up with
-one proven atomic D1 activation batch and one proven selective restore batch.
-It may not change a public artifact/schema contract, overwrite active objects,
-or proceed if either batch misses its remote proof. Plan 098 then establishes
-the pointer; every subsequent activation/rollback must use it.
-
-The audit also found that production D1 holds mutable auth/session/user state.
-Plan 097 therefore preserves it and uses a selective serving-data recovery;
-replacing the whole database or routinely using Time Travel would risk losing
-concurrent writes. Plan 098 then versions only generated serving projections
-and makes one pointer select D1, exact identity, maps, and every R2 artifact.
+Bounded bootstrap exception (production had no pointer yet): Plan 097 did
+the same-schema catch-up with one proven atomic D1 activation batch and one
+proven selective restore batch — no public contract change, no overwriting
+active objects, no proceeding without remote proof on both. Plan 098
+then establishes the pointer; every later activation/rollback uses it.
+Production D1 also holds mutable auth/session/user state, so 097 preserved
+it via selective serving-data recovery rather than replacing the database;
+098 versions only generated serving projections behind that one pointer.
 
 ## Execution order & status (gen 17)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE |
+| 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE (2026-07-26; production serves `pub_20260725T164123260Z`, 375 exact routes; no rollback invoked) |
 | 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | TODO |
 | 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
 | 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
 | 101 | Deterministic incremental publication and final de-month cleanup | P2 | L-XL | 098-100 active + rollback drill | TODO |
 
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
+## Notes (gen 17)
 
-Plan 097 completed on 2026-07-26. Official runs `30180085025`,
-`30180351221`, and `30180632361` produced the signed preflight, exact
-production-sized disposable A→B→A proof, and active production completion
-receipt. Production now serves `pub_20260725T164123260Z`, coverage `2023-04`
-through `2026-05`, with 375 exact routes and the active map manifest. The
-completion receipt SHA-256 is
-`c1758c865745c9eae47df3bc15c0e288ce69f6b988f4cb9e3e35e380ed1ff8af`.
-Production contingency rollback was not invoked. The one-time operation
-Workers, Access policies/apps, service token, workflows, and GitHub secrets
-were retired; audit D1/R2 evidence remains. Plan 098 is now unblocked but has
-not started.
-
-## Dependency and safety notes (gen 17)
-
-- Execute in order when Plan 097's compacted D1 activation proves it fits one
-  transaction. If that exact remote proof fails, its signed STOP receipt hands
-  catch-up to Plan 098; this is a safe branch, not a dependency deadlock. No
-  later artifact-contract cutover is allowed until Plan 098 has activated and
-  completed its A→B→A→B rollback drill.
-- Plan 097 must not insert migration-ledger rows, execute aggregate
-  `schema.sql`, replace production D1, or reuse the Plan 095 exact-identity row
-  for a new release. Its Cloudflare mutations require a separate operator token.
+- No later artifact-contract cutover is allowed until Plan 098 has activated
+  and completed its A→B→A→B rollback drill. [097's STOP-receipt branch was
+  moot: it completed cleanly 2026-07-26.]
 - Plan 098 separates content-derived candidate identity from activation-time
-  release identity, versions only generated D1 data, and preserves auth/user/
-  current-signal rows. One request resolves one release/candidate.
-- Plan 099 owns dataset-specific full history and SLO semantics. Plan 100 owns
-  the daily scheduled GitHub issue and the reviewed remote state machine; the
-  schedule detects drift but never publishes. Plan 099 hands its built full-
-  history candidate to Plan 100; their first successful activation receipt
-  jointly completes Plan 099's production criterion and Plan 100's end-to-end
-  proof, avoiding a dependency cycle.
+  release identity, versions only generated D1 data, and preserves auth/
+  user/current-signal rows. One request resolves one release/candidate.
+- Plan 099 owns dataset-specific full history and SLO semantics; Plan 100
+  owns the daily scheduled GitHub issue and reviewed remote state machine
+  (detects drift, never publishes). 099 hands its built candidate to 100;
+  their first successful activation jointly completes both plans'
+  production criteria, avoiding a dependency cycle.
 - Plan 101 removes compatibility only after a live pointer activation and
-  rollback drill. History chunking may be rejected if Cloudflare request cost
-  or latency outweighs upload/build savings.
-- Months remain legal observation and source-partition values under ADR-0022.
-  The ratchet targets selectors, defaults, config, and release paths—not the
-  word `month` or monthly data.
-
-## Principal corrections to the superseded drafts
-
-- Origin main already contains `plans/096-member-grain-study-consumer.md`; the
-  proposed production Plan 096 collided and is replaced by Plan 097.
-- Migration history starts at 0000 and includes schema/data/index changes.
-  Table existence cannot authorize invented `d1_migrations` rows, and current
-  CI's direct 0032/0034 recovery skipped 0033.
-- The production D1 also holds non-reconstructible live writes, so a seeded
-  shadow D1 is not a safe default. Selective serving rollback is required.
-- Studio derives “latest” from `route_batch_status`, maps elect their own
-  latest catalog row, and most R2 reads use mutable stable keys. Atomicity
-  requires candidate-scoped D1 rows plus one active pointer and artifact map.
-- Post-audit amendments require a durable pre-mutation HTTP baseline, an
-  explicit fail-closed decode policy, separate operator/machine-time cost
-  evidence, and a fenced verified-object catalog fast path that removes routine
-  HEADs without treating receipts, ETags, filenames, or size as content proof.
-- A fresh release currently lacks a canonical exact-route registry row and
-  would regress schema-v3/detail/history despite Plan 095's successful repair.
-- The current freshness ledger permits three periods of lag and lets critical
-  unknowns pass strict mode; it also maps sources to one global publication
-  range. Plan 099 replaces those semantics rather than relabeling them.
-- R2 hash skipping is unsafe when ETag is empty, and builders mix wall-clock
-  `generatedAt` with reusable payloads or reuse any decodable file without an
-  input fingerprint. Plan 101 fixes both correctness and cost.
-
-See the five plan files for exact evidence, implementation seams, verification,
-acceptance criteria, and STOP conditions.
+  rollback drill; history chunking may be rejected if Cloudflare cost or
+  latency outweighs upload/build savings.
+- Months remain legal observation/source-partition values under ADR-0022 —
+  the ratchet targets selectors/defaults/config/release paths, not the word
+  `month` or monthly data.
 
 ---
 
-# Generation 16 — member-grain study consumer (2026-07-22)
+# Generations 1-16 (summary — plan bodies in git history)
 
-Plan 096 consumes the versioned MTA Wiki occurrence × route × treatment-member
-extent companion without mixing producer identity with the May 2026 outcome
-review boundary. It preserves rc26 and stable event IDs, creates a fresh
-candidate universe and receipt, and does not authorize estimator execution or
-publication.
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 096 | Member-grain study consumer and fresh reviewed universe | P0 | L | 074, 075; pinned MTA Wiki member-extent release | DONE |
-
-See `plans/096-member-grain-study-consumer.md` for the exact lineage,
-scope-binding, reconciliation, and STOP contracts.
-
----
-
-# Generation 15 — exact route serving recovery (2026-07-22)
-
-Plan 095 restores the strict exact route-index v3/D1 projection required by
-the deployed Plan 094 UI. It preserves the legacy schema-v2 compatibility
-surface but never uses it to authorize exact identity.
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 095 | Exact route-index v3 serving recovery | P0 | S-M | 085, 086, 092; 094 implementation merged | DONE |
-
-See `plans/095-exact-route-index-v3-serving-recovery.md` for the production
-failure envelope, pinned exact identity, recovery checks, and mutation gate.
-
----
-
-# Generation 14 — route-detail Treatments & History (2026-07-22)
-
-Plan 094 consolidates the route History tab after the exact, lossless typed
-inventory and evidence contracts landed. It consumes Plans 074/075 and
-090–093; it does not create evidence, reinterpret prose, or broaden study
-publication authority. The operator's 2026-07-22 execution token authorizes
-the recommended design after validation against real route artifacts.
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 094 | Route-detail Treatments & History redesign | P1 | M | 074, 075, 082, 089, 090, 091, 092, 093 (DONE) | DONE |
-
-See `plans/094-route-history-redesign.md` and the accepted design receipt in
-`plans/mockups/094-route-history-redesign/route-history-comp.html`.
+- Gen 16 (096) — member-grain study consumer; DONE 2026-07-22.
+- Gen 15 (095) — exact route serving recovery; DONE 2026-07-22.
+- Gen 14 (094) — route-detail Treatments & History redesign; DONE 2026-07-22.
+- Gen 13 (089) — approved `/interventions` network-ledger redesign; DONE
+  2026-07-22.
+- Gen 12 (090-093) — exact, lossless route intervention inventory + typed
+  relevance + UI recognition + first non-ACE observation expansion; all
+  DONE 2026-07-18.
+- Gen 11 (084-088) — de-month cutover: monthly baselines/releases retired
+  for coverage windows, ADR-0022, a freshness ledger, a harness gate; all
+  DONE 2026-07-12.
+- Gen 10 (082-083) — route-detail annotation layer + study-coverage spike;
+  all DONE 2026-07-12.
+- Gen 9 (077-081) — truthful interactive maps; all DONE 2026-07-12.
+- Gen 8 (068-076) — audit fix-pack + business-problem arc (study engine,
+  studies surface, opportunity spike); all DONE except 069 REJECTED
+  (tautology premise false).
+- Gen 7 (061-067) — determinism/LOC-reduction: dead detector subgraph,
+  pipeline-v1 doctrine, decode-once serving, one ingest workflow, native
+  Effect Schema; all DONE 2026-07-06.
+- Gen 6 (048-060) — MTA visual language + page overhaul; all DONE 2026-07-06.
+- Gen 5 (036-047) — consolidation: Effect Schema, `effect/unstable/cli`,
+  raw-JSON deprecation, `packages/domain` prune; all DONE except **045 IN
+  PROGRESS (nyc-transit-kit Orders 2-4 gated)**.
+- Gen 4 (030-035) — post-incident hardening + July design repair; all DONE
+  2026-07-04.
+- Gen 3 (019-029) — the route evidence product: hard cutover, mta-wiki
+  serving, corpus expansion, editorial redesign, Tier-2 deletion; all DONE
+  except **026 BLOCKED (worker-Effect spike regressed `test:worker` ~3s to
+  ~8-9s)**.
+- Gen 1-2 (001-005, 008, 011-012 UI/UX + portfolio; 016-018 hard product
+  cutover; 006-007, 009-010, 013-015 Effect-stack scoping) — all DONE
+  except 013/006/010 REJECTED (superseded) and 007/009/014 SUPERSEDED (by
+  026/026/029).
 
 ---
 
-# Generation 13 — approved `/interventions` network ledger (2026-07-22)
-
-Plan 089 is complete under the operator's explicit approval of D22-D27
-exactly as shown in the round-4 comp. Previously resolved design choices remain
-binding and the rejected forest plot, Studied tab, and labeled year-divider
-rows remain rejected. The implementation consumes the already-merged typed
-inventory, relevance, URL/accessibility, and non-ACE work; it does not reopen
-or extend their evidence contracts.
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 089 | Approved typed `/interventions` network-ledger redesign | P1 | M | 090, 091, 092, 093 (DONE) | DONE |
-
-See `plans/089-interventions-redesign.md` for the binding decisions, evidence
-boundary, verification ladder, and production handoff.
-
----
-
-# Generation 12 — exact intervention inventory + typed relevance across route surfaces (2026-07-18)
-
-Planned at commit `ac940967` on the dirty
-`codex/080-map-visual-redesign` worktree by an `improve` read-only audit. The
-advisor preserved the in-flight Plan 080/081 and map changes, audited the
-existing analytics/domain/pipeline and route UI seams in parallel, then
-re-verified the load-bearing findings against source. Only `plans/**` changed.
-The earlier branch-only Plan 090 and its typed Plan 082 amendment came from
-commit `4cd54701` and are reconciled here rather than duplicated.
-
-The central correction is that Tracker already has a broad
-`route_treatment_summary`; the missing work is to make it exact, lossless,
-strict, compact, and served. Today its reviewed-record adapter emits only the
-first treatment, its summary merge can collapse distinct occurrences, and
-its route matcher aliases exact services. The web then compensates with prose
-substring matching and special handling for lane/ACE/TSP/SBS. Generation 12
-repairs that seam while keeping five concepts separate: project, treatment
-state, operational occurrence, descriptive observation, and causal study.
-
-**Satisfied external prerequisite**: the Tracker half of MTA Wiki Plan 035 in
-task `019f7640-fd5c-7be2-8a40-a7c264284c0f` landed through Tracker PRs #65 and
-#66; `origin/main` contains merge commit `12acf278`. It owns manifest-v5 exact
-route identity, official labels, and B44/B44+ separation. These plans consume
-that merged contract and its green exact-identity fixtures; they do not
-duplicate route naming or await another identity approval.
-
-Numbering note: Plan 089 is now the executable, operator-approved implementation
-of the tracked `plans/mockups/089-interventions-redesign/` round-4 comp. Plan
-092's typed discovery, URL/accessibility, and cross-links remain hard
-dependencies rather than being replaced by the redesign.
-Plan 091 runs before the earlier-numbered Plan 090 because 090 was already
-claimed on its branch.
-
-## Execution order & status (gen 12)
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 091 | Exact, lossless per-route intervention inventory from the existing materializer | P1 | L | exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | DONE |
-| 090 | Typed intervention-relevance specs + ACE route observation bundles | P1 | L | 091; exact-route PRs #65/#66 (DONE); 084, 088, 085, 086 | DONE |
-| 092 | Complete route intervention recognition + route History ↔ ledger links | P1 | L | 091; 080, 081, 085, 086 | DONE |
-| 093 | Value-blind non-ACE relevance coverage + first bus-lane/busway specs | P2 | L | 091, 090, 092, 082 | DONE |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 12)
-
-- Full recommended spine:
-  `exact-route (DONE) → 084 → 088 → 079 → 080 → 081 → 085 → 086 → 091 → 090 → 092 → 082 → 093`.
-  Plan 087 may run after 086 but is not a blocker for this generation.
-- The landed exact-route work and Plans 080/081/085/092/082 touch overlapping
-  route contracts, `api-client.ts`, or route UI files. The exact-route merge is
-  now the baseline; do not execute the remaining plans in parallel worktrees
-  and try to merge by file. Finish/rebase in the recorded order and rerun drift
-  checks.
-- Plan 091 promotes the existing route-treatment materializer and exports one
-  checked bundle per exact route. It reuses Plan 073's reviewed corpus and the
-  existing cited route-evidence bundles; it does not create a second evidence
-  database or duplicate full project/citation records.
-- Plan 090 stays deliberately ACE-only and value-blind. It now consumes Plan
-  091's canonical treatment/occurrence IDs and exact route identity. Plan 093,
-  not an opportunistic edit to 090, owns non-ACE expansion.
-- Plan 092 may technically run in parallel with 090 after 091, but sequential
-  execution is recommended for a single clean contract review. It must finish
-  before amended Plan 082 because both edit Overview, the route loader, and
-  `api-client.ts`.
-- Plan 082's original display-text marker admission is superseded. Its binding
-  amendment consumes Plan 090 typed observations, resolves their IDs against
-  the same-release Plan 091 inventory, and uses Plan 092's named presentation
-  helper/annotation stem.
-  The required future 082 comp approval remains its own visual gate; it is
-  unrelated to the already-completed exact-route implementation task.
-- Plan 093 separates a descriptive observation-anchor gate from the causal
-  study gate and proves study outputs unchanged. Inventory display coverage
-  may be broad while observation and study coverage remain narrower.
-- Plan 075's UI code has landed, and the 2026-07-21 operator token closed the
-  Plan 074/rc26 anchor gate, activated Plan 075, and authorized publication of
-  the exact reviewed rc26 artifacts. Serving regeneration, remote publication,
-  and public verification remain; nothing promotes quarantined/unapproved data.
-- Exact operator token: “approve Plan 074 rc26 anchors; accept the six
-  historical published-claim TBD cells and the completed B67 negative finding;
-  keep B67 descriptive; approve Plan 075 activation and authorize publication
-  of the rc26 study artifacts.”
-
-## Verified audit evidence (gen 12)
-
-- `packages/analytics/src/interventions/route-treatment-summary.ts:771-813`
-  gathers primary/custom treatments and emits only `firstTreatment`.
-  `:384-509` keys the derived summary by route/month/type/scope and keeps one
-  status-ranked winner, so it cannot be the retained occurrence store.
-- The same materializer's `canonicalRouteId` (`:369-381`) strips/adds `+` and
-  collapses Q20/SIM variants. Current corpus and web joins also strip `-SBS`
-  or `+`; the exact-route task owns the prerequisite correction.
-- The checked 310-record corpus includes multi-treatment records; the global
-  corpus is already served by completed Plan 073, so re-extraction is not the
-  missing layer.
-- `apps/web/src/studio/treatment-model.ts:124-215` infers most route
-  treatments from concatenated prose. Overview and History call it, while
-  cited structured treatments/projects render separately as generic text.
-- `TreatmentBadgeStrip` shows three family slots and an inert `+N`; Overview's
-  cap is also title-only. History can already render an unbounded inventory.
-- Route History downloads the entire citywide corpus and filters client-side;
-  `/interventions` has only local status/borough state, chooses one treatment
-  per corpus row, and links records to default route Overview.
-- Plan 090's branch correctly makes relevance pre-value and Plan 082 typed,
-  but v1 supports only `automated_bus_lane_enforcement`. That boundary is
-  intentional; Plan 093 adds explicit non-ACE specs rather than a generic
-  route-speed fallback.
-
-## Findings considered and rejected (gen 12 — do not re-audit)
-
-- **Duplicate exact-route/name plan** — rejected. The landed MTA Wiki Plan 035
-  work owns exact route identity and official labels; downstream plans consume
-  its tests.
-- **Another intervention database or page** — rejected. Reuse the existing
-  materializer, reviewed corpus, route-evidence bundles, generic R2 artifact
-  serving, route History, and `/interventions`.
-- **Use source prose/claims to infer treatments, relevant metrics, or chart
-  markers** — rejected. Typed source relationships establish what/when/where;
-  reviewed relevance specs select Tracker data before values are inspected.
-- **One generic speed/ridership profile for every intervention** — rejected as
-  semantically weak and cherry-picking-prone. Unsupported kinds remain
-  explicit with an unlock requirement.
-- **Treat rc23 candidates or `awaiting_approval` study rows as public facts
-  because they are structured** — rejected. Candidate review is not
-  publication, and the exact-route defect quarantines the old identity
-  projection. A fresh manifest-v5 producer-approved operational occurrence
-  may enter Plan 091's display inventory without a Tracker study receipt, but
-  the candidate-set artifact itself is never a serving input.
-- **Fan route-level treatments onto segment rows** — rejected. Plan 081
-  measured no within-route ACE/TSP variation; only independently evidenced
-  segment scope may render there.
-- **A bespoke badge on every `/interventions` row** — rejected. Typed family
-  filters/search make all kinds discoverable; the ledger stays text-led and
-  the full route inventory lives in History.
-- **Silently execute the full 089 comp** — still rejected as a process. The
-  comp is executable only because the 2026-07-22 operator token explicitly
-  approved D22-D27; Plan 089 must preserve Plan 092's typed data, URL state,
-  accessibility, and cross-links.
-
----
-
-# Generation 11 — de-month the product: coverage windows + freshness ledger (2026-07-12)
-
-Planned at commit `27755f4` (tree moved to `99fa763` mid-session — study-anchor
-data only) by a read-only advisor session: five parallel scoped audits
-(serving contract, pipeline release identity, web app, domain/analytics
-schemas, docs/wiki doctrine), every table finding re-verified against source
-by the lead session. Operator direction (2026-07-12, binding): the concept of
-"monthly baselines" and month-keyed releases is removed from existence — data
-is multi-year wherever sources allow, the only month-shaped obligation is
-staying updated and seeing how far behind upstream we are, and reintroducing
-month-targeting must be machine-impossible, not merely discouraged. This goes
-beyond ADR-0017, which retired the "monthly release" slogan but deliberately
-KEPT "baseline month" as a first-class anchor; plan 084 writes the
-superseding ADR-0022, and plan 088 enforces it in the harness.
-
-Numbering note: a concurrent same-day session claimed 082/083 for generation
-10, so this generation is 084-088 and plan 088 (the gate) runs SECOND despite
-its number.
-
-## Execution order & status (gen 11)
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 084 | Retire the monthly-baseline doctrine: ADR-0022 + steering-doc truth sweep | P1 | S-M | — (run first) | DONE |
-| 088 | Month-doctrine harness gate (ratchet allowlist; runs SECOND) | P1 | S-M | 084 | DONE |
-| 085 | De-month the public serving contract (releaseId + publishedAt + coverage) | P1 | L | 084, 088; 079 as amended, 080, 081 (all hard) | DONE |
-| 086 | De-month pipeline release identity + publish gates; empty the ratchet | P1 | M-L | 084, 088; 079 as amended + 085 (hard) | DONE |
-| 087 | Freshness ledger: `audit freshness` per-source lag report | P2 | M | 084, 088; 086 (hard) | DONE |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 11)
-
-- 084 first and immediately — it writes ADR-0022 (the vocabulary table every
-  other plan implements) and is docs-only, safe on the dirty tree. 088 next:
-  it freezes every current month-identity violation in a shrink-only
-  allowlist wired into `check:architecture`, so from that point
-  month-targeting cannot be reintroduced and every later plan is FORCED (by
-  the stale-entry guard) to delete its own entries as it lands.
-- The advisor session applied binding **de-month amendment blocks inside
-  plans 079, 080, and 081** (2026-07-12): 079's map contracts carry
-  `publishedAt` + `coverage {start, end}` instead of month identity, its
-  client mismatch state is `coverage_mismatch`, `--month` flags stay as
-  window selectors, month-keyed artifact roots stay as partitions; 080/081
-  inherit the vocabulary and add no new `baseline*` names. Gen-9 executors
-  must honor those blocks; plans 085/086 grep-gate on the amended field
-  names.
-- Combined order: `084 → 088 → 079 → 080 → 081 → 085 → 086 → 087`.
-- Gen-10 coordination: gen-10's 082 (chart markers + a REAL MONTH AXIS on the
-  Overview trend) is grain, fully compatible with ADR-0022 — a month as a
-  chart coordinate is exactly what survives. Serialize gen-10 082 with
-  gen-11 085 (both touch Overview trend surfaces/tests); gen-10 083 (spine
-  spike) has no file overlap with this generation. Gen-8's 074/075/076 are
-  unaffected (verified: their month usage is grain — monthly series and
-  event windows — not baseline identity).
-- 085 and amended 079 both edit `public-api.ts` / `api-client.ts` — hard
-  sequencing, never parallel worktrees. 086 edits `export/d1.ts` after 085
-  touched its builder-call lines — drift checks compare excerpts.
-- Production note: wrangler pins `BASELINE_MONTH=2026-03` (~4 months old at
-  planning time). The pins die in 085; 087 is what makes such lag visible
-  from then on.
-
-## Verified audit evidence (gen 11)
-
-- `apps/web/wrangler.jsonc:35-36` pins `BASELINE_MONTH` and
-  `LAST_BUILT_SPEED_MONTH` to `"2026-03"`. `public-api.ts:80-88` resolves
-  five v1 endpoints' product month from `?month= ?? env.BASELINE_MONTH`; the
-  status response serves a field literally named `canonicalMonthlyRelease`
-  (`public-api.ts:274`) plus `releaseLayer: "baseline_release"` and
-  `completenessStatus: "partial_public_monthly_only"`.
-- The studio path already floats on D1-latest (`resolveServingMonths`,
-  `read-handlers.ts:345-362`) and already serves a `releaseId` — the
-  replacement identity hook exists; only the contract vocabulary pins months
-  (`baselineMonth` at `read-handlers.ts:390,404,902,1015` and across
-  `packages/domain` response schemas).
-- The capability manifest defines freshness RELATIVE TO THE RELEASE MONTH
-  (`route-capability.ts:40,57-71`, `releaseMonth` at `:110`) — served data
-  can never look staler than the release it shipped with. Plan 085 recomputes
-  freshness against now at read time.
-- Pipeline release identity is a month end-to-end: `studio release` defaults
-  to `"2026-03"` (`release.ts:88-91`), D1 exports live under
-  `data/exports/d1/<month>/` with `analysisPeriod: month`
-  (`export/d1.ts:241,285-286`), the R2 publish gate requires
-  `analysisPeriod === --month` (`r2-artifacts.ts:164-165`), the
-  detector-readiness import throws on month inequality
-  (`route-capability-manifest.ts:72-76`), and the data-product registry
-  classifies by a `"release_month"` literal (`registry.ts:69,73-79`).
-- Freshness machinery today is a single-source binary
-  (`check route-speed-availability` → `shouldRebuild`, surfaced by
-  `plan source-refresh`); nothing reports per-source
-  upstream/ingested/published lag. That gap is plan 087.
-- ~12 living docs teach the retired model as current practice (README:91
-  "canonical monthly releases", runbook "promote a baseline month",
-  endpoint-architecture `baselineMonth` contract and "Monthly baseline"
-  cache row, operationalization status "baselineMonth=2026-03 … pass", the
-  primer's DetectorRunId release-month glossary entry for the deleted
-  detector program).
-
-## Findings considered and rejected (gen 11 — do not re-audit)
-
-- **D1/local tables keyed `(routeId, month)`** — GRAIN: time-series
-  partitions, correct storage; no schema migration; only response metadata
-  changes.
-- **`lib/socrata-monthly-ingest.ts` name + monthly ingest cadence** — GRAIN:
-  upstream publishes month-partitioned data; the name is accurate.
-- **"Monthly ridership" chart title / "Monthly riders (K)" legend /
-  "official monthly speed evidence" caveat / home + SEO "monthly speeds"
-  copy** — rejected as findings: they name the source grain of
-  monthly-grain datasets rendered over multi-year windows, not a baseline
-  anchor. (Two subagent reports flagged them; the lead overrode — the
-  hard-cutover doc's "do not over-rotate" boundary stands.)
-- **RouteDetailHeader month label under the speed metric** — GRAIN (a
-  dataAsOf label on a data point); survived the gen-6 design review; keep.
-- **Study engine (074) / studies surface (075) month usage** — verified
-  grain (event-anchored multi-year windows, monthly series); no amendment.
-- **Month-partitioned artifact/export directory layouts** — kept as
-  partitions; identity moves into manifest fields (`publishedAt`,
-  `coverage`). A releaseId-keyed layout migration was rejected as churn
-  without state-space change.
-- **`cloudflare-costs.ts` "monthly" mentions** — billing-cycle arithmetic,
-  unrelated.
-- **Renaming `source-refresh` job ids** (`route_speed_monthly_watcher`) —
-  artifact contract; 087 de-months its strings, ids stay.
-- **Banning the word "month" outright in the 088 gate** — rejected: the gate
-  bans IDENTITY tokens and pinned literals; month-grain vocabulary
-  (`dataAsOf`, `startMonth`/`endMonth`, series coordinates, `--month` window
-  selectors) is legitimate forever.
-- **Docs-audit subagent misclassifications** — corrected by the lead: plans
-  079-081 are TODO (not "completed; archive"), and `data/artifacts/**` docs
-  are operator-owned point-in-time records, out of every plan's scope.
-
----
-
-# Generation 10 — route-detail annotation layer + study-coverage spike (2026-07-12)
-
-Planned at commit `99fa763` on a dirty tree (plan 074/079 execution in
-flight) by a read-only advisor session, answering the operator's direction
-question against the then-current receipt: with only 5 of 403 study
-candidates approved (all ACE onsets; 3 gated estimates, 2 descriptive, 4 of
-5 `no_detectable_change`), is the gated study engine the right investment
-versus naive intervention-date before/after highlighting on route detail?
-Two fan-out audits (route-detail page anatomy; corpus/candidate/spine coverage
-math) with every load-bearing number re-verified by the lead session. The
-2026-07-14 rc19 amendment below preserves that as history and replaces it as
-the current coverage premise.
-
-**Direction verdict (recorded so it is not re-litigated):** the engine's
-rigor is not the overcomplication — its gates caught real confounds on the
-exact routes where naive before/after would have shipped a confident wrong
-number (M79+ +0.36 mph raw with congestion-pricing overlap; B82+ descriptive
-worsening with failed pre-trend). What is missing is the cheap broad layer:
-dated intervention MARKERS on the route chart (annotation, never computed
-deltas). The historical raw-event audit found 201 of 323 candidate routes
-with in-window implementation months, versus 5 routes with studies; that is
-not typed publication coverage. Generation 12 first builds the exact
-inventory and reviewed observation contracts. The spine remains a major
-technical bottleneck: 267 of 385 routes are `needs_pattern_review`. The
-historical 39-row ACE bucket was a primary rejection category, not proof of a
-sole blocker; rc19 rebaselines it to 39 identities/37 routes (20 with no
-additional phase/overlap defect named), 40 current calendar-eligible ACE
-identities/38 routes failing the mechanical spine gate, and 75 new
-spine-blocked identities/74 routes. Plan 083 measured advancement without
-weakening any standard and closed as a negative spike: an unresolved artifact
-residual, conservatively treated as class D/true-gap for the STOP, dominated
-the representative taxonomy, so no production grouping change was
-commissioned.
-
-## Execution order & status (gen 10)
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 082 | Dated intervention markers + real month axis on the Overview speed trend | P1 | M | 090, 092; operator comp approval (hard gate in-plan) | DONE (implementation through `8383e805`; typed observation series, real month/null axis, bounded markers, honest fallback, browser chart smoke) |
-| 083 | Spine pattern-grouping spike: measure honest candidate-coverage gains | P2 | M | 078 (DONE) | DONE (negative spike result; no implementation commissioned) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 10)
-
-- **The two Plan 074 operator items are closed**: the 2026-07-21 token accepts
-  the six historical published-claim TBD cells and completed B67 negative
-  finding, keeps B67 descriptive, and activates/authorizes Plan 075 for the
-  exact rc26 cut; the earlier row-count criterion is re-anchored to every
-  approved event-route pair studied, satisfied at 7/7. Rejected candidates
-  remain excluded.
-- Plan 075's UI integration and exact rc26 artifact publication are complete;
-  all 17 objects and both public surfaces were verified. Plan 082 does not
-  depend on that activation. Its original
-  `mergedTreatmentTimelineRows`/History-text admission is superseded by the
-  Generation 12 amendment: execute 091 → 090 → 092 before 082, then consume
-  the typed observation bundle, resolve its IDs against the same-release
-  inventory, and use the named treatment presentation helper.
-- 082 carries the standing comp gate: no app code until an operator-approved
-  comp exists at `plans/mockups/082-overview-trend-markers/comp.html`.
-- 083 is a completed negative spike. Its decision doc rejects productionizing
-  either prototype: exact aliases help a bounded minority, while recurring
-  profiles lack documentation that distinguishes service patterns from
-  repeated missingness or data loss. Nothing in 083 changes production
-  artifacts, thresholds, candidate sets, receipts, studies, or publication.
-- 076's evidence floor was cleared by the May review cut: BX38, BX9, and B60
-  are three gated ACE event-route studies. The completed non-public spike
-  nevertheless scores zero segments because 135 are affirmatively treated and
-  818 have unknown treatment state. The decision rejects a public ranking;
-  unknown is not untreated and no threshold was weakened.
-
-## Findings considered and rejected (gen 10 — do not re-audit)
-
-- **Computed before/after deltas, percentages, or verdict shading derived
-  from a marker date on route charts** — rejected as a product surface: the
-  repo's own studies prove raw deltas mislead (M79+/B82+ above). Markers
-  carry dates and plain-language labels, never numbers; numbers come only
-  from plan 074/075 study artifacts.
-- **Readmitting rejected candidates or softening gates/spine thresholds to
-  reach the original "≥10 studies" floor** — rejected; the operator accepted
-  the complete 7/7 approved-pair run and Plan 074 is DONE.
-- **A standalone /studies page or new tab** — already rejected by the
-  binding 2026-07-09 operator direction; 075 integrates into existing
-  surfaces.
-- **Markers for year-only or undated events on a month-axis chart** —
-  rejected: a year cannot be honestly placed at a month position; those
-  events stay timeline-only.
-- **Corpus records as chart markers in v1** — rejected for now: all 310
-  served corpus records are pre-window (0 `evaluableInWindow`), so nothing
-  would render; revisit only if a future corpus release carries in-window
-  months.
-- **Fixing the SpeedTrend index axis as its own plan** — folded into 082:
-  the month axis is a prerequisite of marker placement, and a separate plan
-  would double-touch the same chart file.
-
----
-
-# Generation 9 — truthful interactive maps (2026-07-09)
-
-Planned at commit `cd878f7` on a working tree already dirty in `plans/` only
-(branch `codex/gen6-ui-overhaul`) by a read-only advisor session. Three
-parallel audits covered product/user questions, runtime/accessibility, and
-data/serving contracts; the lead session independently reproduced every
-accepted finding against source and checked the shipped 2026-03/2026-05
-artifacts. The operator explicitly selected the whole set by asking for a plan
-to overhaul all current map visualizations, make them meaningfully interactive,
-and start from what product users need to see.
-
-The governing user questions are:
-
-- **Rider or advocate**: Find my route. Where and when is it slow? Is that a
-  one-off or persistent, and what can I share with others?
-- **Planner or evidence author**: Which routes/segments show the most
-  route-slice passenger-delay exposure? Where do source-backed treatments
-  overlap—or fail to overlap—the problem?
-- **Journalist or policy staff**: What period and route universe am I seeing?
-  Can I reproduce the view, inspect exact values, and cite sources/caveats?
-- **Every user**: What is missing, stale, proxy-level, or under review? A map
-  must make uncertainty visible instead of filling it with a plausible color.
-
-## Execution order & status (gen 9)
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 077 | Restore validated MapLibre rendering and clean failure recovery | P0 | M | 068; coordinate with 072 | DONE |
-| 078 | Canonical map/detail/history segment identity and readiness | P0 | L | 068, 077; before 074 | DONE |
-| 079 | Truthful network-map data, layer readiness, freshness, and budgets | P1 | L | 062, 068, 078, 084, 088 | DONE (including the binding ADR-0022 v2 release-identity/catalog cutover) |
-| 080 | Accessible, searchable, shareable network decision explorer | P1 | L | 077, 079 | DONE (implementation `926ce17c`; strict shareable state, exact served-borough and route-segment evidence, O(1) map focus, Data Notes, responsive Sheet, and browser gate complete) |
-| 081 | Linked route-segment evidence explorer with exact overlays | P1 | L | 077-080 | DONE (implementation through `aee2b3df`; strict shareable segment/direction/period state, exact verified map/fact/lane artifacts, one stable-spine history model, coordinated MapLibre/list/readout interaction, honest fallbacks, and browser gate complete) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-Plan 077 browser gate: Chrome for Testing 149.0.7827.55; `/map`, B48, and
-M15-SBS passed at desktop and 390px, including reduced motion and forced
-vendor-failure retry.
-
-Plan 080 browser gate: Chrome for Testing 149.0.7827.55; an isolated fixture
-using the production MapLibre runtime passed at 1440x900, 1024x768, and
-390x844. The matrix covered keyboard, mouse, touch-event hit paths,
-Back/reload-safe URL state, exact M15+ segment evidence, the forced-unavailable
-B1 path, responsive Sheet transfer, accessibility-tree roles, bus lanes, and
-reduced motion.
-
-Plan 081 browser gate: Chrome for Testing 149.0.7827.55; an isolated fixture
-using the production MapLibre runtime passed at 1440x900, 1024x768, and
-390x844. B41 covered exact north/south selection, stable-spine history,
-Back/Forward, reload, gaps, and neutral no-data; M15 SBS covered exact source
-identity and lazy DOT lanes; BX15 covered pattern-review history; B42 forced
-the shareable no-geometry path. The matrix also passed keyboard, mouse,
-trusted touch, cooperative page scroll, reduced motion, 200% zoom, and the
-WebGL-disabled SVG fallback.
-
-## Dependency notes (gen 9)
-
-- **Run 068 first**, then 077 → 078 → 079. The map UI plans are not safe to
-  execute first: current MapLibre styles fail official validation, and the
-  route map can attach a metric/history row to the wrong geometry.
-- 077 and gen-8 plan 072 both may touch `bun.lock`; sequence or reconcile the
-  narrow dependency changes rather than overwriting either lockfile result.
-- 078 must land before gen-8 plan 074. The study engine needs the same stable
-  geographic spine; do not let two plans invent incompatible identifiers.
-  Plan 073 may proceed independently after 068, but 074 then depends on both
-  073 and 078 in the combined roadmap.
-- 079 also requires 062's deletion of the retired pipeline-v1 finalizer/check;
-  it adds a focused `map release` builder and must not resurrect that legacy
-  QA doctrine. It consumes 078's exact/stable identities and establishes the manifest,
-  missingness, freshness, caching, and payload-budget contract used by both
-  UIs. Do not let 080/081 create private copies of that contract.
-- Run 080 before 081. Plan 081 upgrades 080's pinned-route drill and explicit
-  `Open route` CTA, in addition to overlapping shared map style/runtime and
-  `api-client.ts`; it cannot complete independently from the 079 baseline.
-- 075 may later add a reviewed intervention to a map only when its served event
-  has audited source geometry, grain, precision, and date. Plan 081 removes the
-  current inferred ACE/TSP points regardless of 075's timing.
-- 076 is a completed design spike with a no-ship recommendation. No
-  opportunity/composite lens enters `/map` or route detail from this result.
-
-Recommended combined order:
-
-```text
-068 ─→ 077 ─→ 078 ─┐
-062 ───────────────┴─→ 079 ─→ 080 ─→ 081
-068 ─→ 072  (serialize its bun.lock work with 077)
-068 ─→ 073 ─────────┐
-          078 ──────┴─→ 074 ─→ 075 ─→ 076
-```
-
-## Verified audit evidence (gen 9)
-
-- Both MapLibre base styles and lens colors currently emit `oklch(...)`.
-  MapLibre's installed style validator reports `color expected` for those
-  values, and both wrappers currently turn any runtime error into the static
-  fallback. Plan 077 makes style validation a test and fixes lifecycle,
-  bounds, cooperative gestures, and reduced motion.
-- The same segment has three incompatible identifiers across map, Studio
-  detail, and speed history. The route map then falls back to direction/index
-  association. For the B41 artifact, direct map-to-detail matches are 0/16;
-  only 5/7 southbound positions happen to agree, and the last two are reversed.
-  Plan 078 creates one exact source key, one ambiguity-rejecting crosswalk, and
-  one durable geographic spine.
-- The network artifact's `laneCoverage` divides matched lane feature count
-  by route-segment count rather than measuring route-shape overlap. In the
-  checked 2026-03 artifact, 273 of 346 routes report exactly 100%. Rider counts
-  also use a fixed 30-day divisor while the canonical Studio route uses actual
-  month days. Plan 079 removes duplicated/private facts and joins geometry to
-  canonical route metrics.
-- Missing route-hour observations are currently filled with all-day speed,
-  turning “not observed” into a complete-looking 24-hour profile. Plans 079
-  and 081 keep absence null and gate time controls by evidence readiness.
-- `/map` implicitly selects the top-ranked route and dims every other route to
-  20% on first paint. It has no route search or shareable state; its top-ten
-  inspector is hidden below `md`, and map tap navigates immediately. Plan 080
-  separates hover, focus, pin, and navigation and provides a complete
-  structured mobile/keyboard alternative.
-- Network hover deep-copies a 4.61MB GeoJSON collection (52,907 coordinates)
-  and calls `setData`; the MapLibre vendor chunk is about 1.06MB raw/~276KB
-  gzip and omitted from current budgets. Plans 079/080 add visible budgets and
-  feature-state interaction.
-- Route maps are mousemove-only. They synthesize ACE/TSP midpoint markers and
-  route-offset lane lines from route/segment proxy flags, despite provenance
-  saying those fields are not exact geography. Plan 081 links map + segment
-  table + history by stable spine, adds click/touch/keyboard pinning, and maps
-  only verified published source geometry.
-- The shipped release already contains useful first-party context: borough
-  shoreline/name data, 3,048 NYC DOT bus-lane features, and 4,877 timepoint
-  stops. Plans 079-081 use those before proposing an external hosted basemap.
-- The checked local Studio route artifact is a 12-route partial fixture while
-  the network artifact contains 346 routes. Plan 079 requires an explicit
-  production route-universe/coverage gate; unmatched routes render as neutral
-  no-data, never as invented zeroes.
-- A 2026-05 manifest can say `pass` while publishing zero route-segment
-  artifacts and only four base artifacts; the public API currently upgrades
-  base-only output to complete/high. Plan 079 makes per-layer verification the
-  served truth and fixes one-year immutable caching on mutable keys.
-
-## Operator direction (binding on gen 9)
-
-- Keep MapLibre, the offline Bun pipeline, D1 indexes, and R2/static artifacts.
-  A renderer or platform migration requires measured need and a new ADR.
-- Upgrade `/map`, the existing route Segments tab, and the Overview locator in
-  place. No new top-level page, route-detail tab, or nav item.
-- Durable state belongs in validated query parameters. Hover/focus is
-  transient; click/tap pins before navigation.
-- A complete keyboard-operable structured list/readout is part of every map,
-  not a hidden fallback. Mobile must retain selection and evidence controls.
-- Use first-party borough, stop, route, and NYC DOT lane artifacts before any
-  hosted basemap. Do not expand CSP, licensing, or attribution scope here.
-- Show source, period, unit, grain, coverage, freshness, and no-data states.
-  Proxy route/corridor facts stay textual until exact audited geography exists.
-- Geographic borough filters use offline verified served-borough membership,
-  not the route-ID-derived primary borough label.
-- Shared URLs reproduce UI state; until content-addressed navigation exists,
-  copied citations also include artifact key/hash and disclose mutable aliases.
-- No autoplay, realtime vehicles, trip planning, fabricated demo values,
-  browser/Worker spatial analysis, or opaque opportunity score.
-- Chart/metric rules from the approved 075 comp (2026-07-10) bind any chart
-  or numeric readout 080/081 add: shadcn chart-card anatomy in app tokens,
-  one consolidated metric per chart card, method internals behind a "Method &
-  provenance" SourceNote (never on the face), terse labels, "No clear change"
-  for null states. 080 and 081 each get an operator-approved comp round
-  (`plans/mockups/`) before implementation — see the gen-8 design-gate note.
-- **De-month amendment (2026-07-12)**: binding amendment blocks were added
-  inside 079/080/081 — month-keyed release identity is retired (ADR-0022,
-  gen-11). Map contracts carry `publishedAt` + `coverage {start, end}`; the
-  client mismatch state is `coverage_mismatch`; no new `baseline*` names
-  anywhere; the plan-088 harness gate bans the retired tokens. Full mapping
-  in 079's amendment block and the gen-11 section.
-
-## Findings considered and rejected (gen 9 — do not re-audit)
-
-- **Replace MapLibre with Leaflet, deck.gl, or another renderer** — rejected.
-  ADR-0003 already settles MapLibre and the observed defects are invalid style
-  values, lifecycle, interaction, and contracts—not a proven renderer limit.
-- **Restore the hour scrubber/autoplay/carpet animation** — rejected. It was
-  deliberately removed for a calmer evidence UI, and missing hours are not fit
-  for an apparently continuous movie.
-- **Add dedicated map/treatment/opportunity pages or tabs** — rejected by the
-  binding no-new-navigation direction. Improve the existing surfaces.
-- **Use a hosted street basemap immediately** — deferred. CSP, terms,
-  attribution, network reliability, and privacy require a separate decision;
-  the release already has useful first-party geographic context.
-- **Migrate all map artifacts to PMTiles now** — deferred. The checked network
-  artifact is ~396KB gzip; add budgets and measure interaction/device cost
-  before changing delivery architecture.
-- **Ship an opportunity lens now** — rejected for this generation. Plan 076's
-  transparent prototype has three gated ACE inputs but zero scoreable segments:
-  treatment absence cannot be established for the 818 unknowns.
-- **Perform route/lane or historical joins in the browser/Worker** — rejected.
-  Heavy geospatial work remains in the Bun pipeline; public clients consume
-  precomputed, verified joins.
-- **Treat ACE/TSP midpoints or an offset route line as “close enough”** —
-  rejected. A precise-looking false point/line is worse than an explicit
-  route-level badge and source-gap state.
-- **Defensively render malformed own-pipeline coordinate arrays** — rejected
-  again. Validate owned artifacts at build/release boundaries; do not clutter
-  request/render code for impossible published shapes.
-
----
-
-# Generation 8 — audit fix-pack + the business-problem arc (2026-07-09)
-
-Planned at commit `cd878f7` on a clean tree (branch `codex/gen6-ui-overhaul`)
-by a read-only advisor session: four parallel category audits (correctness,
-security+deps, perf+debt, tests/DX/docs) with every table finding re-verified
-against source by the lead session, plus a direction review grounded in
-`docs/research/master-plan-product-questions.md` (Tracks C/D/G). The operator
-selected two sets: the hygiene fix-pack (068-072) and the business-problem
-arc (073-076) — turning the intervention corpus + segment-speed data into
-served, gated, uncertainty-honest treatment studies and a prototyped
-decision layer.
-
-## Execution order & status (gen 8)
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 068 | Verification baseline: fix check:types OOM, prove pre-push gate, align docs | P1 | S-M | — (run first) | DONE (repo-wide typecheck and full pre-push gate pass; pre-existing web fixture blockers repaired with operator authorization) |
-| 069 | Fix tautological route-universe check in observed reliability | P1 | S | 068 | REJECTED (premise false: the call site already skips any canonicalized ID outside `routeUniverse`, so the required pre-fix behavioral test passes) |
-| 070 | Browser-hardening headers on Worker responses (CSP on HTML) | P2 | S-M | 068 | DONE |
-| 071 | Steering-doc truth sweep (README schema claim, /methods SEO, master-plan status) | P2 | S-M | 068 (rec.) | DONE (Effect Schema README claim, retired `/methods` SEO removal, master-plan status block, and knowledge log verified) |
-| 072 | Dependency hygiene: bun update within semver + audit residue log | P3 | S | 068 | DONE (audit reduced 15→13; all residual advisories documented; full tests/build and `/` + `/map` smoke pass) |
-| 073 | Serve the reviewed intervention corpus + reconciliation report | P1 | M-L | 068 | DONE (310 valid; 29 study-date-ready; 11 exact matches; no study-ready corpus-only candidates) |
-| 074 | Segment-grain study engine v1 (matched-control DiD, CIs, gates) | P1 | L | 073 + 078 + exact-route task before any future run | DONE (versioned May review cut approved; deterministic 9/9 run has 3 gated estimates; rc26 remains immutable) |
-| 075 | Integrate studies into the route History tab + /interventions (no new page) | P2 | M | 074 + operator anchor review; 073; exact-route task before activation | DONE (PR #59 UI; PR #88 activation; 17/17 exact rc26 R2 objects and both public surfaces verified 2026-07-21) |
-| 076 | Opportunity layer design spike (rank next-treatment candidates) | P3 | M | 074 | DONE (spike delivered, decision pending; 3-study ACE floor passes, but zero candidates survive conservative treatment-state evidence, so no public ranking is recommended) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 8)
-
-- 068 first, always: it makes `check:types` and the pre-push gate actually
-  runnable; every other plan uses them as verification gates.
-- 069-072 are independent of each other and parallel-safe (isolated worktrees).
-- The business arc is ordered 073 + gen-9 identity plan 078 → 074 → 075 → 076.
-  Plan 074's rc26 publication remains immutable. Its versioned May review cut
-  is also approved and complete at 9/9 studies, including three gated ACE
-  estimates. Plan 076 consumed that cut only for a non-public prototype and
-  recommends no surface because no segment has affirmative untreated evidence.
-  Plan 073's corpus remains documentation/source-coverage input and never
-  supplies causal onset dates or proves treatment absence.
-- Operator direction (2026-07-09, binding on 075/076 and any successor): NO
-  new top-level pages, tabs, or nav items. Studies integrate into the route
-  History tab (upgraded comparison cards) and /interventions (real numbers on
-  evaluated rows); deep-links use `?tab=history&study=<eventKey>` search
-  params, never new routes. New data lands in a tab only if it looks good
-  visually and makes sense for that tab — prefer upgrading existing elements
-  in place over adding sections.
-- Design gate (2026-07-10): the operator approved the 075 study-card comp
-  (`plans/mockups/075-history-tab/study-cards-comp.html`, three review
-  rounds, decisions D1–D17 resolved); plan 075 now carries the approved card
-  anatomy as its binding acceptance target. The same
-  comp-before-implementation gate applies to the remaining UI plans: 080/081
-  get a full comp round (IA variants) before implementation, 076's decision
-  memo includes a comp, 077/079 get a before/after screenshot review. The
-  durable rules extracted from the review live in
-  `knowledge/wiki/engineering/studio_design_pass_status.md`.
-- Gen-7 coordination: 073/075 deliberately serve through the existing public
-  artifact endpoint and do NOT touch `read-handlers.ts` (063 owns it). New
-  domain schemas (073/074) are written in the current `schema-compat` dialect
-  to match siblings; gen-7 066/067 migrates them with everything else. If 066
-  lands first, write them native instead.
-- 070's CSP `connect-src` must be revisited if 075 fetches from any new origin.
-
-## Findings considered and rejected (2026-07-09 audit — do not re-audit)
-
-- **Repo-root `.env` with live keys** — untracked, zero git history, covered
-  by `.gitignore`; standard local-dev convention, not a finding.
-- **Artifact-key path traversal via repeated URL-encoding** — misread of
-  `isValidArtifactKey` (`public-api.ts:108-140`): non-stabilizing keys return
-  `false`, dot components are rejected at every decode pass, and R2 keys have
-  no traversal semantics; the bucket is the intended-public serving bucket.
-- **Magic-link auth endpoints unthrottled** — the endpoints do not exist; the
-  auditor projected ADR-0008's design into code.
-- **"113 CLI commands have zero fixture tests"** — false; 60 fixture-backed
-  command tests exist under `tools/pipeline-v2/test/commands/`.
-- **Route-detail loader lacks 404 handling** — false; both fetches use
+# Standing rejections and verified negatives (do not re-audit)
+
+Every distinct claim below survives from a "Findings considered and
+rejected," "Audit corrections," or equivalent corrections section in a
+generation whose full body was compressed above. Wording is compressed;
+content is not. The `[gen N]` tag names the originating generation for
+provenance — most cite code paths or artifacts as they existed **at that
+time**, not necessarily today.
+
+## Serving/API
+
+- [gen 4] "502 body leaks Zod issues" — FALSE: `snapshotContractFailureResponse`
+  logged details to console only; the response body was the plain envelope.
+- [gen 4] "/interventions double-fetches the 813KB `?schema=2` index" —
+  FALSE: it fetched the v1 routes list + compact evidence payload and
+  already degraded gracefully.
+- [gen 4] "Evidence endpoint uncached" — FALSE: production served
+  `cache-control: public, max-age=60, stale-while-revalidate=86400` + ETag.
+- [gen 4] "Display months still break the snapshot post-#57" — eliminated:
+  post-#57 D1 rows parse-or-skip and cannot fail the v2 compose; the
+  isolated failure (model projection months) was fixed by plan 030.
+- [gen 4] Borough heuristic defaults unknown prefixes to Manhattan; termini
+  split on `" - "` — real, low impact; not worth a plan.
+- [gen 4] Client-side Zod parse of the 1.19MB evidence payload on the main
+  thread — real but minor (cached, infrequent); revisit only if it grows.
+- [gen 4] "Evidence payload uncompressed on the wire" — FALSE: production
+  served `content-encoding: br`.
+- [gen 4] "Snapshot 2.0 fallback path untested" — FALSE: the #58 regression
+  test existed (`api-facade.test.ts:2736`); plan 030 rewrote it.
+- [gen 4] "Zod issues leak to clients in 502 details" — FALSE: error bodies
+  are exactly `{error:{code,message}}`; issues go to console only.
+- [gen 4] "R2 artifact passthrough lacks path validation" — stale:
+  `decodeArtifactKey` + `isValidArtifactKey` already guarded it (plan 012).
+- [gen 4] ETag inconsistency across response helpers — real but small;
+  deferred, standardize on the studio helper only if legacy endpoints
+  matter again.
+- [gen 4] `.parse` on D1 rows in `db/d1/queries/route-batch-status.ts` —
+  same 1101 crash class, covered by plan 031's envelope; per-site
+  conversion not planned.
+- [gen 8] Artifact-key path traversal via repeated URL-encoding — misread
+  of `isValidArtifactKey`: non-stabilizing keys return false, dot
+  components are rejected every decode pass, R2 keys have no traversal.
+- [gen 8] Magic-link auth endpoints unthrottled — the endpoints don't
+  exist; the auditor projected ADR-0008's design into code.
+- [gen 8] Route-detail loader lacks 404 handling — false; both fetches use
   `loadNullableStudioJson` (404 → null).
-- **Segments-tab fetch waterfall / per-tab code-splitting / eager map GeoJSON
-  / keystroke filtering on /routes** — the lazy-artifact split is a documented
-  in-code decision (`$routeId.tsx:29`), the entry budget is green (~115/145KB),
-  and the rest is micro-optimization on a 380-row list. Not worth doing.
-- **Effect 4 beta pin, drizzle-kit RC, TS caret width** — decided toolchain
-  posture (ADR-0019/0020, dev-only tools); revisit at Effect 4 stable, not
-  before.
-- **Unbounded `object.json()` on R2 artifacts** — artifacts are self-published
-  in the same trust domain; defending against them contradicts the CLAUDE.md
-  no-impossible-scenario rule.
-- **`weightedAverage` NaN hardening + `quantile` negative-index guard**
-  (route-grain evaluation lib) — inputs are internally controlled; folded as
-  assertions into plan 074's new engine instead of patching the old path.
-- **Coordinate `[1]` access in `RouteMapLibre.map.tsx:245`** — own-pipeline
-  GeoJSON positions are always 2-element; impossible-input defense.
-- **Analytics test-ratio (28.4K src / 7K test LOC)** — most of the untested
-  mass is the dead subgraph plan 061 deletes.
-- **Pre-063 characterization tests for read-handlers** (real, MED confidence)
-  — offered to the operator 2026-07-09 and not selected; recorded here so 063's
-  executor knows the degrade behavior is pinned by roughly one regression test
-  (`api-facade.test.ts`, poisoned model months) and should tread accordingly.
-- **Release/export command boilerplate extraction** (~8-10 files sharing
-  manifest/write/validate shape) — real but deferred: 066's schema sweep
-  touches the same files; extract after, not before.
+- [gen 8] Unbounded `object.json()` on R2 artifacts — artifacts are
+  self-published in the same trust domain; defending against them
+  contradicts the CLAUDE.md no-impossible-scenario rule.
+- [gen 8] Pre-063 characterization tests for `read-handlers` — real,
+  offered and not selected; degrade behavior was pinned by roughly one
+  regression test.
+- [gen 18] Changing the serving payload's date shape — rejected: plan 102
+  normalizes at the presentation boundary; retyping the artifact would
+  force a republication generation 17 owns.
+- [gen 1-2] CSRF on brief-draft writes (feature since deleted) — mitigated
+  by `SameSite=Lax` cookies; idempotency-key enforcement was plan 008.
+- [gen 1-2] R2 double-decode + error-message hygiene + missing negative
+  auth tests — real but low severity; consolidated into plan 012.
+- [effect-study] "58 scattered scope-check sites" in studio-api —
+  overstated: they funneled through `hasStudioScope`/`requireStudioOperator`;
+  the real issue (registry metadata unenforced by the dispatcher) became
+  plan 008.
 
----
+## Maps
 
-# Generation 7 — deterministic machine: delete the dead, decode once, finish Effect Schema (2026-07-06)
+- [gen 9] Replace MapLibre with Leaflet, deck.gl, or another renderer —
+  rejected: ADR-0003 already settles MapLibre; the defects were invalid
+  style values, lifecycle, interaction, contracts — not a renderer limit.
+- [gen 9] Restore the hour scrubber/autoplay/carpet animation — rejected:
+  removed for a calmer evidence UI; missing hours aren't an apparently
+  continuous movie.
+- [gen 9] Add dedicated map/treatment/opportunity pages or tabs — rejected
+  by the binding no-new-navigation direction; improve existing surfaces.
+- [gen 9] Use a hosted street basemap immediately — deferred: CSP, terms,
+  attribution, reliability, and privacy need a separate decision; the
+  release already had useful first-party geographic context.
+- [gen 9] Migrate all map artifacts to PMTiles now — deferred: the network
+  artifact was ~396KB gzip; add budgets and measure cost first.
+- [gen 9] Ship an opportunity lens now — rejected: plan 076's transparent
+  prototype had three gated ACE inputs but zero scoreable segments
+  (treatment absence unestablished for 818 unknowns).
+- [gen 9] Perform route/lane or historical joins in the browser/Worker —
+  rejected: heavy geospatial work stays in the Bun pipeline; clients
+  consume precomputed, verified joins.
+- [gen 9] Treat ACE/TSP midpoints or an offset route line as "close
+  enough" — rejected: a precise-looking false point/line is worse than an
+  explicit route-level badge and source-gap state.
+- [gen 9] Defensively render malformed own-pipeline coordinate arrays —
+  rejected again: validate owned artifacts at build/release boundaries,
+  not impossible-shape defenses in request/render code.
+- [gen 8] Coordinate `[1]` access in `RouteMapLibre.map.tsx:245` —
+  own-pipeline GeoJSON positions are always 2-element; left as-is.
+- [gen 12, gen 18] Segment-level tags for camera enforcement (ACE) or
+  signal priority (TSP) — rejected twice: both have zero within-route
+  variance (Plan 081); lane coverage genuinely varies and keeps its tag.
+- [gen 1-2] 311 complaint heatmap layer — real opportunity but needs
+  pipeline spatial-join work and a design pass; deferred until after the
+  map foundation (002/003).
 
-Planned at commit `4c1afe7` on a dirty tree (gen-6 execution in flight;
-048-054 landed during planning) by a read-only advisor session (6
-parallel package surveys + direct verification of every load-bearing
-claim) on the operator's direction: reduce LOC and complexity by making
-the codebase more Effect-idiomatic — eliminate local defenses, broad
-fallbacks, weak invariants, duplicated workflows, and machinery that
-compensates for unclear design; prefer making invalid states
-unrepresentable.
+## Design system
 
-Verified headline facts the plans are built on:
+- [gen 12] A bespoke badge on every `/interventions` row — rejected: typed
+  filters/search make all kinds discoverable; the ledger stays text-led.
+- [gen 12] Silently executing the full 089 comp as a process — still
+  rejected: executable only because the operator token approved D22-D27.
+- [gen 18] Deriving Overview trend markers from `route.interventions[]`
+  when the observation bundle is missing — rejected: bypasses the Plan
+  090/093 relevance gate; an explicit STOP condition in plan 105.
+- [gen 10] Computed before/after deltas, percentages, or verdict shading
+  from a marker date on route charts — rejected: the repo's own studies
+  prove raw deltas mislead (M79+/B82+); markers carry dates/labels only.
+- [gen 10] A standalone /studies page or new tab — already rejected by the
+  binding 2026-07-09 operator direction; integrate into existing surfaces.
+- [gen 10] Markers for year-only/undated events on a month-axis chart —
+  rejected: a year can't be honestly placed at a month position.
+- [gen 10] Corpus records as chart markers in v1 — rejected for now: all
+  310 served corpus records were pre-window (0 `evaluableInWindow`).
+- [gen 10] Fixing the SpeedTrend index axis as its own plan — folded into
+  082 instead, avoiding a double-touch of the same chart file.
+- [gen 8] Segments-tab fetch waterfall / per-tab code-splitting / eager map
+  GeoJSON / keystroke filtering on /routes — not worth doing: the
+  lazy-artifact split was documented, entry budget was green.
+- [gen 7] Borough-heuristic semantic fix, web-vitals lazy-install,
+  feature-contract memoization, `dev/`/`fixtures/` bundle exclusion —
+  cosmetic/unproven cost; not planned.
+- [gen 6] "The M86 badge clipping can't be verified" — WRONG: an inline
+  duplicate appended `-SBS` to labels already containing SBS, no `nowrap`.
+  Fixed in plan 049.
+- [gen 6] "No data duplication across sections — all intentional" —
+  overridden: segment speeds surfaced in 4 sections, hourly data in 4; tab
+  plans gave each family one home.
+- [gen 6] "12 served routes / 6 wiki bundles" — stale local pilot
+  artifacts; production served 381 routes; plans stayed corpus-size
+  independent via capability gating.
+- [gen 6] "Keep one 'route feed generated' timestamp" / "move featured
+  routes to /case-studies" / "add pagination only if perf demands" — all
+  rejected: the operator's directives were explicit.
+- [gen 6] Biome/GritQL plugin for the slop lint — rejected: the custom-rule
+  mechanism is the bun-test harness, already wired into `check:architecture`.
+- [gen 6] Renaming section registry values or route URLs for the tab IA —
+  rejected: `ROUTE_DETAIL_SECTIONS` stayed; tabs compose via `?tab=`.
+- [gen 6] Deleting the pipeline's `methods.json` build with the methods
+  page — out of scope of plan 052 (serving-only removal).
+- [gen 6] `RouteBoardingsTrend` "proxy" mode (synthesized rider counts from
+  scaled speed data) — killed in plan 056 as a fabrication hazard.
+- [gen 6] "60th Street" spacing in citations — source-data artifact from
+  wiki extraction, not a render bug; UI made dupe-immune in plans 049/057.
+- [gen 6] Per-tab `React.lazy` code-splitting — deferred; charts/maps were
+  already lazy at the component boundary.
+- [gen 6] Borough roundel palette changes (Brooklyn's brown reads muddy on
+  white) — operator taste call, recorded, not planned.
+- [gen 6] Trend chart with intervention event markers — attractive but
+  needed a design pass; later built as plans 082/105.
+- [gen 4] "Nav should be Routes/Map/Findings/Briefs per system.jsx" —
+  by-design divergence: findings/briefs were hard-deleted in gen-3 (017).
+- [gen 4] "SBS badge should be two pills per system.jsx" — by-design:
+  `RouteBadge.tsx` documents the merged MTA-style roundel deliberately.
+- [gen 4] "Route title 24px vs design 21px" (+ two px-nudges) —
+  mis-attributed: cited `RouteIdentity.tsx` was dead code (deleted by 035).
+- [gen 4] "Route detail is a tabbed workbench; flatten the tabs" — premise
+  wrong: already a single scroll with an anchor nav.
+- [gen 4] "KPI strip must be four oversized stats" — the two July design
+  references disagreed (4 vs 5); plans kept 5.
+- [gen 4] "Add reviewer card (avatar, quote, audit-trail ID) to
+  How-we-know" — rejected: no real reviewers exist; banned by doctrine.
+- [gen 4] "About this corridor fact sheet" — data-blocked: route length
+  was fabricated then (nulled by 032), peak frequency wasn't served.
+- [gen 4] Grid-first section leads / treatments timeline-first / hour-strip
+  unification / chart annotation restraint — real, deferred post-034.
+- [gen 4] Monolith decomposition (`home.tsx` 800 LOC,
+  `TreatmentsHistorySection.tsx` 558, `DataNotesSection.tsx` 525) — real
+  tech debt, deferred.
+- [gen 4] Format-utility consolidation, SlowSegments `useMemo`,
+  `React.memo` on chart layers — not worth doing (micro-wins).
+- [gen 4] Direction options recorded but not planned: reviving `/search`
+  results, an analyst triage home, or `/interventions` treatment filters —
+  all cut in gen-3, reviving any is an explicit product decision.
+- [gen 1-2] "Comp F verdict hero" as the Overview redesign — an auditor
+  read chat30 as converging on a judged-verdict headline; the user's
+  2026-06-12 verdict dislikes that. Only structural ideas (ranked findings,
+  composed figure, map-last) survived, with real numbers.
+- [gen 1-2] Search "slowest" sort / compare & search URL-default bugs —
+  already fixed in uncommitted changes on `frontend-regression-fixes`.
+- [gen 1-2] KPI strip judged-word labels — already fixed (Speed/Trend/
+  Excess wait/Riders/Bus lane).
+- [gen 1-2] Hour×day-of-week matrix — no served payload carried DOW grain.
+- [gen 1-2] Brief history real diff engine (feature since deleted) —
+  required a versioned-draft API; plan 005 made the page honest instead.
+- [gen 1-2] Search facet count duplication — real but low impact then.
+- [gen 1-2] Weather-reliability surface — blocked on causal-method review.
 
-- **The gen-5 zod eviction removed the dependency, not the dialect.**
-  `packages/domain/src/schema-compat.ts` (663 LOC) is a hand-rolled zod
-  emulator over Effect Schema with 43 importers and real semantic
-  hazards: brands collapse to one runtime identity (`"DomainBrand"`),
-  `safeParse` flattens every issue to a path-less message (live bite:
-  `mta-wiki-canonical.ts:183` and `intervention-records.ts:1698-1703`
-  render every validation error as `<root>`), `discriminatedUnion`
-  ignores its discriminator, and object strictness lives in WeakMaps that
-  silently revert across `.extend()`. ADR-0020 already calls it
-  "migration scaffolding" — plans 065-067 finish the migration leaf-first
-  and delete it.
-- **~13.1K LOC of packages/analytics is dead**: `findings/` (8,531),
-  `registry/` (1,623), most of `calibration/` (~2,400), `detectors/`
-  (237), `corpus/` (260), `lattice-deduction.ts` (111) have zero
-  pipeline/serving reachability; route-page insights serve from a static
-  Phase-B readiness artifact whose builder was already deleted with
-  Tier 2. Operator authorized deletion 2026-07-06 (plan 061).
-- **The retired pipeline-v1 monthly-QA doctrine still ships**: `audit
-  pipeline-v1` (886) + `check pipeline-v1` (1,351) + `pipeline finalize`
-  (311, exists only to chain the QA gate) have zero invocation surfaces.
-  Operator authorized deletion 2026-07-06 (plan 062).
-- **The serving read path defends per-request against its own types**:
-  `read-handlers.ts` (2,966 LOC post-052) safeParses its own composed
-  snapshot on every request and re-parses a v1-only variant on failure;
-  projection loads are all-or-nothing while v2/evidence degrade
-  (asymmetric); `summary ?? readiness ?? 0` repeats at 15+ sites;
-  dispatch restates paths `contracts/registry.ts` already declares
-  (plan 063 — plain TS, the plan-026 no-Effect-in-Worker block stands).
-- **One ingest workflow exists 22 times**: every `run*Ingest` hand-builds
-  manifest→fetch→normalize→snapshot→upsert→report; the correct
-  abstraction already exists (`lib/socrata-monthly-ingest.ts`, one
-  adopter). Plan 064 finishes the adoption; fixture tests are the parity
-  proof.
-- Expected net effect when all land: roughly **−19K src LOC and −5-7K
-  test LOC** (061 ≈ −13.1K src, 062 ≈ −2.5K, 063 ≈ −0.9K, 064 ≈ −0.8K,
-  065-067 ≈ −0.9K net incl. the shim), the last schema dialect gone, real
-  brands/unions/error-paths, one declared degrade policy in serving, and
-  a harness gate (`schema-compat` specifier) that makes the dialect
-  unrepresentable — mirroring the existing zod gate.
+## Schema/Effect
 
-## Execution order & status (gen 7)
+- [gen 5] Migrate `packages/db` to `@effect/sql`/`effect/sql-drizzle` —
+  rejected: no drizzle bridge exists on the v4 line (verified against
+  vendored effect-smol + installed `drizzle-orm@1.0.0-rc.3`); a raw rewrite
+  loses drizzle-kit codegen and puts Effect runtime in the Worker hot path.
+  Plan 041 took derived-types instead; revisit only if Effect ships a v4
+  drizzle integration AND worker handlers go Effect-native.
+- [gen 5] The gen-2 rejection "Effect Schema replacing zod is LOC-neutral
+  churn; zod v4 stays" is SUPERSEDED by 2026-07-04 operator direction and
+  changed facts (2,462 LOC of schema dead weight; zero hard-to-migrate zod
+  APIs in use); recorded in ADR-0020.
+- [gen 5] Effect Schema parsing in the BROWSER as the zod replacement —
+  rejected; plan 042 removed client-side runtime parsing entirely (types
+  only), keeping "Effect stays out of the browser" true by construction.
+- [gen 8] Effect 4 beta pin, drizzle-kit RC, TS caret width — decided
+  toolchain posture (ADR-0019/0020, dev-only tools); revisit at Effect 4
+  stable.
+- [gen 7] Migrate the 99 command descriptors to raw `effect/unstable/cli`
+  `Command.make` per file — rejected: plan 040 kept the thin `defineCommand`
+  descriptor + glob discovery + completeness test; 066 migrated only the
+  schema dialect.
+- [gen 7] Delete `schema-routes.ts`/OpenAPI serving (no product consumer) —
+  kept: portfolio-visible API surface, and after plan 067 costs one native
+  `toJsonSchemaDocument` call.
+- [gen 7] `.passthrough()` → strict on RAW upstream row schemas —
+  deliberate tolerance of Socrata column additions; only normalized
+  outputs tighten.
+- [gen 7] Typed-error (`Schema.TaggedErrorClass`) sweep of the 32
+  non-Effect pipeline commands — deferred per ADR-0019's "as commands are
+  touched" rule; blanket migration is churn without a failing behavior.
+- [gen 7] `loadStudioProjection`'s `Response | T` union → tagged result —
+  real weak invariant, deferred to one dedicated PR after 063/066 settled
+  the file.
+- [effect-study] Effect Schema replacing zod in `packages/domain`/
+  `packages/sources` (original 2026-06-13 verdict, later superseded above)
+  — the "domain is ~70% LOC" premise was false: zod was ~7% of the
+  package; migration would have been LOC-neutral churn across ~65 files.
+- [effect-study] `@effect/sql` (original verdict) — rejected: `packages/db`
+  already provided typed schemas, batch inserts, transactions; a wrapper
+  adds a layer, removes nothing.
+- [effect-study] Effect in the browser bundle — hard boundary: the
+  initial-JS budget had 59 bytes of headroom at the time; any Effect
+  runtime in the client fails the build (ADR-0019).
+- [effect-study] Rewriting the `@liche/core` command framework on Effect —
+  rejected: ~300 command files of churn for no orchestration gain; Effect
+  entered the pipeline behind Promise-shaped `lib/` seams (superseded by
+  plan 015).
+- [effect-study] Publishing `tools/pipeline-v2` or mirroring `@bp/sources`
+  1:1 as the public CLI/package — rejected; nyc-transit-kit was designed
+  independently around official API/provider families, this repo is a
+  consumer, not the blueprint.
 
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 061 | Delete the dead detector/calibration subgraph in analytics | P1 | M | — | DONE |
-| 062 | Delete the retired pipeline-v1 QA-gate commands + residue | P1 | S-M | — | DONE |
-| 063 | Serving read path: decode once, compose totally, registry dispatch | P1 | L | — (052 interaction recorded in-plan) | DONE |
-| 064 | One ingest workflow: extend the existing factory, collapse 22 copies | P1 | M-L | 062 rec.; before 066 | DONE |
-| 065 | packages/sources on native Effect Schema (+ `@bp/domain/decode`) | P2 | M-L | — ; before 066/067 | DONE |
-| 066 | Pipeline/analytics/studio-api native (CLI AST introspection port) | P1 | L | 061, 063, 064, 065 (hard) | DONE |
-| 067 | Domain native: real brands/unions, DELETE schema-compat, close gate | P1 | L | 065, 066 (hard) | DONE |
+## Pipeline/data
 
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 7)
-
-- 061 and 062 are independent deletions and the best first executions
-  (isolated worktrees, parallel-safe). Both shrink 066's migration
-  surface.
-- 063 before 066 (hard): both edit `read-handlers.ts`; 063 restructures,
-  066 swaps its schema dialect.
-- 064 before 066 (hard): after consolidation the descriptor sweep touches
-  2 factories + bespoke files instead of 22 commands. 062 before 064
-  (recommended): finalize's imports disappear first.
-- 065 → 066 → 067 is the leaf-first shim eviction: shim-built schemas ARE
-  Effect Schema instances, so native leaves can consume shim-built domain
-  schemas during the transition; domain flips last and the shim is
-  deleted with zero importers. 067 adds the module-specifier gate.
-- **Gen-6 coordination**: 052 already deleted the methods DISPATCH
-  endpoint; the snapshot still loads `methods.json`, so 063's degrade
-  table keeps a methods row (details in 063's drift note). No other
-  gen-6 overlap: gen-7 does not touch `apps/web/src`.
-- The operator's standing gate applies: land the in-flight tree before
-  executing any gen-7 plan; every plan's drift check compares excerpts,
-  not SHAs.
-
-## Findings considered and rejected (gen-7 audit — do not re-audit)
-
-- **Migrate the 99 command descriptors to raw `effect/unstable/cli`
-  `Command.make` per file** — rejected: plan 040 deliberately kept the
-  thin `defineCommand` descriptor + glob discovery + completeness test;
-  replacing it is churn with no state-space reduction. 066 migrates the
-  descriptors' SCHEMA dialect only and ports the flag-reflection to a
-  native AST walk.
-- **Unify packages/db local/d1 row mappers** (`routeReadiness` vs
-  `localRouteReadiness` duplication) — real but HIGH-risk L for ~200 LOC;
-  the two schemas serve different databases with different casings.
-  Not planned.
-- **Consolidate/structuralize the 8 check scripts** — 5 are legitimately
-  runtime scanners (perf/SEO/smoke/provider/publish-completeness); the 3
-  file-inventory ones are ~175 LOC total. Marginal; root scripts pin the
-  paths (gen-5 rejection stands).
-- **Delete `schema-routes.ts`/OpenAPI serving** (no product consumer) —
-  kept: 47+291 LOC, it is portfolio-visible API surface, and after 067 it
-  costs one native `toJsonSchemaDocument` call.
-- **`.passthrough()`→strict on RAW upstream row schemas** — deliberate
-  tolerance of Socrata column additions; only NORMALIZED outputs tighten
-  (rule recorded in plan 065 and the ADR-0020 addendum).
-- **Borough-heuristic semantic fix, web-vitals lazy-install,
-  feature-contract memoization, `dev/`/`fixtures/` bundle exclusion** —
-  cosmetic or unproven cost (bundle claim unverified against
-  tree-shaking; entry has real headroom). Not planned.
-- **Typed-error (`Schema.TaggedErrorClass`) sweep of the 32 non-Effect
-  pipeline commands** — deferred per ADR-0019's own "as commands are
-  touched" rule; 064/066 touch the highest-traffic ones naturally.
-  Blanket migration is churn without a failing behavior.
-- **`loadStudioProjection`'s `Response | T` union → tagged result** —
-  real weak invariant, deliberately deferred: pervasive mechanical sweep
-  best done in one dedicated PR after 063/066 settle the file (named in
-  063's maintenance notes).
-- **Deleting `domain/findings` wholesale after 061** — WRONG: analytics
-  `core/{detector,evidence,coverage}.ts` and `features/route-month.ts`
-  are live importers. 067 Step 3 deletes only zero-importer exports.
-- **"dev/fixtures ship in the prod bundle" (subagent claim)** — recorded
-  as UNVERIFIED, not a finding: no route imports them; Vite tree-shakes
-  route-reachable graphs. Re-check only if the bundle budget ever trips.
-- **`route-equity-contexts.ts` unchecked `rows[0]` + enum cast** —
-  REAL (verified); folded into plan 063 Step 1 rather than planned
-  separately.
-- **Unmanaged `Effect.runPromise` in `effect/concurrency.ts`** — REAL;
+- [gen 18] A separate plan to publish the Plan 091 artifacts — rejected: a
+  data op against an already-existing exporter, recorded as a standing
+  prerequisite instead.
+- [gen 17] Origin main already had `plans/096-member-grain-study-
+  consumer.md` when a proposed production "Plan 096" collided — replaced
+  by Plan 097.
+- [gen 17] Migration history starts at 0000 incl. schema/data/index
+  changes; table existence can't authorize invented `d1_migrations` rows —
+  CI's direct 0032/0034 recovery had skipped 0033.
+- [gen 17] Production D1 holds non-reconstructible live writes (auth/
+  session/user state) — a seeded shadow D1 is unsafe; selective
+  serving-data rollback required instead.
+- [gen 17] Studio derives "latest" from `route_batch_status`, maps elect
+  their own latest row, most R2 reads use mutable stable keys — atomicity
+  needs candidate-scoped D1 rows + one active pointer/artifact map.
+- [gen 17] Post-audit amendments required a durable pre-mutation baseline,
+  fail-closed decode, separate cost evidence, and a fenced verified-object
+  catalog (never treat receipts/ETags/filenames/size as content proof).
+- [gen 17] A fresh release lacked a canonical exact-route registry row,
+  would have regressed schema-v3/detail/history despite Plan 095's repair.
+- [gen 17] The pre-099 freshness ledger permitted 3 periods of lag, let
+  critical unknowns pass strict mode, mapped sources to one global range —
+  plan 099 replaces the semantics, not just the label.
+- [gen 17] R2 hash skipping is unsafe when ETag is empty; builders mixed
+  wall-clock `generatedAt` with reusable payloads or reused decodable
+  files without a fingerprint — plan 101 fixes both.
+- [gen 12] Duplicate exact-route/name plan — rejected: landed MTA Wiki
+  Plan 035 owns exact route identity/labels; downstream plans consume it.
+- [gen 12] Another intervention database or page — rejected: reuse the
+  materializer, reviewed corpus, evidence bundles, R2 serving, History,
+  and `/interventions`.
+- [gen 12] Use source prose/claims to infer treatments, metrics, or chart
+  markers — rejected: typed relationships establish what/when/where;
+  vetted relevance specs select data before values are inspected.
+- [gen 12] One generic speed/ridership profile per intervention — rejected
+  as semantically weak/cherry-picking-prone; unsupported kinds stay
+  explicit, requiring an unlock.
+- [gen 12] Treat rc23 candidates or `awaiting_approval` rows as public
+  facts because they're structured — rejected: candidate review isn't
+  publication; the candidate-set artifact is never a serving input.
+- [gen 11] D1/local tables keyed `(routeId, month)` — GRAIN: correct
+  partitioning, no migration; only response metadata changed.
+- [gen 11] `lib/socrata-monthly-ingest.ts` name + cadence — GRAIN:
+  upstream publishes month-partitioned data; the name is accurate.
+- [gen 11] "Monthly ridership" chart title / "Monthly riders (K)" legend /
+  "official monthly speed evidence" caveat / "monthly speeds" copy —
+  rejected as findings: they name dataset grain, not a baseline anchor.
+- [gen 11] `RouteDetailHeader` month label under the speed metric — GRAIN
+  (a `dataAsOf` label on a data point); kept.
+- [gen 11] Study engine (074) / studies surface (075) month usage —
+  verified grain (event-anchored multi-year windows); no amendment.
+- [gen 11] Month-partitioned artifact/export layouts — kept as
+  partitions; identity moved into manifest fields (`publishedAt`,
+  `coverage`). A releaseId-keyed layout migration was rejected as churn.
+- [gen 11] `cloudflare-costs.ts` "monthly" mentions — billing-cycle
+  arithmetic, unrelated to release identity.
+- [gen 11] Renaming `source-refresh` job ids (`route_speed_monthly_
+  watcher`) — an artifact contract; only strings de-monthed, ids stayed.
+- [gen 11] Banning "month" outright in the plan-088 harness gate —
+  rejected: the gate bans IDENTITY tokens/pinned literals; month-grain
+  vocabulary (`dataAsOf`, `startMonth`/`endMonth`, `--month`) stays legal.
+- [gen 11] Docs-audit subagent misclassified plans 079-081 as "completed;
+  archive" (they were TODO) and `data/artifacts/**` docs as in-scope —
+  corrected by the lead.
+- [gen 10] Readmitting rejected study candidates or softening gates/spine
+  thresholds for the original "≥10 studies" floor — rejected; the operator
+  accepted the complete 7/7 approved-pair run, closed plan 074.
+- [gen 8] `weightedAverage` NaN hardening + `quantile` negative-index
+  guard (route-grain lib) — inputs are internally controlled; folded as
+  assertions into plan 074's engine instead.
+- [gen 8] Analytics test-ratio (28.4K src / 7K test LOC) — most untested
+  mass was the dead subgraph plan 061 deleted.
+- [gen 8] Release/export command boilerplate extraction (~8-10 files) —
+  real but deferred: 066's schema sweep touches the same files.
+- [gen 7] Unify `packages/db` local/d1 row mappers — real but high-risk
+  for ~200 LOC; different databases, different casings; not planned.
+- [gen 7] Consolidate/structuralize the 8 check scripts — 5 are legitimate
+  runtime scanners, 3 file-inventory ones are ~175 LOC total; marginal.
+- [gen 7] Deleting `domain/findings` wholesale after plan 061 — WRONG:
+  analytics `core/{detector,evidence,coverage}.ts` and
+  `features/route-month.ts` were live importers; 067 deleted only
+  zero-importer exports.
+- [gen 7] `route-equity-contexts.ts` unchecked `rows[0]` + enum cast —
+  real, verified; folded into plan 063 Step 1.
+- [gen 7] Unmanaged `Effect.runPromise` in `effect/concurrency.ts` — real;
   folded into plan 064 Step 4.
-
-## Shared constraints (generation 7)
-
-- **No Effect runtime in the Worker or browser.** Plan 026's measured
-  block stands; 063 is plain TypeScript; "Effect-idiomatic" there means
-  parse-don't-validate, total composition, one envelope. `rg 'from
-  "effect' apps/web/src` must stay empty through 067 (type-only domain
-  imports are fine).
-- **Effect v4 beta APIs**: trust the installed `effect@4.0.0-beta.92` —
-  vendored source at `.repos/effect`, guides at
-  `/home/cjpher/.codex/skills/effect-ts/`. The shim
-  (`schema-compat.ts`) is the Rosetta stone for dialect→native mappings
-  until 067 deletes it.
-- Root `bun run check:types` OOMs — always per-package
-  `bun --filter <pkg> typecheck`.
-- `data/` is operator-owned: no executor ever deletes or rewrites
-  anything under `data/` (readiness artifacts become the frozen record of
-  the deleted detector program).
-- Verification default per plan, then the pre-merge gate: per-package
-  typechecks, `test:unit`, `test:web` + `test:worker` where studio-api or
-  domain is touched, `check:web-architecture`, `check:style`; worker
-  wall-time regressions >1.5× baseline are STOP conditions (plan-026
-  precedent).
-
----
-
-# Generation 6 — MTA visual language + page overhaul (2026-07-06)
-
-Planned at commit `ce3baca` on a DIRTY tree (the uncommitted gen-4/5
-execution, 374 files) by a read-only advisor session (4 parallel surveys +
-direct verification of every excerpt) from the operator's 2026-07-06 UI/UX
-critique. **That critique is the new design authority.** It supersedes the
-July-4 export's warm/editorial tokens and RESOLVES the gen-4 open tension:
-the 2026-06-12 bans ("data as of" chips, judged-word labels) stand and are
-now machine-enforced (plan 050), alongside new bans (interpunct metadata
-chains, kicker eyebrows, self-referential filler sections).
-
-Verified headline facts the plans are built on:
-
-- Three REAL BUGS ride along: the route header renders "M86 SBS-SBS"
-  clipped (an inline badge duplicate in `RoutePublicAtoms.tsx:72-78`
-  appends `-SBS` to labels already containing SBS — the shared
-  `RouteBadge` normalizes correctly and is unused there); "unda" badges
-  are `timelineYearLabel()` slicing `"undated"` to 4 chars
-  (`TreatmentsHistorySection.tsx:303-306`); duplicate citation chips come
-  from served `citationKeys` arrays with duplicate keys rendered without
-  dedupe (`WikiEvidence.tsx:32-34`).
-- The route page literally has NO overview: `OverviewSection.tsx` (266
-  LOC, containing the summary card + the page's only plain trend chart +
-  mini map) has ZERO importers; the "Overview" anchor scrolls to the
-  header. The "tabs" are anchor links on one long scroll.
-- A large dead-component layer exists (`TimelineSection` cluster,
-  `Heatmap`, three `*Overlay` charts + `OverlayChart`, `Rail`,
-  `ConfidenceBar`, `MapThumb`, `RouteMetricStrip`, `RouteVitalsCard`,
-  `StudioFooter`…) — swept in 049/060 with grep gates.
-- Slop censuses: 26 interpunct instances, ~44 uppercase-tracking labels
-  across 16 files, 5 files with "generated/as-of" strings, both treatment
-  lists unbounded (~95 + ~79 items), the home index unbounded (~381 rows).
-- Local `data/artifacts/studio/v1/routes.json` holds the 12-route pilot;
-  PRODUCTION serves the 381-route release (plan 021). Wiki evidence covers
-  only a handful of pilot routes — capability gating carries the sparse
-  majority, so no plan depends on corpus size.
-- No headless browser exists in the workspace; verification = typecheck +
-  bun tests + build/budget + HTTP smoke; visual review is an operator
-  dev-server pass (screenshots noted as absent, not faked).
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 048 | MTA visual language: cool palette, MTA-blue accent, black nav bar | P1 | M | — (land tree first) | DONE |
-| 049 | Shared primitives: SectionCard, SourceNote, BoroughBadge, RouteBadge fix, dead-component deletes | P1 | M | 048 rec. | DONE |
-| 050 | Design-doctrine harness check (slop lint + ratchet allowlist) | P1 | S-M | 049 | DONE |
-| 051 | Homepage rewrite (neutral, search-first) + new /routes directory | P1 | L | 048-050 | DONE |
-| 052 | Delete the methods page end-to-end (incl. worker endpoint) | P2 | M | 051 (hard) | DONE |
-| 053 | Route detail: real tabs (?tab=) + compact self-evident header | P1 | L | 049 (hard), 048, 050 | DONE (plain-markup tab bar) |
-| 054 | Overview tab: one summary, one trend, mini map, insights | P1 | M | 053 (hard) | DONE |
-| 055 | Slow segments tab: ranked table, one hour chart, calm map; delete carpet + Profile | P1 | L | 053 (hard); 054 rec. | DONE |
-| 056 | Riders & reliability tab: rider-real numbers; meta-metrics → SourceNote | P1 | M | 053 (hard) | DONE |
-| 057 | Treatments & history tab: grouped bounded timeline; "unda" + citation-dupe fixes | P1 | L | 049+053 (hard); 054 rec. | DONE (RPubInterventionCard + CitationChips kept: live consumers interventions.tsx/DataNotesSection → plans 058/060) |
-| 058 | Interventions page: bounded, filterable network chronicle | P2 | M | 049+057 (hard); 052 rec. | DONE (RPubInterventionCard + RoutePublicAtoms.tsx + StudioHero deleted; route file made lazy for bundle budget) |
-| 059 | Network map: full-bleed + in-map overlays; kill time-autoplay | P2 | M-L | 048; 055 (scrubber delete) | DONE (TimeScrubber deleted; period toggle All/AM/PM; map click-through; mobile gets map + legend + toggles, no bottom sheet) |
-| 060 | Dead-component sweep + close the doctrine ratchet (run LAST) | P3 | S-M | 051-059 | DONE (17 dead files + 1 orphan test deleted; still live: SectionHeader ← DataNotesSection, CorridorMap + RouteGeoMap ← Overview/map sections; allowlist NOT empty — keeps live-pattern entries CorridorMap, RouteGeoMap, RouteMapLibre.map interpuncts + RouteMapSection kicker per operator drift note; bundle after sweep: entry 115.0 KB gz, total 312.6 KB gz) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 6)
-
-- **Operator gate first**: the working tree carries all of gen-4/5
-  uncommitted. Land/commit it before ANY gen-6 plan starts; every plan's
-  drift check compares excerpts, not SHAs, because of this.
-- 048 → 049 → 050 is the foundation chain (tokens → primitives → the check
-  that enforces them). 050 freezes today's violations in a ratchet
-  allowlist; every page plan REMOVES its files from that allowlist (the
-  stale-entry guard forces it); 060 asserts the list ends empty.
-- 051 BEFORE 052: the old home loader calls `fetchStudioMethods`; 052
-  deletes it.
-- 053 is the keystone (tab shell + header); 054-057 fill its tabs and can
-  run in PARALLEL worktrees after it (they touch disjoint files, except:
-  054 before 057 recommended — 054 establishes Overview as the trend
-  chart's only home, 057 deletes the duplicate).
-- 057 BEFORE 058: `/interventions` reuses the row pattern and is the last
-  consumer of `RPubInterventionCard` (057 leaves it; 058 deletes it).
-- 055 BEFORE 059's scrubber-deletion step (055 removes the route map's
-  TimeScrubber usage; 059 removes the network map's and deletes the file).
-- Non-interactive default applied: the operator's critique enumerated the
-  full scope, so all listed plans were written (not just top-5); the
-  operator can drop/reorder rows before execution.
-
-## Findings considered and rejected (gen-6 audit — do not re-audit)
-
-- **"The M86 badge clipping can't be verified"** (route-detail subagent) —
-  WRONG: the header does not use `RouteBadge`; the inline duplicate at
-  `RoutePublicAtoms.tsx:72-78` renders `"M86 SBS-SBS"` with no `nowrap` in
-  a fixed `h-10` box. Fixed in 049.
-- **"No data duplication across sections — all intentional"** (same
-  subagent) — verdict overridden: each viz uses a distinct metric, but
-  segment speeds surface in 4 sections and hourly data in 4; the operator
-  experiences that as repetition. The tab plans assign each data family
-  ONE home (matrix preserved in plans 054/055).
-- **"12 served routes / 6 wiki bundles"** (data subagent) — stale LOCAL
-  artifacts (the pilot fixtures); production serves the 381-route release.
-  Plans stay corpus-size independent via capability gating.
-- **"Keep one 'route feed generated' timestamp" / "move featured routes to
-  /case-studies" / "add pagination only if perf demands"** (home subagent
-  suggestions) — all rejected: the operator's directives are explicit
-  (delete the timestamps, delete "In focus" entirely, bound the index as a
-  UX decision).
-- **Biome/GritQL plugin for the slop lint** — rejected: no Biome plugins
-  in use; the repo's established custom-rule mechanism is the bun-test
-  harness (`production-boundaries.test.ts`), which is testable and already
-  wired into `check:architecture`. Plan 050 follows it.
-- **Renaming section registry values or route URLs for the tab IA** —
-  rejected: `ROUTE_DETAIL_SECTIONS` + capability gating stay; tabs COMPOSE
-  sections (`ROUTE_DETAIL_TABS` layer). `?tab=` is additive URL surface.
-- **Deleting the pipeline's methods.json build with the methods page** —
-  deliberately out of scope of 052 (serving-only removal); the pipeline
-  build is a separate operator call.
-- **`RouteBoardingsTrend` "proxy" mode** — a dead branch that would
-  synthesize rider counts from scaled speed data; killed in 056 as a
-  fabrication hazard (honesty doctrine).
-- **"60 th Street" spacing in citations** — source-data artifact from the
-  wiki extraction, not a render bug; UI is made dupe-immune in 049/057 and
-  the pipeline fix is a named wiki-repo follow-up.
-- **Per-tab `React.lazy` code-splitting** — deferred; charts/maps are
-  already lazy at the component boundary and entry currently sits at
-  122.9/145 KB gz. Measure before adding a split layer.
-- **Borough roundel palette changes** (Brooklyn's brown reads muddy on the
-  new white surfaces) — operator taste call, recorded in 048's maintenance
-  notes, not planned.
-- **Trend chart with intervention event markers** (marrying Overview's
-  chart with History's events) — attractive but needs a design pass;
-  recorded in 057's maintenance notes.
-
-## Shared constraints (generation 6)
-
-- Bundle budget: entry 145 KB gz / total 390 KB (current: entry 122.9);
-  failures are STOP-and-report, never a self-approved raise. The eager
-  route-loader-imports-a-value trap still applies to new routes (051's
-  step 6 encodes the check).
-- Effect stays out of the browser; charts stay shadcn/Recharts v3 behind
-  lazy `X.tsx` + `X.chart.tsx`; maps stay behind lazy `.map.tsx`.
-- Honesty is the product: capability manifest decides render/empty/hide;
-  no synthesized dates, metrics, or impact claims; sparse routes get
-  complete honest pages. Meta-information moves to `SourceNote`, never to
-  KPI tiles.
-- Root `bun run check:types` OOMs — always `bun --filter <pkg> typecheck`.
-- Verification default per plan, then the pre-merge gate:
-  per-package typechecks, `test:web`, `test:worker` (where touched),
-  `bun --filter @bp/web build`, `check:web-seo` (page-set changes),
-  `check:architecture` (includes the new `check:design-doctrine`),
-  `check:style`.
-
-# Generation 5 — consolidation: one schema layer, one CLI, one copy of the data (2026-07-04)
-
-Planned at commit `ce3baca` by a read-only advisor audit (6 parallel
-surveys + direct verification of every load-bearing claim) on the
-operator's direction: remove zod entirely in favor of Effect (v4,
-`effect@4.0.0-beta.92` — the installed line), migrate the pipeline CLI off
-the unmaintained-and-unpublished `@liche/core` onto `effect/unstable/cli`,
-deprecate the duplicate raw-JSON cache layer after proving SQLite coverage,
-delete the failed agent-corpus-research tooling, evaluate
-`packages/domain`'s weight, fold genuinely generic pipeline capabilities
-into nyc-transit-kit, and cut net LOC while raising robustness/readability.
-
-Verified headline facts the plans are built on:
-
-- The zod/Effect seam is mechanical, not semantic: repo-wide there are ZERO
-  uses of `.transform( .refine( .default( .catch( z.lazy z.custom`; the
-  volume is `.strict()` ×434, `.coerce` ×158, `.passthrough()` ×98,
-  `z.enum` ×248, brands ×20, 1 codec, 1 registry.
-- The v4 Effect line has NO drizzle bridge (`@effect/sql-drizzle` is
-  v3-only; `drizzle-orm@1.0.0-rc.3` ships zod/valibot/typebox/arktype
-  validators, no effect). The db answer is drizzle-inferred types +
-  boundary-only guards, not an ORM swap.
-- `data/` is 409 GB on a 91%-full disk; `data/raw` (182 GB of JSON) mostly
-  duplicates the 170 GB canonical `data/local/pipeline.sqlite`
-  (`socrata-monthly-ingest.ts` writes both on every run), and
-  `data/artifacts/docs` (51 GB) is fully orphaned by the Tier 2 deletion.
-- ADR-0019 pre-authorized the CLI migration as "a later simplification
-  step" once the Effect runtime/service groundwork landed. Plan 040 landed
-  the dependency-removal pass with 99 descriptor-backed commands now running
-  through `effect/unstable/cli`.
-- 2,462 LOC of `packages/domain/src/documents/*` have zero external
-  importers (Tier 2 leftovers); domain's live core (primitives, findings,
-  studio, maps, routes) has 10-36 importer files per subpath and stays.
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 036 | Remove dead dependencies, dead exports, root clutter | P2 | S | — | DONE |
-| 037 | Delete the agent-research tooling (keep live AI-notes path) | P1 | M | — | DONE |
-| 038 | Build the raw→SQLite coverage gate (deletion prerequisite) | P1 | M | — | DONE |
-| 039 | Deprecate the raw-JSON layer (stop dup writes + operator runbook) | P1 | M | 038 | DONE |
-| 040 | Migrate pipeline CLI: @liche/core → effect/unstable/cli | P1 | L | 037; 039 rec. | DONE |
-| 041 | De-zod packages/db: drizzle-inferred types + schema reconciliation | P2 | L | 030-032 done | DONE |
-| 042 | Drop client-side response parsing (zod out of the browser) | P2 | M | 030-035 done | DONE |
-| 043 | Prune + migrate packages/domain to Effect Schema | P1 | L | 041, 042 | DONE |
-| 044 | Migrate sources/pipeline schemas; evict zod; ADR-0020 | P2 | M-L | 040, 043 | DONE |
-| 045 | nyc-transit-kit generic upgrades (cross-repo) + adoption | P3 | M | — (039 rec.) | IN PROGRESS (Order 1 done; Orders 2-4 gated) |
-| 046 | Reconcile D1 Drizzle migration lineage after Plan 041 | P1 | M-L | 041 blocked | DONE |
-| 047 | Finish Effect migration: consume nyc-transit-kit natively (ADR-0021) | P2 | M-L | 045 Order 1 | DONE |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 5)
-
-- **Gen-4 first where files overlap**: 041 waits for 030-032 (serving
-  contract + its tests are the regression net); 042/043 wait for all of
-  030-035 (they own `read-handlers.ts` and the web route pages). 036-040
-  and 045 do not overlap gen-4 and can start immediately.
-- 038 → 039 is a hard gate: no raw deletion without the coverage manifest.
-  The disk is 91% full — these two are the urgency track. All `data/`
-  deletion is OPERATOR-RUN via the generated runbook; executors never `rm`
-  data.
-- 037 before 040 (fewer files to migrate); 039 before 040 recommended
-  (settles ingest handler bodies before their CLI shells are rewritten).
-- 040 before 044 (liche re-exports zod into 87 files; its `arg.*` helpers
-  are zod wrappers).
-- 041 + 042 before 043 (db exports derived types; web goes types-only so
-  domain's schema swap cannot touch the browser bundle). 043 before 044
-  (044 finishes the leaves and flips the repo-wide grep gate).
-- 045 is independent; its bus-repo half lightly overlaps 039's ingest
-  edits — land 039 first or rebase.
-- 047 landed after 045 Order 1 (the 0.2.0 pin bump) and owns the SODA3
-  pagination/token call-site rework Effect-natively; 045's original
-  compat-based swaps were superseded to avoid double-touching `lib/soda3.ts`.
-  compat remains sanctioned only at Promise edges (studio-api, per 026's
-  measured BLOCK and ADR-0021).
-- Expected net effect when all land: roughly −6,000 to −9,000 LOC of
-  TS/Python (deletions in 036/037/039/041/043 dominate; the schema
-  migration itself is ~LOC-neutral), two dependencies fully removed
-  (`@liche/core`, `zod`) plus `pi-agent-core`/`pdf-lib`/`pmtiles`/
-  `@tidy-ts/dataframe`/`shadcn`, one schema library repo-wide, and
-  ~230 GB of disk reclaimed by the operator runbook.
-
-## Findings considered and rejected (gen-5 audit — do not re-audit)
-
-- **Migrate `packages/db` to `@effect/sql` / "effect/sql-drizzle"** —
-  rejected: no drizzle bridge exists on the v4 line (verified in vendored
-  effect-smol and installed drizzle-orm 1.0.0-rc.3); a raw
-  `effect/unstable/sql` rewrite loses drizzle-kit migration codegen and
-  puts Effect runtime plumbing into the Worker hot path (plan-026
-  precedent). Plan 041 takes the derived-types path instead. Revisit only
-  if the Effect team ships a v4 drizzle integration AND worker handlers go
-  Effect-native.
-- **The gen-2 rejection "Effect Schema replacing zod is LOC-neutral churn;
-  Zod v4 stays (ADR-0001/0019)" is SUPERSEDED** by operator direction
-  2026-07-04 and by changed facts (2,462 LOC of schema dead weight; zero
-  hard-to-migrate zod APIs in use; liche removal was not on the table in
-  June). Recorded in ADR-0020 (plan 044).
-- **Move/rename `tools/pipeline-v2` to `apps/`** ("it's really an internal
-  app") — agreed on the vocabulary, rejected as a move: the boundary
-  harness pins the script strings, ~90 files' import paths would churn, and
-  nothing improves functionally. The gen-5 wiki updates may describe it as
-  an internal app; the path stays.
-- **Migrate `packages/sources` adapters into nyc-transit-kit** — rejected
-  by the two-repo audit: adoption is already correct (kit does transport/
-  decode; the 18 adapters are bus-specific normalization). Only three
-  generic capabilities move (plan 045). Geoclient/census clients are
-  non-transit and stay local.
-- **Delete `_release-segments.ts` / `lib/llm.ts` / `pi-ai` with the agent
-  tooling** — WRONG: `studio release` imports `_release-segments.ts`, and
-  the AI notes it generates render publicly
-  (`SlowSegments.tsx:145` renders `segment.aiNote`). Plan 037 keeps that
-  path and deletes only `pi-agent-core`/codemode/sandbox. (A first-pass
-  subagent report claimed it dead; direct verification disproved it.)
-- **Delete `lib/route-briefs/`** — WRONG (another disproven subagent
-  claim): imported by `effect/route-brief-model.ts`,
-  `commands/studio/release.ts`, `commands/studio/_release-types.ts`,
-  `commands/audit/pipeline-v1.ts`.
-- **Delete `geoclient-current-v2.yaml`** — referenced as the spec pointer
-  by `packages/sources/src/clients/geoclient/client.ts:66`. Stays.
-- **Remove `es-toolkit`** — live via `apps/web/vite.config.ts` aliases onto
-  `apps/web/vendor/es-toolkit-compat/*.mjs` (recharts shimming).
-- **Consolidate `src/checks/*` into CLI subcommands** — deferred DX polish;
-  root scripts pin the direct file paths and the boundary test asserts
-  them. Not worth the churn during the CLI migration.
-- **Effect Schema parsing in the BROWSER as the zod replacement** —
-  rejected; plan 042 removes client-side runtime parsing entirely (types
-  only), keeping "Effect stays out of the browser" true by construction
-  and shrinking the entry bundle.
-- **Preserve the CLI's silent glob command discovery** — rejected: the
-  import-failure skip was a defect (a broken command file just vanished),
-  not a feature. Plan 040 keeps descriptor discovery but makes import
-  failures loud and backs the registry with an exact completeness test.
-  `--schema` reflection dropped (zero consumers verified); `--json`
-  preserved via golden-output contract (six script invocations in
-  `scripts/run-available-not-fetched-backfill.sh`; the script logs command
-  JSON but parses downstream artifacts).
-- **"112 commands" (subagent census)** — corrected: 99 live command
-  descriptors after Plans 038/039; the other files under `commands/` are
-  helper modules.
-- **Delete `check-pioneer-provider`** — independent of the agent harness
-  (fetch-based provider smoke; no pi-* imports). Stays.
-- **`data/raw/socrata-partitioned` (142 GB) immediate deletion** — not
-  gated yet: layout is month-opaque until plan 038 classifies it; it is the
-  single biggest follow-up prize after the first reclaim wave.
-- **studioBrief D1 tables "actively used"** (subagent claim) — the query
-  module `studio-brief-agents.ts` is exported only by the `@bp/db` barrel
-  with zero consumers; the tables are dead-in-waiting and plan 041
-  reconciles them against the already-present drop migration 0029.
-- **"`data/raw/route-slices` (7.4 GB) is orphaned — delete now"** (late
-  dataflow-audit claim) — WRONG:
-  `commands/studio/release.ts:86` still defaults
-  `defaultRouteSliceRawRoot = "data/raw/route-slices"`. Plan 038's gate
-  must verdict it; not deletable on sight.
-- **"Only two lines block raw deletion"** (same report) — undercounted:
-  `route-treatment-summary.ts:34-35` reads the same `data/raw/network/`
-  snapshots, and `release.ts:86` references the raw route-slice root. The
-  full constraint list lives in plan 038.
-- **"All of `domain/documents/` (4,531 LOC) is orphaned"** (late
-  schema-audit claim) — over-broad: only the four subtrees totaling
-  2,462 LOC have zero external importers; `candidates`,
-  `intervention-records`, `operational-date`, and the documents root are
-  live (analytics interventions + pipeline intervention evaluation).
-  Plan 043 prunes exactly the dead four.
-- **"Delete `schema-registry/` immediately (0 importers)"** (same
-  report) — the registry MECHANISM (`src/schema-registry.ts` +
-  `registerProjectSchema`) is live domain-internally and feeds
-  `@bp/domain/json-schema` → studio-api OpenAPI; only the 5-line
-  `src/schema-registry/` re-export stub DIR is dead (plan 043 deletes it).
-- **Re-point `_release-geometry.ts` from raw network snapshots to
-  SQLite** — real and desirable (frees the `network/` + possibly
-  `route-slices/` families) but HIGH-risk: it rebuilds release-time
-  geometry and must prove parity of published artifacts. Deliberately NOT
-  folded into plan 039; it is a named follow-up in 039's maintenance
-  notes for the operator to commission separately.
-- **`--prune` for stranded socrata-partitioned chunks** (skip-if-exists
-  downloads strand out-of-range chunks on narrower re-runs;
-  `http-file-download.ts:147-156`) — real, small, deferred; named in plan
-  039's maintenance notes rather than planned now.
-
----
-
-# Generation 4 — post-incident hardening + July design repair (2026-07-04)
-
-Planned at commit `ce3baca` by a read-only advisor audit (5 parallel surveys +
-direct production verification) after PRs #54-58 stabilized the snapshot
-endpoint and the operator called out frontend regressions. Two tracks:
-
-1. **Backend truth & resilience.** The Snapshot 2.0 omission is a live,
-   stable production failure hidden behind #58's fallback (030). The
-   Worker-1101 crash class that started the incident still exists on ~20
-   other `.parse` sites with no global catch (031). The serving layer
-   fabricates route metrics that render publicly — including a ×1.18
-   "scheduled speed" attributed to "MTA GTFS" and a synthetic spark that
-   marks every homepage route "Improving" (032).
-2. **Frontend repair, not redesign.** The route page pins ~250-290px of
-   chrome (033), and its content doesn't scan — the verdict/ranked-insights
-   structure from the July design is missing though all its data is served
-   (034). Routes home/search repairs are 035.
-
-**Design authority (gen-4)**: the July 4 export at
-`knowledge/raw/design-handoffs/bus-priority-impact-studio-2026-07-04/`
-supersedes `03-canonical` and the May tarbell rows for these plans, per
-`knowledge/wiki/engineering/studio_design_pass_status.md`. **Unresolved
-tension the operator should adjudicate**: the gen-3 "banned forever" list
-(2026-06-12 verdict: "data as of" chips, judged-word KPI labels, verdict-*
-mockups) conflicts with the July export, which is verdict-layer-based and
-uses DataAsOf chips throughout. Gen-4 plans implement verdict STRUCTURE
-(lede, ranked insights, compact header) and deliberately exclude the
-contested chips/labels until the operator re-approves them.
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 030 | Restore Snapshot 2.0 (loose-load/strict-compose fix + operator probes) | P1 | M | — | DONE |
-| 031 | Worker error envelope (kill the 1101 class; tolerant evidence fan-out) | P1 | M | 030 (same file) | DONE |
-| 032 | Honest route card (stop serving fabricated metrics) | P1 | L | 030, 031 | DONE |
-| 033 | Route shell scroll chrome (header scrolls; slim sticky nav) | P1 | M | — (before 034) | DONE |
-| 034 | Route detail scanability (verdict lede, ranked insights, rhythm) | P1 | L | 032, 033 | DONE |
-| 035 | Routes home + search repair (voice, free-text search, mobile directory, a11y, dead code) | P2 | M | 032 | DONE |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes (gen 4)
-
-- 030 before 031: both edit `packages/studio-api/src/studio/read-handlers.ts`;
-  030's diagnosis-preserving tests must not be invalidated by the envelope.
-- 032 after 030/031 (same backend file) and before 033/034 (the FE plans
-  assume the honest-or-absent card contract).
-- 033 before 034: 034 restyles the header content that 033 un-pins.
-- Operator-only steps live in plan 030's "Operator handoff" (production log
-  read, R2/D1 probes, artifact re-publish). Production D1 migrations and
-  deploys remain operator-run.
-
-## Findings considered and rejected (gen-4 audit — do not re-audit)
-
-- **"502 body leaks Zod issues"** — FALSE: `snapshotContractFailureResponse`
-  logs details to console only; the response body is the plain error envelope
-  (verified in `http/errors.ts` usage and the #58 test).
-- **"/interventions double-fetches the 813KB `?schema=2` index"** — FALSE:
-  the route loader fetches the v1 routes list + the compact evidence payload,
-  and already degrades gracefully when evidence fails
-  (`apps/web/src/routes/interventions.tsx:15-33`).
-- **"Evidence endpoint uncached"** — FALSE: production serves
-  `cache-control: public, max-age=60, stale-while-revalidate=86400` + ETag
-  (verified live 2026-07-04). Payload growth remains a watch item as the
-  timeline corpus expands past 12 routes.
-- **"Display months still break the snapshot post-#57"** — eliminated by
-  local simulation with the real schemas: post-#57 D1 rows parse-or-skip and
-  cannot fail the v2 compose; the remaining failure is isolated to the model
-  projection months (plan 030).
-- **Borough heuristic defaults unknown prefixes to Manhattan; termini split
-  on " - "** (`read-handlers.ts:296-303,556-563`) — real, LOW impact;
-  cosmetic misclassification only; not worth a plan now.
-- **Client-side Zod parse of the 1.19MB evidence payload on the main thread**
-  — real but minor (cached, infrequent, ~tens of ms); revisit only if the
-  interventions page grows.
-- **Network-map `scheduledMph` fabricated in the pipeline**
-  (`tools/pipeline-v2/src/commands/map/artifacts.ts:890`, same ×1.18) — REAL;
-  deliberately deferred to a pipeline+artifact-republish follow-up named in
-  plan 032's maintenance notes, so it does not block the serving-layer fix.
-- **"Nav should be Routes/Map/Findings/Briefs per system.jsx"** — by-design
-  divergence: findings/briefs surfaces were hard-deleted in the gen-3 cutover
-  (plan 017); the mockup's nav labels predate that product decision. Same for
-  "Read this month's findings" CTA copy on home.
-- **"SBS badge should be two pills per system.jsx:165-176"** — by-design:
-  `RouteBadge.tsx:44-48` documents the merged MTA-style roundel deliberately
-  ("no separate SBS pill, and never doubled").
-- **"Route title 24px vs design 21px" (+ two more px-nudges)** — mis-attributed:
-  the cited `RouteIdentity.tsx` is DEAD code (zero importers; deleted by plan
-  035). The live header type scale is set by plan 034.
-- **"Route detail is a tabbed workbench; flatten the tabs"** — premise wrong:
-  the page is already a single scroll with an anchor nav (all sections render
-  sequentially); the real problems are the pinned chrome (plan 033) and the
-  missing verdict/ranked structure (plan 034).
-- **"KPI strip must be four oversized stats"** — the two July references
-  disagree (route-public.jsx shows 4, the newer verdict-shell.jsx shows 5);
-  plans keep 5 per the verdict layer; noted in plan 034's maintenance notes.
-- **"Add reviewer card (avatar, quote, audit-trail ID) to How-we-know"** —
-  rejected: no real reviewers exist; fabricated analysts are explicitly
-  banned by the design doctrine.
-- **"About this corridor fact sheet"** — data-blocked: route length is
-  fabricated today (nulled by plan 032), peak frequency isn't served; revisit
-  when real fields exist.
-- **Grid-first section leads / treatments timeline-first / hour-strip
-  unification / chart annotation restraint** — real, deferred to a post-034
-  polish round (listed in plan 034 maintenance notes).
-- **Monolith decomposition** (`home.tsx` 800 LOC,
-  `TreatmentsHistorySection.tsx` 558, `DataNotesSection.tsx` 525) — real tech
-  debt, deferred; plan 035 notes the extraction seam for the home directory.
-- **Format-utility consolidation, SlowSegments useMemo, React.memo on chart
-  layers** — not worth doing now (micro-wins, no measured cost).
-- **Direction options for the operator** (not planned, recorded): revive a
-  `/search` results page per `search-results.jsx`; analyst triage home per
-  `route-first.jsx`; treatment-type filters on `/interventions` per
-  `interventions-refactor.jsx`. All were cut in gen-3; reviving any is an
-  explicit product decision.
-- **"Evidence payload uncompressed on the wire"** — FALSE: production serves
-  `content-encoding: br` (verified live 2026-07-04); Cloudflare compresses at
-  the edge. Client main-thread parse cost stays a watch item only.
-- **"Snapshot 2.0 fallback path untested"** — FALSE: the #58 regression test
-  exists at `api-facade.test.ts:2736` (poisoned model months → caveat +
-  v1-only 200); plan 030 rewrites it for the new degrade behavior.
-- **"Zod issues leak to clients in 502 details"** — FALSE: `errorResponse`
-  bodies are exactly `{error:{code,message}}`; issues go to console only. The
-  contract type's unused `details?`/`requestId?` fields are the only trace —
-  plan 031 populates `requestId` properly.
-- **"R2 artifact passthrough lacks path validation"** — stale: `decodeArtifactKey`
-  + `isValidArtifactKey` already guard it (`public-api.ts:603-614`; plan 012's
-  serving-path hardening, DONE).
-- **ETag inconsistency across response helpers** — real but small: studio
-  responses carry `ETag: "studio-<hash>"` (`projections.ts:57`) while
-  public-api's 8 `jsonResponse` sites rely on max-age only. Deferred (S);
-  standardize on the studio helper if the legacy public endpoints ever matter
-  again.
-- **`.parse` on D1 rows in `db/d1/queries/route-batch-status.ts:96,113`** —
-  same 1101 class; covered at the API layer by plan 031's envelope; per-site
-  safeParse conversion deliberately not planned.
-
----
-
-# Generation 3 — the route evidence product (2026-07-01)
-
-Planned 2026-07-01 after a full-repo, mta-wiki, and design-handoff audit
-(six parallel surveys + direct verification), on the operator's direction:
-the product is a portfolio piece for MTA data/software roles, not a startup.
-**Build a complete, attractive, useful public website for NYC bus route
-evidence** — routes, maps, timelines, interventions, honest gaps — and
-delete complexity that does not serve it. Hard cutovers allowed.
-
-Three moves define this generation:
-
-1. **Land what exists.** The entire hard cutover (plans 015-018) is
-   uncommitted working-tree state — green everywhere except `check:style`.
-   Landing it is P0 (plan 019).
-2. **mta-wiki becomes the only document-evidence backend.** The plan-016
-   artifact is built but has zero consumers; serve it (020), then delete the
-   68 kLOC in-repo Tier 2 system it replaces (024). Cross-repo asks live in
-   the work orders (028).
-3. **Converge the surviving pages on the canonical design and real data.**
-   Editorial route page (022), corpus beyond the 12-route pilot (021),
-   already-built grains served (023), supporting pages finished (025).
-
-Effect work continues where it pays: the worker HttpApi migration is
-re-scoped and unblocked with a measured spike (026 — operator consented
-2026-07-01), pipeline seams get retries/bounded concurrency (027), and the
-nyc-transit-kit pin gets fixed at its source so adoption can proceed (029).
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 019 | Land the hard cutover and clear the residue | P0 | M | — | DONE (merged/deployed 2026-07-02; live smoke passed) |
-| 020 | Serve the MTA-wiki route evidence end-to-end | P1 | L | 019 | DONE (merged/deployed 2026-07-02; route evidence live smoke passed) |
-| 021 | Expand the served route corpus beyond the 12-route pilot | P1 | L | 019 (020 rec.) | DONE (381-route release verified 2026-07-02; homepage index grouped/filterable) |
-| 022 | Converge the route page on the canonical editorial design | P1 | L | 019, 020 | DONE (PR #40 verified 2026-07-03; screenshot gate approved) |
-| 023 | Serve the grains we already build (hourly, DOW, reliability) | P2 | M | 019 | DONE (verified 2026-07-03; largest per-route hourly artifact 30,107 bytes) |
-| 024 | Delete the Tier 2 document pipeline and stale doctrine | P2 | L | 019, 020 | DONE (verified 2026-07-03; Tier 2 docs pipeline deleted, D1 brief-draft migration prepared, mta-wiki evidence registry dependency in place) |
-| 025 | Finish the supporting pages (home, interventions, methods) | P2 | M | 019, 022 | DONE (verified 2026-07-03; screenshots captured) |
-| 026 | Worker on Effect HttpApi: spike ADR, then migrate | P2 | L | 019 (024 rec.) | BLOCKED (spike STOP: `test:worker` regressed from baseline real 3.07s / Vitest 2.36s to real 8.71s / Vitest 7.96s after one-endpoint Effect skeleton) |
-| 027 | Effect the pipeline seams: retries, concurrency, ingest | P3 | M | 019, 024 | DONE (verified 2026-07-03; HTTP retries centralized, bounded ingest/map/studio fan-out, adoption 69/98) |
-| 028 | MTA-wiki work orders (cross-repo; executed in mta-wiki) | P2 | M | — | DONE (v1-rc5 verified 2026-07-03; route anchors/taxonomy/date contract present; bus importer matched 10/12 served routes with 0 ambiguous omissions) |
-| 029 | nyc-transit-kit: align the Effect pin, then adopt | P3 | M | 019, 027 rec. | DONE (0.1.3 adopted 2026-07-03; sources/pipeline/Studio/web gates green) |
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes
-
-- 019 gates everything — nothing else starts until the tree is landed.
-- 020 before 024: the Tier 2 deletion's gate is the timeline-serving parity
-  diff that 020 records.
-- 022 wants 020 (evidence on the page) and 023 step 1 (hour strips), but its
-  cards render honestly without them — coordinate, don't serialize blindly.
-- 021 (corpus) multiplies the value of everything else; after each batch,
-  rerun 020's importer.
-- 026 supersedes 009 and closes 007's goal (derived OpenAPI fixes the
-  `$defs` blocker). 029 supersedes 014. Old rows below are marked.
-- 028 runs in `/mnt/models/dev/mta-wiki` under that repo's rules; its order 1
-  (versioned releases) hardens 020, so start it early.
-
-## Shared constraints (generation 3 — these correct stale gen-1/2 notes)
-
-- **Bundle budget (re-based)**: entry 118.5 KB gz against a 145 KB budget,
-  total 343.4 / 390 KB as of 2026-07-01 — the old "168 KB with 59 bytes of
-  headroom" note below is obsolete. There is headroom; heavy modules still
-  go behind `React.lazy` (`X.tsx` + `X.chart.tsx` pattern), and budget
-  failures are still STOP-and-report, never a self-approved raise.
-- **Effect stays out of the browser** (`rg 'from "effect"|from "@effect/'
-  apps/web/src` → empty, worker entry excepted). Worker-side Effect is now
-  permitted via plan 026's measured spike; pipeline Effect per ADR-0019.
-- **The effect-ts skill exists** at `/home/cjpher/.codex/skills/effect-ts/`
-  (guides for layers, retries, schema, testing, observability); the vendored
-  Effect source is `.repos/effect`. Trust installed source over memory for
-  sub-1.0 APIs.
-- **Root `bun run check:types` OOMs** at default heap — always use
-  per-package `bun --filter <pkg> typecheck`.
-- **Design authority**: `knowledge/raw/downloads/design-handoffs/03-canonical/`
-  for the five public pages (`system.jsx`, `home-public.jsx`,
-  `route-public.jsx`, `methods-public.jsx`, `geo-data.jsx`,
-  `interventions-refactor.jsx`). Banned forever (2026-06-12 verdict):
-  "data as of" chips, judged-word KPI labels, self-referential coverage
-  copy, anything from `verdict-*.jsx`, evidence-shelf/scoring/chat UI. The
-  brief/compare/search mockups are dead with their surfaces.
-- **Honesty is the product**: capability manifest decides render/empty/hide;
-  wiki-derived facts always carry citations; never synthesize dates,
-  metrics, or impact claims. Sparse routes get complete honest pages.
-- **Verification default**: every plan's per-step gates, then the full
-  pre-merge gate (per-package typechecks, `test:unit`, shared web tests,
-  worker tests, `check:web-architecture`, `bun --filter @bp/web build`,
-  `check:style`).
-
-## Facts executors will otherwise rediscover slowly
-
-- The served route corpus is **12 routes** (`data/artifacts/studio/v1/
-  routes.json`); mta-wiki has route records for 312 — the gap is corpus
-  size, not matching (plan 021).
-- Route-page "insights" are served from **detector readiness**
-  (`read-handlers.ts` → `buildRouteInsightsFromDetectorReadiness`), so
-  `packages/analytics` (36.9 kLOC) and `packages/domain/src/findings/` are
-  live infrastructure — no deletion plan touches them.
-- `packages/domain/src/studio/{briefs,findings}` were deleted by plan 019;
-  `studio_brief_draft*` D1 tables drop in plan 024 with a real migration.
-- The wiki evidence artifact is 2.7 MB / 12 bundles / 2,354 citations at
-  `data/artifacts/studio/v2/wiki/route-evidence.json`.
-
----
-
-# Generation 1-2 history (2026-06-13 planning runs)
-
-Generated by the improve skill on 2026-06-13 (UI/UX direction audit, standard
-effort, planned at commit `58dfaeb`). Execute in the order below unless
-dependencies say otherwise. Each executor: read the plan fully before
-starting, honor its STOP conditions, and update your row when done.
-
-Run context: invoked non-interactively, so plans were written for the top
-findings by leverage (the audit's direction proposal is summarized in the
-session report; the thesis is "space, time, people, trust" — real maps, the
-multi-year time dimension, equity context, and zero fabricated figures).
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 011 | Portfolio discoverability (README live URL, primer, Tier 2 pointers) | P1 | S | — | DONE |
-| 005 | Remove fabricated data from brief evidence/history pages | P1 | M | — | DONE |
-| 001 | Riders tab equity context (D1 table exists, unserved) | P1 | M | — | DONE |
-| 002 | MapLibre route-detail Map tab (replace SVG) | P1 | L | — | DONE |
-| 003 | Citywide /map network page with metric lenses | P1 | L | 002 | DONE |
-| 004 | Where & when multi-year segment carpet | P2 | M | — | DONE |
-| 012 | Serving-path hardening (artifact-key validation, error hygiene, negative auth tests) | P2 | M | — | DONE |
-
-(011 first: minutes of work, largest payoff for the project's stated
-portfolio purpose. All five UI/UX plans passed a fresh-context cold review
-on 2026-06-13 — verdicts READY / READY-WITH-FIXES, and the fixes are
-already applied; the reviewer's two claimed blockers were themselves false
-positives, see corrections below.)
-
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
-REJECTED (with one-line rationale)
-
-## Dependency notes
-
-- 003 requires 002: it reuses 002's `maplibre-style.ts`, lazy-load pattern,
-  and severity ramp; building it first would duplicate the map foundation.
-- 001, 004, 005 are independent of everything and of each other; they can run
-  in parallel worktrees.
-- 005 is cheap and trust-critical — good first execution to validate the
-  pipeline.
-
-## Shared constraints (read before executing any plan)
-
-- Every plan carries a **"UI/UX specification" section that is authoritative
-  for visuals** (added 2026-06-13): exact tokens from
-  `apps/web/src/global.css:14-66`, the six-anchor oklch speed ramp from the
-  canonical handoff (`…/03-canonical/…/project/geo-data.jsx:20-44`), layout
-  geometry, interaction/focus models, motion timings, and empty states.
-  Executors implement the spec, not their own taste; payload-absent fields
-  are omitted per spec, never fabricated.
-- 168KB initial-JS budget; `bun --filter @bp/web build` enforces it. All
-  heavy modules (maplibre-gl, dense charts) load behind `React.lazy`.
-  **Current headroom is ~59 bytes**
-  (`data/artifacts/web-audits/latest/performance-budget.json`) — even a new
-  eager route-tree entry can trip it. A budget failure on irreducible bytes
-  is a STOP-and-report, never a self-approved budget raise. (The Effect
-  plans below compete for the same headroom; coordinate.)
-- Root `bun run check:types` OOMs at default heap — use per-package
-  `bun --filter <pkg> typecheck`.
-- Banned on public pages (user design verdict 2026-06-12): "data as of" chips,
-  judged-word KPI labels, copy about the project's own data coverage,
-  anything from the `verdict-*.jsx` mockups, evidence-shelf/scoring/chat UI.
-- Canonical design source: `knowledge/raw/downloads/design-handoffs/03-canonical/`
-  (NOT 01-/02-superseded).
-
-## Findings considered and rejected (do not re-audit)
-
-- **"Comp F verdict hero" as Overview redesign** — auditor 3 read chat30 as
-  converging on a large judged-verdict headline; the user's recorded
-  2026-06-12 verdict explicitly dislikes the verdict-layer designs. Only the
-  structural ideas (ranked findings, composed figure, map-last) survive, with
-  real numbers. No plan resurrects the display-verdict.
-- **Search "slowest" sort / compare & search URL-default bugs** — already
-  fixed in uncommitted changes on `frontend-regression-fixes`; committing
-  that branch is operator work, not a plan.
-- **KPI strip judged-word labels** — already fixed (labels are now
-  Speed/Trend/Excess wait/Riders/Bus lane; verified at
-  `apps/web/src/components/route/RouteJudgedKpiStrip.tsx:124-171`).
-- **Hour×day-of-week matrix** — no served payload carries DOW grain; needs a
-  new serving projection first. Deferred, noted in plan 004.
-- **311 complaint heatmap layer** — real opportunity but needs pipeline
-  spatial-join work and a design pass; revisit after 002/003 establish the
-  map foundation.
-- **Brief history real diff engine** — requires versioned-draft API design
-  (Track F); plan 005 makes the page honest now instead.
-- **Search facet count duplication (perf smell)** — real but low impact at
-  current scale; not worth a plan.
-- **Weather-reliability surface** — blocked on causal-method review
-  (knowledge/index.md open issue 9); premature to serve publicly.
-
-## Audit corrections (2026-06-13 second pass — do not re-report)
-
-Verified personally against the repo; recorded so future audits don't
-re-chase them:
-
-- **"Credentials committed in `.env`" — FALSE.** `.env` is gitignored
-  (`.gitignore:11-12`), absent from `git ls-files`, and has no history
-  (`git log --all -- .env` is empty). Only placeholder-valued
-  `.env.example` is tracked. The local working-directory `.env` legitimately
-  holds dev keys — normal, no rotation needed from the repo's perspective.
-- **"`TrendOverlay.chart.tsx` doesn't exist / lazy-chart pattern is
-  invented" — FALSE.** Nine `*.chart.tsx` files exist under
-  `apps/web/src/components/`; the convention is established.
-- **"1 failing detector-study test" — UNCONFIRMED.** `bun test
-  test/detector-study.test.ts` in `packages/applied-research` passes 5/5 in
-  isolation; if it fails in full-suite runs it's order-dependent/flaky —
-  worth a look someday, not a plan.
-- **CSRF on brief-draft writes** — mitigated by `SameSite=Lax` session
-  cookies (cross-site POSTs don't carry the cookie); idempotency-key
-  enforcement is plan 008. No separate CSRF-token work planned.
-- **R2 double-decode + error-message hygiene + missing negative auth
-  tests** — real but low severity; consolidated into plan 012.
-- **Stale v1 command references in `knowledge/` wiki pages** — real
-  (acknowledged by caveat banners in `knowledge/index.md:14-24`); wiki
-  maintenance, deliberately unplanned.
-
----
-
-# Product hard-cutover simplification (plans 016-018)
-
-Generated by a 2026-06-30 follow-up after the maintainer backpedaled from a
-brief/finding/AI-composer Studio toward a smaller public product. Current
-direction: keep the name Bus Priority Impact Studio; hard-delete brief,
-finding, composer, review, and authoring surfaces; make every route page
-complete even when sparse; use `/mnt/models/dev/mta-wiki` only as a backstage
-source of structured route evidence; collapse `packages/applied-research` into
-deterministic pipeline aggregation.
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 016 | MTA-wiki route evidence import contract | P1 | M | none | DONE |
-| 017 | Hard-cut web app to route evidence pages | P1 | L | 016 | DONE |
-| 018 | Collapse applied research into aggregation pipeline | P1 | L | 016, 017 | DONE |
-
-## Dependency notes
-
-- 016 comes first because the simplified app still needs source-backed
-  timelines, interventions, citations, source gaps, and caveats.
-- 017 should delete product surfaces in one hard cutover, not hide them behind
-  flags.
-- 018 should run after 017 so it can delete only the research code that no
-  longer supports the public route-evidence product.
-- 015 is intentionally moved behind 018. Build Effect services/layers around
-  the simplified pipeline, not around applied-research code slated for
-  deletion.
-
----
-
-# Effect-stack migration study (plans 006–010)
-
-Generated by a second improve session on 2026-06-13 (same commit `58dfaeb`,
-ran concurrently with the UI/UX audit above — hence the separate number
-block). The user asked for a plan to "use the entire effect stack" to cut
-complexity and LOC. The audit found the payoff real in two places (worker
-HTTP plumbing, pipeline resilience), already achievable without Effect in one
-(typed client from the existing OpenAPI doc), and blocked or worthless in
-three (browser client, domain schema bodies, SQL layer) — see the rejected
-findings below. Session ran non-interactively; top findings by leverage were
-planned by default.
-
-2026-06-30 update: the maintainer clarified that the goal is broader than a
-CLI-framework migration: "Effect runtime, typed errors, layers, and services
-throughout pipeline commands," while still reducing LOC and keeping frontend
-product surfaces simpler. After plans 016-018 settle the simplified product and
-pipeline shape, execute plan 015 as the canonical Effect foundation for that
-goal. Plans 006 and 010 are retained as historical evidence but are superseded
-by 015.
-
-2026-07-01 update: plan 015 is complete against the simplified seams that
-survived the hard cutover. `packages/applied-research` has been deleted, so
-follow-up Effect work should target the pipeline-local aggregation/services and
-pure analytics boundaries that remain.
-
-## Execution order & status
-
-| Plan | Title | Priority | Effort | Depends on | Status |
-|------|-------|----------|--------|------------|--------|
-| 015 | Effect platform runtime for pipeline commands | P1 | L | 018 | DONE |
-| 014 | Replace duplicated source clients with nyc-transit-kit | P1 | L | — | SUPERSEDED by plan 029 (fix the pin in the operator-owned kit repo, then adopt per 014's mechanics) |
-| 013 | Effect-native nyc-transit-kit official-API monorepo | P1 | L | — | REJECTED (superseded by existing published nyc-transit-kit; execute 014) |
-| 006 | ADR-0019 Effect boundaries + measured footprint spike | P1 | S | — | REJECTED (superseded by 015's revised ADR/runtime plan) |
-| 008 | Registry-driven auth/cache/idempotency enforcement | P1 | M | — | DONE |
-| 007 | OpenAPI-generated client types | P2 | M | — | SUPERSEDED by plan 026 step 4 (the derived HttpApi OpenAPI document dissolves the `$defs` blocker) |
-| 010 | Pipeline resilience on Effect core | P2 | M | 006 (ADR) | REJECTED (superseded by 015's service/runtime foundation) |
-| 009 | Effect HttpApi worker migration | P2 | L | 015 (ADR worker gate), 008; 007 recommended | SUPERSEDED by plan 026 (operator authorized worker-side Effect 2026-07-01; 026 re-scopes to the 18-endpoint post-cutover surface with a measured spike ADR; 009's adapter/parity mechanics remain the playbook) |
-
-## Dependency notes
-
-- 008 before 009: the Effect middleware in 009 ports 008's centralized
-  enforcement behavior and tests; and 008's security fix (declared-but-
-  unenforced scopes) should not wait for a large migration.
-- 014 supersedes 013. The separate `nyc-transit-kit` repo and npm packages now
-  exist at `0.1.1`, so the next useful work is downstream adoption in this repo:
-  delete duplicated generic source clients while keeping Bus Priority
-  normalizers, registry, analytics, and serving code local.
-- 015 supersedes 006 and 010. It records the revised ADR boundary, installs the
-  pipeline Effect runtime dependencies, creates typed errors/services/layers,
-  and migrates command slices. After the 2026-06-30 product simplification
-  pivot, keep 015 focused on the smaller aggregation pipeline and shared
-  pipeline seams.
-- 009 is still separate worker/API work. It is gated by the worker-side ADR
-  decision produced by 015 plus plan 008's centralized enforcement behavior.
-- 007 is independent and survives 009 — only the OpenAPI document's
-  *producer* changes when HttpApi derivation lands.
-- 007's big follow-up (dropping client-side zod parsing to reclaim ~31 KB gz
-  of initial JS) is deliberately deferred until server-side response
-  validation exists (008 partially, 009 structurally); see 007's maintenance
-  notes. Note this interacts with the UI/UX plans above — they consume the
-  same initial-JS budget headroom.
-
-## Findings considered and rejected (do not re-audit)
-
-- **[SUPERSEDED 2026-07-04 by gen-5 plans 041-044 — operator direction;
-  see gen-5 rejected-findings for the changed facts]** ~~Effect Schema
-  replacing zod in `packages/domain`/`packages/sources` for LOC
-  reduction~~ — the "domain is ~70% LOC" premise is false: zod schema
-  definitions are ~7% of `packages/domain`; field enumerations are
-  load-bearing and the same size in any schema library. Migration =
-  LOC-neutral churn across ~65 files. Zod v4 stays (ADR-0001), reaffirmed in
-  ADR-0019.
-- **`@effect/sql`** — `packages/db` (Drizzle + bun:sqlite) already provides
-  typed schemas, chunked batch inserts, and transactions; no raw SQL strings
-  in commands. A wrapper adds a layer, removes nothing.
-- **Effect in the browser bundle** — initial-JS budget is 168 KB with
-  **59 bytes** of current headroom
-  (`data/artifacts/web-audits/latest/performance-budget.json`); any Effect
-  runtime in the client fails the build. Hard boundary, recorded in ADR-0019.
-- **Socrata app-token leak in pipeline error logs** (subagent finding) —
-  false positive: the token is attached as an `X-App-Token` header
-  (`tools/pipeline-v2/src/lib/socrata-token.ts`), never in URLs, so error
-  logging does not expose it.
-- **"58 scattered scope-check sites" in studio-api** (subagent finding) —
-  overstated: scope checks funnel through `hasStudioScope` /
-  `requireStudioOperator` in `studio/auth.ts` + `brief-drafts.ts`. The real,
-  verified issue is that registry metadata is not enforced by the dispatcher
-  — that is plan 008.
-- **Rewriting the `@liche/core` command framework on Effect** — ~300 command
-  files of churn for no orchestration gain; Effect enters the pipeline behind
-  Promise-shaped `lib/` seams instead (plan 010).
-- **Publishing `tools/pipeline-v2` or mirroring `@bp/sources` 1:1 as the public
-  CLI/package** — rejected by plan 013. `nyc-transit-kit` should be designed on
-  its own around official API/provider families; this repo is a future consumer,
-  not the blueprint.
+- [gen 5] Move/rename `tools/pipeline-v2` to `apps/` — rejected: the
+  boundary harness pins script strings, ~90 files would churn for no
+  functional gain; vocabulary agreed, path stayed.
+- [gen 5] Migrate `packages/sources` adapters into nyc-transit-kit —
+  rejected: adoption was already correct (kit does transport/decode, 18
+  adapters are bus-specific normalization); only 3 capabilities moved
+  (plan 045).
+- [gen 5] Delete `_release-segments.ts` / `lib/llm.ts` / `pi-ai` with the
+  agent tooling — WRONG: `studio release` imports `_release-segments.ts`,
+  its AI notes render publicly (`SlowSegments.tsx` → `segment.aiNote`);
+  plan 037 kept that path, deleted only `pi-agent-core`/codemode/sandbox.
+- [gen 5] Delete `lib/route-briefs/` — WRONG: imported by
+  `effect/route-brief-model.ts`, `commands/studio/release.ts`,
+  `commands/studio/_release-types.ts`, `commands/audit/pipeline-v1.ts`.
+- [gen 5] Delete `geoclient-current-v2.yaml` — referenced as the spec
+  pointer by the geoclient client; stayed.
+- [gen 5] Remove `es-toolkit` — live via `apps/web/vite.config.ts` aliases
+  onto a vendored compat shim (recharts shimming).
+- [gen 5] Consolidate `src/checks/*` into CLI subcommands — deferred DX
+  polish; root scripts pin the file paths, the boundary test asserts them.
+- [gen 5] Preserve the CLI's silent glob command discovery — rejected: the
+  import-failure skip was a defect (a broken command file vanished), not a
+  feature; plan 040 kept discovery but made failures loud, backed by an
+  exact completeness test.
+- [gen 5] Delete `check-pioneer-provider` — independent of the agent
+  harness (fetch-based smoke, no `pi-*` imports); stayed.
+- [gen 5] `data/raw/socrata-partitioned` (142 GB) immediate deletion — not
+  gated yet: layout was month-opaque until plan 038 classified it.
+- [gen 5] `studioBrief` D1 tables "actively used" — the query module was
+  exported only by the `@bp/db` barrel with zero consumers; dead-in-
+  waiting, reconciled against drop migration 0029 by plan 041.
+- [gen 5] "`data/raw/route-slices` (7.4 GB) is orphaned — delete now" —
+  WRONG: `commands/studio/release.ts` still defaulted its raw-slice root
+  there; plan 038's gate had to verdict it, not deletable on sight.
+- [gen 5] "Only two lines block raw deletion" — undercounted:
+  `route-treatment-summary.ts` also read `data/raw/network/` snapshots,
+  and `release.ts` referenced the raw route-slice root; full list in 038.
+- [gen 5] "All of `domain/documents/` (4,531 LOC) is orphaned" —
+  over-broad: only four subtrees (2,462 LOC) had zero external importers;
+  `candidates`, `intervention-records`, `operational-date`, and the
+  documents root were live. Plan 043 pruned exactly the dead four.
+- [gen 5] "Delete `schema-registry/` immediately (0 importers)" — the
+  registry MECHANISM was live domain-internally, feeding
+  `@bp/domain/json-schema` → studio-api OpenAPI; only a 5-line re-export
+  stub dir was dead (plan 043 deleted it).
+- [gen 5] Re-point `_release-geometry.ts` from raw network snapshots to
+  SQLite — real, desirable, but high-risk (must prove artifact parity);
+  left as a named operator follow-up, not folded into plan 039.
+- [gen 5] `--prune` for stranded `socrata-partitioned` chunks (skip-if-
+  exists strands out-of-range chunks on narrower re-runs) — real, small,
+  deferred.
+- [gen 4] Network-map `scheduledMph` fabricated in the pipeline (×1.18
+  factor) — REAL, deferred to a pipeline+republish follow-up so it didn't
+  block the serving-layer fix.
+- [gen 1-2] Stale v1 command references in `knowledge/` wiki pages — real
+  (caveat-bannered); wiki maintenance, deliberately left unplanned.
+
+## False positives
+
+- [gen 1-2, gen 8] `.env` with live keys / "credentials committed in .env"
+  — FALSE, confirmed by two separate audits: gitignored, absent from
+  `git ls-files`, zero git history; only placeholder `.env.example` tracked.
+- [gen 1-2] "`TrendOverlay.chart.tsx` doesn't exist / lazy-chart pattern is
+  invented" — FALSE: nine `*.chart.tsx` files existed, the convention was
+  established.
+- [gen 1-2] "1 failing detector-study test" — UNCONFIRMED: passed 5/5 in
+  isolation; if it fails in full-suite runs it's order-dependent/flaky.
+- [gen 5] "112 commands" (subagent census) — corrected to 99 live command
+  descriptors after plans 038/039; other `commands/` files are helpers.
+- [gen 8] "113 CLI commands have zero fixture tests" — false; 60
+  fixture-backed command tests existed under `tools/pipeline-v2/test/
+  commands/`.
+- [gen 7] "dev/fixtures ship in the prod bundle" (subagent claim) —
+  UNVERIFIED, not a finding: no route imports them, Vite tree-shakes.
+- [effect-study] Socrata app-token leak in pipeline error logs — false
+  positive: the token is an `X-App-Token` header, never in URLs.
