@@ -141,4 +141,15 @@ jobs:
       - name: Remove temporary release operator
         if: always() && steps.operator.outcome != 'skipped'
         timeout-minutes: 3
-        run: bunx wrangler delete bus-priority-plan098-operator --force
+        run: |
+          set -euo pipefail
+          cleanup=/tmp/plan098-operator-delete.json
+          curl --silent --show-error \
+            --request DELETE \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --output "$cleanup" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/bus-priority-plan098-operator"
+          if ! jq -e '.success == true or ((.errors // []) | any(.code == 10090))' "$cleanup" > /dev/null; then
+            jq -c '{success,errors:[.errors[]? | {code,message}]}' "$cleanup" >&2
+            exit 1
+          fi

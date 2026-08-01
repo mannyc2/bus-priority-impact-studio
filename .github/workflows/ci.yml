@@ -93,18 +93,29 @@ jobs:
           rm "$output_dir/secrets.json"
 
           for attempt in $(seq 1 30); do
-            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            status="$(curl --silent --show-error --output "$output_dir/convergence.json" --write-out '%{http_code}' \
               --request POST --header 'Content-Type: application/json' \
               --header "Authorization: Bearer $execution_token" \
               --data '{"action":"verify-plan097-preflight"}' "$endpoint")"
+            jq -n \
+              --argjson attempt "$attempt" \
+              --arg status "$status" \
+              '{attempt:$attempt,httpStatus:($status | tonumber)}' \
+              > "$output_dir/convergence-status.json"
             if [ "$status" = 200 ]; then
               break
             fi
-            if [ "$attempt" -eq 30 ]; then
-              echo "Plan 098 operator did not converge: HTTP $status" >&2
-              exit 1
-            fi
-            sleep 2
+            case "$status" in
+              404|5??)
+                if [ "$attempt" -lt 30 ]; then
+                  sleep 2
+                  continue
+                fi
+                ;;
+            esac
+            echo "Plan 098 operator preflight failed: HTTP $status" >&2
+            jq -c '{ok,error,message}' "$output_dir/convergence.json" >&2 || true
+            exit 1
           done
           curl --fail --silent --show-error \
             --request POST --header 'Content-Type: application/json' \
@@ -415,4 +426,16 @@ jobs:
         if: always() && steps.plan098-expand.outcome != 'skipped'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: bunx wrangler delete bus-priority-plan098-operator --force
+          CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+        run: |
+          set -euo pipefail
+          cleanup=/tmp/plan098-operator-delete.json
+          curl --silent --show-error \
+            --request DELETE \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            --output "$cleanup" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/services/bus-priority-plan098-operator"
+          if ! jq -e '.success == true or ((.errors // []) | any(.code == 10090))' "$cleanup" > /dev/null; then
+            jq -c '{success,errors:[.errors[]? | {code,message}]}' "$cleanup" >&2
+            exit 1
+          fi

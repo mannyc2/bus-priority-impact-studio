@@ -9893,3 +9893,12 @@ embedded `plan097-20260725-rc28` key ID, and independently recorded SPKI SHA-256
 receipt decode, signed-payload digest, production resource, schema envelope, legacy ledger, and
 protected-fingerprint comparisons. This removes a nonexistent-secret dependency without weakening
 or relabeling the historical attestation.
+
+The second post-merge expand attempt (`ci-cd` run `30718152077`) deployed only the isolated Plan 098
+operator and then failed closed on its pinned preflight with HTTP 409. It did not apply the v2
+migration, upload a reader, change the public deployment, or create a serving pointer. The original
+loop discarded the safe error body, while Wrangler cleanup made an unrelated KV discovery call that
+the narrow production token correctly denied. The follow-up records the exact response plus
+attempt/status metadata, treats 409 as terminal rather than retryable, and removes the temporary
+service through Cloudflare's scoped Workers service endpoint. This improves evidence and cleanup;
+it does not loosen preflight checks or expand credential authority.
