@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir } from "node:fs/promises";
+import { parseD1MigrationStatements } from "./d1-migration-statements";
 
 const sourcePath = new URL("../migrations/d1-v2/0000_atomic_serving_release.sql", import.meta.url);
 const targetDirectory = new URL("../migrations/d1-v2/active/", import.meta.url);
@@ -11,27 +12,10 @@ if (sourceSha256 !== "7317ead645a989632662f6f0de95a4f10d11935d3e56905d204f0c8663
 }
 
 await mkdir(targetDirectory, { recursive: true });
-const existing = (await readdir(targetDirectory)).filter((filename) => filename.endsWith(".sql"));
-if (existing.length > 0) {
-  throw new Error(`Refusing to overwrite existing split migrations: ${existing.join(", ")}.`);
-}
-
-const statements: string[] = [];
-let current: string[] = [];
-let inTrigger = false;
-for (const line of source.split("\n")) {
-  current.push(line);
-  const trimmed = line.trim();
-  if (trimmed.startsWith("CREATE TRIGGER ")) inTrigger = true;
-  const complete = inTrigger ? trimmed === "END;" : trimmed.endsWith(";");
-  if (!complete) continue;
-  statements.push(`${current.join("\n").trim()}\n`);
-  current = [];
-  inTrigger = false;
-}
-if (current.some((line) => line.trim().length > 0)) {
-  throw new Error("Failed Plan 098 migration archive has an unterminated statement.");
-}
+const existing = (await readdir(targetDirectory))
+  .filter((filename) => filename.endsWith(".sql"))
+  .toSorted();
+const statements = parseD1MigrationStatements(source).map((statement) => `${statement}\n`);
 
 const maximumBytes = 6_000;
 const maximumStatements = 30;
@@ -66,7 +50,15 @@ for (const [index, statementsForFile] of groups.entries()) {
     "",
     ...statementsForFile,
   ].join("\n");
-  await Bun.write(new URL(filename, targetDirectory), text);
+  if (index === 0 && existing.length > 0) {
+    if (existing.length !== 1 || existing[0] !== filename) {
+      throw new Error(`Only the applied ${filename} may exist before tail generation.`);
+    }
+    const applied = await Bun.file(new URL(filename, targetDirectory)).text();
+    if (applied !== text) throw new Error(`Applied D1 v2 migration ${filename} would drift.`);
+  } else {
+    await Bun.write(new URL(filename, targetDirectory), text);
+  }
   checksums[filename] = createHash("sha256").update(text).digest("hex");
 }
 
@@ -76,5 +68,5 @@ await Bun.write(
 );
 
 console.log(
-  `Split ${statements.length} statements into ${groups.length} migrations under ${maximumBytes} bytes each.`,
+  `Preserved the applied first migration and split ${statements.length} trigger-aware statements into ${groups.length} migrations with statement payloads under ${maximumBytes} bytes each.`,
 );

@@ -38,6 +38,7 @@ BEGIN
         AND candidate.canonical_manifest_sha256 = intent.canonical_manifest_sha256
     ) THEN RAISE(ABORT, 'serving activation intent is invalid or candidate is not ready')
   END;
+
 END;
 
 CREATE TRIGGER serving_active_release_commit
@@ -124,6 +125,7 @@ BEGIN
       != OLD.expected_d1_table_count
       THEN RAISE(ABORT, 'candidate D1 count inventory is incomplete')
   END;
+
 END;
 
 CREATE TRIGGER serving_candidate_terminal_guard

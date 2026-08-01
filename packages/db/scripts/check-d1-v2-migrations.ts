@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { decodeStrict } from "@bp/domain/decode";
 import { Schema } from "effect";
+import { parseD1MigrationStatements } from "./d1-migration-statements";
 
 const ChecksumManifestSchema = Schema.Record(
   Schema.String.check(Schema.isPattern(/^\d{4}_[a-z0-9_]+\.sql$/)),
@@ -14,6 +15,10 @@ const failedMigrationPath = new URL(
 );
 const failedMigrationSha256 = "7317ead645a989632662f6f0de95a4f10d11935d3e56905d204f0c86630c8026";
 const migrationsDirectory = new URL("../migrations/d1-v2/active/", import.meta.url);
+const failedSplitDirectory = new URL(
+  "../migrations/d1-v2/failed-split-30720050586/",
+  import.meta.url,
+);
 const manifestPath = new URL("checksums.json", migrationsDirectory);
 const manifest = decodeStrict(ChecksumManifestSchema)(await Bun.file(manifestPath).json());
 const migrationFiles = (await readdir(migrationsDirectory))
@@ -40,25 +45,33 @@ for (const filename of migrationFiles) {
   }
 }
 
-const normalizedStatements = (text: string): string[] => {
-  const statements: string[] = [];
-  let current: string[] = [];
-  let inTrigger = false;
-  for (const line of text.split("\n")) {
-    if (!line.trim().startsWith("--")) current.push(line);
-    const trimmed = line.trim();
-    if (trimmed.startsWith("CREATE TRIGGER ")) inTrigger = true;
-    const complete = inTrigger ? trimmed === "END;" : trimmed.endsWith(";");
-    if (!complete) continue;
-    statements.push(current.join("\n").trim());
-    current = [];
-    inTrigger = false;
+const normalizedStatements = (text: string): string[] =>
+  parseD1MigrationStatements(
+    text
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n"),
+  );
+
+const failedSplitManifest = decodeStrict(ChecksumManifestSchema)(
+  await Bun.file(new URL("checksums.json", failedSplitDirectory)).json(),
+);
+const failedSplitFiles = (await readdir(failedSplitDirectory))
+  .filter((filename) => filename.endsWith(".sql"))
+  .toSorted();
+if (
+  JSON.stringify(failedSplitFiles) !== JSON.stringify(Object.keys(failedSplitManifest).toSorted())
+) {
+  throw new Error("Failed split D1 v2 migration archive inventory differs from its manifest.");
+}
+for (const filename of failedSplitFiles) {
+  const actual = createHash("sha256")
+    .update(await Bun.file(new URL(filename, failedSplitDirectory)).bytes())
+    .digest("hex");
+  if (actual !== failedSplitManifest[filename]) {
+    throw new Error(`Failed split D1 v2 migration archive ${filename} drifted.`);
   }
-  if (current.some((line) => line.trim().length > 0)) {
-    throw new Error("D1 v2 migration has an unterminated SQL statement.");
-  }
-  return statements;
-};
+}
 
 const failedMigration = await Bun.file(failedMigrationPath).text();
 const failedActualSha256 = createHash("sha256").update(failedMigration).digest("hex");
@@ -74,10 +87,14 @@ const activeStatements = (
     ),
   )
 ).flat();
-if (JSON.stringify(activeStatements) !== JSON.stringify(normalizedStatements(failedMigration))) {
+const failedStatements = normalizedStatements(failedMigration);
+if (failedStatements.length !== 301) {
+  throw new Error(`Expected 301 trigger-aware statements, received ${failedStatements.length}.`);
+}
+if (JSON.stringify(activeStatements) !== JSON.stringify(failedStatements)) {
   throw new Error("Split D1 v2 migrations do not preserve the failed migration statement stream.");
 }
 
 console.log(
-  `Verified ${migrationFiles.length} immutable split D1 v2 migration checksum(s) against failed archive ${failedMigrationSha256}.`,
+  `Verified ${migrationFiles.length} trigger-safe D1 v2 migration checksum(s), the failed split archive, and statement equivalence against ${failedMigrationSha256}.`,
 );
