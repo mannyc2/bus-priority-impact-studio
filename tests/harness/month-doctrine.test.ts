@@ -79,7 +79,6 @@ const IDENTITY_PHRASE_FILES = new Set([
   "packages/analytics/src/evaluation/build-route-dossier-summary.ts",
   "packages/analytics/src/evaluation/map-artifacts.ts",
   "packages/domain/src/routes/index.ts",
-  "packages/domain/src/studio/field-provenance.ts",
   "packages/domain/src/studio/route-capability.ts",
   "packages/studio-api/src/studio/route-index-read-model.ts",
   "tools/pipeline-v2/src/commands/audit/map-artifacts.ts",

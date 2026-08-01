@@ -19,15 +19,6 @@ export {
   StudioSpeedPercentileContextSchema,
 } from "./docs/index.js";
 export type {
-  StudioFieldProvenance,
-  StudioFieldProvenanceKindValue,
-} from "./field-provenance.js";
-export {
-  StudioFieldProvenanceKind,
-  studioRouteFieldProvenance,
-  studioSegmentFieldProvenance,
-} from "./field-provenance.js";
-export type {
   AdminGrantOperatorRequest,
   AdminIdentitiesListResponse,
   AdminIdentityEntry,
