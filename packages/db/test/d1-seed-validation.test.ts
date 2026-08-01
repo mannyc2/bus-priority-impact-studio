@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildD1AppendixSeedSql,
+  buildD1CandidateSeedSql,
+  buildD1CurrentSignalAppendixSeedSql,
   buildD1SeedSql,
   buildPlan097RecoverySeedSql,
   type D1SeedInput,
@@ -251,5 +253,49 @@ describe("D1 seed validation", () => {
     expect(result.seedSql.indexOf('insert into "route_batch_issue"')).toBeLessThan(
       result.seedSql.indexOf('insert into "route_batch_status"'),
     );
+  });
+
+  test("Plan 098 candidate seed scopes every mutation to one candidate", () => {
+    const input = emptySeedInput();
+    input.routeCatalog = [
+      {
+        routeId: "M1",
+        routeShortName: "M1",
+        routeLongName: "Fifth and Madison Avenues",
+        routeTypes: ["local"],
+        tripTypes: ["1"],
+        directions: ["Northbound"],
+        shapeCount: 1,
+        stopCount: 10,
+        timepointStopCount: 4,
+        latitudeMin: 40.7,
+        latitudeMax: 40.8,
+        longitudeMin: -74,
+        longitudeMax: -73.9,
+      },
+    ];
+    const candidateId = "a".repeat(64);
+    const result = buildD1CandidateSeedSql(input, candidateId);
+
+    expect(result.seedSql).toContain(
+      `delete from "route_catalog_v2" where "candidate_id" = '${candidateId}';`,
+    );
+    expect(result.seedSql).toContain(
+      `insert into "route_catalog_v2" ("route_id", "route_short_name", "route_long_name", "shape_count", "stop_count", "timepoint_stop_count", "latitude_min", "latitude_max", "longitude_min", "longitude_max", "candidate_id") values ('M1'`,
+    );
+    expect(result.seedSql).not.toMatch(/(?:delete from|insert into) "route_catalog"\b/u);
+    expect(result.seedSql).not.toContain(`candidate_id" = '${"b".repeat(64)}'`);
+  });
+
+  test("Plan 098 appendix writes only the unversioned current-signal split", () => {
+    const result = buildD1CurrentSignalAppendixSeedSql({
+      month: "2026-05",
+      routeObservedReliabilitySummaries: [],
+      routeMonthSourceStatuses: [],
+    });
+    expect(result.seedSql).toContain('delete from "route_observed_reliability_current_signal"');
+    expect(result.seedSql).toContain('delete from "route_month_source_status_current_signal"');
+    expect(result.seedSql).not.toMatch(/"route_observed_reliability_summary"/u);
+    expect(result.seedSql).not.toMatch(/"route_month_source_status"/u);
   });
 });

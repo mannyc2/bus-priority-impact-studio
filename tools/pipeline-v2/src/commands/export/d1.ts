@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
-  buildD1AppendixSeedSql,
+  buildD1CurrentSignalAppendixSeedSql,
   buildD1SeedSql,
   buildPlan097RecoverySeedSql,
 } from "@bp/db/d1/seed";
@@ -516,7 +516,7 @@ export async function runExportD1AppendixSeed(
   const summaryPath = join(exportDir, "appendix-summary.json");
   const seedPath = join(exportDir, "seed.appendix.sql");
   const d1Inputs = inputs.inputs ?? (await readLocalD1AppendixInputs(inputs.local.db, month));
-  const seed = buildD1AppendixSeedSql({ month, ...d1Inputs });
+  const seed = buildD1CurrentSignalAppendixSeedSql({ month, ...d1Inputs });
   const generatedAt = new Date().toISOString();
 
   const result: D1AppendixSeedOutputResult = {

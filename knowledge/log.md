@@ -9849,3 +9849,35 @@ same two untouched baseline `check:style` errors recorded by Plans 113/114 (the 
 `LATEST`, Tracker pin, release/publication timestamp, or deployment changed. The 190-entry artifact
 map is the closed Plan 098 staging/activation/rollback input; only after Plan 098 activates it
 atomically may the separately approved Plan 057 Tracker pin and deployment proceed.
+
+## [2026-08-01] engineering | Plan 098 local atomic-release proof is complete
+
+Implemented the additive atomic serving-release boundary without changing production. Every legacy
+D1 table now has checked ownership; all 37 generated or formerly mixed serving projections have
+candidate-scoped v2 tables, while post-coverage reliability/source-status signals remain separately
+named mutable tables and auth/editorial/user state remains live. The forward-only `d1-v2` migration
+uses its own Wrangler ledger and immutable checksum manifest; the divergent legacy ledger is frozen
+and its remote command fails closed.
+
+Candidate identity is derived from canonical semantic inputs and exact D1/R2 hashes, excluding the
+provenance-only source commit and all clocks. Release identity is minted only by activation. One
+trigger-backed compare-and-swap pointer operation validates readiness, inserts or reuses an immutable
+release, records an idempotent transition, and increments the singleton generation. All dynamic
+requests resolve that pointer once; all candidate-owned D1 reads are scoped to it; public R2 access
+is release-qualified and limited to active or retained-public membership. A checked decode-policy
+inventory now distinguishes schema-declared absence from corruption, with required JSON/schema/hash/
+identity failures producing typed errors and redacted telemetry.
+
+The protected production workflow is pinned to the signed Plan 097 preflight receipt
+`f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6`, preserves fingerprints
+around the additive migration, and stages exact candidate A (3,002 baseline artifacts) plus the
+Plan 106 B overlay (189 public objects; candidate `b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`).
+The isolated authenticated operator owns all remote mutation and records durable readiness, HTTP
+smoke, transition, and completion receipts for A→B→A→B.
+
+Disposable legacy→v2 replay and local generation 0→4 drill passed, including stale-CAS,
+idempotency/collision, terminal immutability, candidate isolation, retained-release reads, staged-key
+denial, and byte-identical live/current sentinels. Verification passed with 985 unit, 445 web, and 35
+Worker tests, typecheck, repository style, architecture, knowledge, web release/bundle budgets, and
+migration checksum validation. Production activation and the dependent Tracker pin/deployment remain
+intentionally unclaimed until the protected workflow runs and its evidence is independently checked.

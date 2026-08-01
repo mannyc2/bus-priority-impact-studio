@@ -26,3 +26,4 @@ Create a new ADR before introducing Python, hosted Postgres/PostGIS, a VPS, or a
 - `0020-effect-schema-only.md` - Effect Schema as the only first-party runtime schema layer, superseding the Zod clause of ADR 0001.
 - `0021-native-transit-kit-in-effect-zone.md` - Native nyc-transit-kit APIs/layers in Effect-zone code, with compat limited to Promise-edge packages such as Studio API.
 - `0022-multi-year-corpus-and-freshness-ledger.md` - Publication-event release identity, per-dataset coverage windows, and an upstream-relative freshness ledger replace baseline-month and release-month anchors.
+- `0023-atomic-serving-release-pointer.md` - One CAS pointer selects immutable candidate-scoped D1 and R2 state, with a truthful checksummed forward D1 lineage.

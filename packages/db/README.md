@@ -37,10 +37,17 @@ or "is this data product complete enough?" decisions here. Pure policy belongs i
 - D1 read queries trust rows produced by our own migrations/pipeline and derive row types from
   Drizzle projections; do not add per-read zod/drizzle-zod validation back to `packages/db`.
 - Keep D1 query modules under `src/d1/queries`; do not add root-level repository files.
-- Live D1 SQL lives in `migrations/d1` and is applied by Wrangler through
-  `wrangler.d1.jsonc`. `migrations-drizzle/d1` is a Drizzle snapshot cache
-  only; snapshot-only catch-up entries may have no-op `migration.sql` files
-  when live Wrangler SQL already applied the schema change.
+- `migrations/d1` and `wrangler.d1.jsonc` are the frozen clean-bootstrap
+  history. Production's legacy ledger diverged after the reviewed Plan 095/097
+  recovery, so it must never be replayed against the populated database.
+- Forward production D1 SQL lives in `migrations/d1-v2`, is checksummed by
+  `migrations/d1-v2/checksums.json`, and is applied only through
+  `wrangler.d1-v2.jsonc` into `bp_d1_migrations_v2`. Local live-schema tests
+  apply legacy and then v2; production applies only v2. An applied v2 file is
+  immutable and every correction is a new migration.
+- `migrations-drizzle/d1` remains the full-schema Drizzle snapshot cache, not
+  an application ledger. Snapshot-only catch-up entries may have no-op
+  `migration.sql` files when live Wrangler SQL already applied the change.
 - After changing D1 schema SQL, run `bun --filter @bp/db db:generate:d1` to
   prove Drizzle's snapshot cache is current. If it proposes SQL for already-live
   D1 objects, add a reviewed snapshot-only catch-up and rerun until generation

@@ -1,0 +1,155 @@
+name: Plan 098 production activation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plan098-production-activation
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: production
+      url: https://bus-priority-impact-studio.c20carroll.workers.dev/
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
+      PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify prerequisites and build exact candidates
+        id: candidates
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$PLAN097_SIGNING_KEY_ID"
+          test -n "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64"
+          test "$PLAN097_SIGNING_KEY_ID" = "plan097-20260725-rc28"
+          output_dir=/tmp/plan098-activation
+          plan106_root="$output_dir/plan106"
+          candidate_root="$output_dir/candidates"
+          mkdir -p "$plan106_root" "$candidate_root"
+          test "$(sha256sum tools/pipeline-v2/release-inputs/plan106-public-serving-candidate.tar.zst | cut -d' ' -f1)" = \
+            "eb08bb84a8e8f3c99c8be8f6e5595d3f34694e523ec7fd7d4ae8fc52a51326c7"
+          tar --zstd -xf tools/pipeline-v2/release-inputs/plan106-public-serving-candidate.tar.zst \
+            -C "$plan106_root"
+          test "$(sha256sum "$plan106_root/artifact-map.json" | cut -d' ' -f1)" = \
+            "403d9d570d42b8284b6c86b0db64d75b14ede3f2b5f67298cf26995b79e684b5"
+
+          bunx wrangler r2 object get \
+            bus-priority-artifacts/operations/plan097/releases/pub_20260725T164123260Z/artifact-manifest.json \
+            --remote --file "$output_dir/plan097-artifact-manifest.json"
+          test "$(sha256sum "$output_dir/plan097-artifact-manifest.json" | cut -d' ' -f1)" = \
+            "6bc5cc6380f39c78e50a87bbd71b54706eb9294b6322ef27f05d4e302767b449"
+
+          table_args=()
+          while IFS= read -r table; do
+            table_args+=(--table "$table")
+          done < <(bun -e 'import { D1_CANDIDATE_PROJECTION_TABLES } from "./packages/db/src/d1/index.ts"; for (const table of D1_CANDIDATE_PROJECTION_TABLES) console.log(table)')
+          test "${#table_args[@]}" -eq 74
+          bunx wrangler d1 export bus-priority-serving --remote --skip-confirmation \
+            --config packages/db/wrangler.d1.jsonc \
+            --output "$output_dir/production-candidate-tables.sql" \
+            "${table_args[@]}"
+
+          bun tools/pipeline-v2/scripts/build-plan098-serving-candidates.ts \
+            --d1-export "$output_dir/production-candidate-tables.sql" \
+            --baseline-manifest "$output_dir/plan097-artifact-manifest.json" \
+            --plan106-artifact-map "$plan106_root/artifact-map.json" \
+            --artifact-root "$plan106_root" \
+            --source-commit "$GITHUB_SHA" \
+            --output "$candidate_root" \
+            > "$output_dir/candidate-build.json"
+          jq -e \
+            '.plan106CandidateId == "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef"
+             and .candidateA.artifactCount == 3002
+             and .candidateB.artifactCount > 0
+             and .d1.exactIdentityRouteCount == 389' \
+            "$candidate_root/stage-plan.json"
+          sha256sum "$candidate_root"/*.json "$output_dir/production-candidate-tables.sql" \
+            > "$output_dir/candidate-inputs.receipt.sha256"
+          echo "candidate_root=$candidate_root" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy authenticated release operator
+        id: operator
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          output_dir=/tmp/plan098-activation
+          endpoint=https://bus-priority-plan098-operator.c20carroll.workers.dev/__operations/plan098
+          execution_token="$(openssl rand -hex 32)"
+          jq -n \
+            --arg executionToken "$execution_token" \
+            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
+            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
+            '{
+              PLAN098_EXECUTION_TOKEN:$executionToken,
+              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
+              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey
+            }' > "$output_dir/operator-secrets.json"
+          bunx wrangler deploy \
+            --config apps/web/wrangler.plan098-operator.example.jsonc \
+            --secrets-file "$output_dir/operator-secrets.json"
+          rm "$output_dir/operator-secrets.json"
+          echo "::add-mask::$execution_token"
+          echo "endpoint=$endpoint" >> "$GITHUB_OUTPUT"
+          echo "token=$execution_token" >> "$GITHUB_OUTPUT"
+
+      - name: Reverify signed preflight and execute A-B-A-B drill
+        timeout-minutes: 65
+        env:
+          PLAN098_ENDPOINT: ${{ steps.operator.outputs.endpoint }}
+          PLAN098_TOKEN: ${{ steps.operator.outputs.token }}
+          PLAN098_CANDIDATE_ROOT: ${{ steps.candidates.outputs.candidate_root }}
+        run: |
+          set -euo pipefail
+          output_dir=/tmp/plan098-activation
+          curl --fail --silent --show-error \
+            --request POST --header 'Content-Type: application/json' \
+            --header "Authorization: Bearer $PLAN098_TOKEN" \
+            --data '{"action":"verify-plan097-preflight"}' \
+            "$PLAN098_ENDPOINT" > "$output_dir/preflight.json"
+          jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
+            "$output_dir/preflight.json"
+          bun tools/pipeline-v2/scripts/run-plan098-production-drill.ts \
+            --endpoint "$PLAN098_ENDPOINT" \
+            --token "$PLAN098_TOKEN" \
+            --candidate-root "$PLAN098_CANDIDATE_ROOT" \
+            --base-url https://bus-priority-impact-studio.c20carroll.workers.dev/ \
+            --output "$output_dir/completion.json"
+          jq -e \
+            '.pointer.kind == "pointed"
+             and .pointer.generation == 4
+             and .pointer.candidateId == "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef"' \
+            "$output_dir/completion.json"
+          bunx wrangler deployments status --json --config apps/web/wrangler.jsonc \
+            > "$output_dir/public-worker-deployment.json"
+          sha256sum "$output_dir"/*.json > "$output_dir/plan098-production.receipt.sha256"
+
+      - name: Upload production activation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan098-production-activation-${{ github.sha }}
+          path: /tmp/plan098-activation/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Remove temporary release operator
+        if: always() && steps.operator.outcome != 'skipped'
+        timeout-minutes: 3
+        run: bunx wrangler delete bus-priority-plan098-operator --force

@@ -1,12 +1,15 @@
 export type {
   D1AppendixSeedInput,
   D1AppendixSeedSqlResult,
+  D1CandidateSeedSqlResult,
   D1RouteTimelineIndexInput,
   D1SeedInput,
   D1SeedSqlResult,
 } from "./build-seed-sql.js";
 export {
   buildD1AppendixSeedSql,
+  buildD1CandidateSeedSql,
+  buildD1CurrentSignalAppendixSeedSql,
   buildD1SeedSql,
   buildPlan097RecoverySeedSql,
 } from "./build-seed-sql.js";

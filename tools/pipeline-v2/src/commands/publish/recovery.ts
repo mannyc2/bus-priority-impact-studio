@@ -528,7 +528,7 @@ async function stageCandidate(input: {
           const response = await input.dependencies.fetch(input.inputs.endpoint, {
             method: "POST",
             headers,
-            body: body as unknown as BodyInit,
+            body: new Blob([Uint8Array.from(body)]),
           });
           return await decodeRemoteResponse({
             response,

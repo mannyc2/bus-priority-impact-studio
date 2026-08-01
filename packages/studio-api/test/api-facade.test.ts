@@ -1359,6 +1359,7 @@ describe("Studio API facade", () => {
         "/api/v1/studio/routes/{routeId}/speed-history": expect.any(Object),
         "/api/v1/studio/routes/{routeId}/timeline": expect.any(Object),
         "/api/v1/studio/snapshot": expect.any(Object),
+        "/api/v1/releases/{releaseId}/artifacts/{logicalId}": expect.any(Object),
       }),
     );
   });

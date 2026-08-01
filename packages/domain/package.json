@@ -139,6 +139,11 @@
       "bun": "./src/studio/shared.ts",
       "import": "./src/studio/shared.ts"
     },
+    "./studio/serving-release": {
+      "types": "./src/studio/serving-release.ts",
+      "bun": "./src/studio/serving-release.ts",
+      "import": "./src/studio/serving-release.ts"
+    },
     "./studio/snapshots": {
       "types": "./src/studio/snapshots.ts",
       "bun": "./src/studio/snapshots.ts",

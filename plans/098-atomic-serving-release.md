@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State**: TODO
+- **State**: IN PROGRESS — implementation and local A→B→A→B proof complete;
+  protected production activation pending
 - **Priority**: P1
 - **Effort**: XL
 - **Depends on**: Plans 084-087 and 095; either Plan 097 production completion,
@@ -10,6 +11,32 @@
   perform catch-up through this pointer architecture
 - **Audit base**: `origin/main@ecf556a79e23b4b9374d08210a380754756f357b`
 - **Suggested branch**: `codex/098-atomic-serving-release`
+
+## Implementation checkpoint (2026-08-01)
+
+The additive implementation is complete on the suggested branch. It includes
+the exhaustive D1 ownership boundary, strict content-derived candidate and
+activation-derived release contracts, the checksum-pinned `d1-v2` migration
+lineage, candidate-scoped generated projections, split current-signal tables,
+one request-local pointer resolver, release-qualified immutable artifact reads,
+fail-closed decode telemetry, and the authenticated production operator. The
+exact Plan 106 public candidate is carried as a deterministic checked input;
+candidate A mirrors all 3,002 Plan 097 artifacts and candidate B overlays the
+189 public Plan 106 objects.
+
+Disposable legacy→v2 migration replay and local A→B→A→B activation/rollback
+passed with stale-CAS, operation-collision, terminal-immutability,
+candidate-isolation, and protected-sentinel checks. Repository verification
+passed: 985 unit, 445 web, and 35 Worker tests, typecheck, style, architecture,
+knowledge, web release/bundle budgets, and migration checksum validation.
+
+Production remains unchanged at this checkpoint. Merge deploys the additive
+migration and dual-capable reader only after re-verifying the exact signed Plan
+097 preflight receipt and protected-table fingerprints. The separate protected
+`Plan 098 production activation` workflow then stages A and B, performs the
+generation 0→1→2→3→4 drill, verifies cross-surface HTTP evidence and unchanged
+live/current fingerprints, and leaves B active. This plan becomes `DONE` only
+after those durable remote receipts are downloaded and independently checked.
 
 ## Outcome
 

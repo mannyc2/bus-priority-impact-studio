@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import type { D1ServingDb } from "../client.js";
-import { routeMonthSourceStatus } from "../schema.js";
+import { routeMonthSourceStatus, routeMonthSourceStatusCurrentSignal } from "../schema.js";
 
 export type RouteMonthSourceStatusScope = "reliability" | "equity_context";
 
@@ -40,6 +40,36 @@ export async function listRouteMonthSourceStatuses(
   sourceScope: RouteMonthSourceStatusScope,
 ): Promise<RouteMonthSourceStatusRow[]> {
   return selectRouteMonthSourceStatusRows(db, month, sourceScope);
+}
+
+/** Current-signal status rows are deliberately outside candidate namespaces. */
+export async function listCurrentRouteMonthSourceStatuses(
+  db: D1ServingDb,
+  month: string,
+  sourceScope: RouteMonthSourceStatusScope,
+): Promise<RouteMonthSourceStatusRow[]> {
+  return db
+    .select({
+      route_id: routeMonthSourceStatusCurrentSignal.routeId,
+      month: routeMonthSourceStatusCurrentSignal.month,
+      source_scope: routeMonthSourceStatusCurrentSignal.sourceScope,
+      source_id: routeMonthSourceStatusCurrentSignal.sourceId,
+      status: routeMonthSourceStatusCurrentSignal.status,
+      row_count: routeMonthSourceStatusCurrentSignal.rowCount,
+      snapshot_id: routeMonthSourceStatusCurrentSignal.snapshotId,
+      note: routeMonthSourceStatusCurrentSignal.note,
+    })
+    .from(routeMonthSourceStatusCurrentSignal)
+    .where(
+      and(
+        eq(routeMonthSourceStatusCurrentSignal.month, month),
+        eq(routeMonthSourceStatusCurrentSignal.sourceScope, sourceScope),
+      ),
+    )
+    .orderBy(
+      asc(routeMonthSourceStatusCurrentSignal.routeId),
+      asc(routeMonthSourceStatusCurrentSignal.sourceId),
+    );
 }
 
 export function groupSourceStatuses(

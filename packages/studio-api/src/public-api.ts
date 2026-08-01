@@ -1,11 +1,14 @@
 import {
   createD1ServingDb,
   findEarliestSpeedTrendMonth,
+  findLatestCurrentObservedMonthExcluding,
   findLatestObservedMonthExcluding,
   findLatestPublishedStudioServingRelease,
   findLatestVerifiedFullMapRelease,
   getRouteBatchStatus,
+  listCurrentObservedReliabilitySummaries,
   listRouteObservedReliabilitySummaries,
+  resolvePublicArtifactForRelease,
 } from "@bp/db/d1";
 import { isSafeArtifactKey, MapManifestResponseSchema } from "@bp/domain/maps";
 import { ReleaseStatusResponseSchema } from "@bp/domain/routes";
@@ -20,7 +23,12 @@ import type { StudioApiEnv } from "./env.js";
 import { errorResponse as errorJson } from "./http/errors.js";
 import { jsonResponse as json } from "./http/json.js";
 import { SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE } from "./http/messages.js";
-import { decodeSchemaEitherStrict, decodeSchemaStrict } from "./schema-decode.js";
+import {
+  decodeSchemaEitherStrict,
+  decodeSchemaStrict,
+  schemaErrorIssues,
+} from "./schema-decode.js";
+import { pointedReleaseIdentity } from "./serving-request-context.js";
 
 function dependencyNotConfigured(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
@@ -29,7 +37,10 @@ function dependencyNotConfigured(dependency: string, context: string): Response 
 
 async function resolvePublicServingRelease(
   db: ReturnType<typeof createD1ServingDb>,
+  env: StudioApiEnv,
 ): Promise<ReleaseIdentity | null> {
+  const pointed = pointedReleaseIdentity(env);
+  if (pointed !== null) return decodeSchemaStrict(ReleaseIdentitySchema, pointed);
   const [publishedRelease, coverageStart] = await Promise.all([
     findLatestPublishedStudioServingRelease(db),
     findEarliestSpeedTrendMonth(db),
@@ -50,7 +61,14 @@ async function resolvePublicServingRelease(
 
 const NO_PUBLISHED_SERVING_DATA_MESSAGE = "No published serving data is available.";
 
-function artifactApiPath(key: string): string {
+function artifactApiPath(releaseId: string, key: string): string {
+  return `/api/v1/releases/${encodeURIComponent(releaseId)}/artifacts/${key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/")}`;
+}
+
+function legacyArtifactApiPath(key: string): string {
   return `/api/v1/artifacts/${key
     .split("/")
     .map((part) => encodeURIComponent(part))
@@ -174,7 +192,9 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
   }
 
   const db = createD1ServingDb(env.DB);
-  const release = await resolvePublicServingRelease(db);
+  const currentSignalDb = createD1ServingDb(env.SERVING_UNSCOPED_DB ?? env.DB);
+  const pointed = env.SERVING_RELEASE_CONTEXT !== undefined;
+  const release = await resolvePublicServingRelease(db, env);
   if (release === null) {
     return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
   }
@@ -182,7 +202,9 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
   const [batchStatus, reliability, currentSignalMonth] = await Promise.all([
     getRouteBatchStatus(db, month),
     listRouteObservedReliabilitySummaries(db, month),
-    findLatestObservedMonthExcluding(db, month),
+    pointed
+      ? findLatestCurrentObservedMonthExcluding(currentSignalDb, month)
+      : findLatestObservedMonthExcluding(db, month),
   ]);
 
   if (batchStatus === null) {
@@ -217,7 +239,7 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
         : ["Observed realtime evidence comes from self-collected MTA Bus Time GTFS-RT snapshots."];
 
   const currentObservedSignal = currentSignalMonth
-    ? await buildCurrentObservedSignal(db, currentSignalMonth)
+    ? await buildCurrentObservedSignal(currentSignalDb, currentSignalMonth, pointed)
     : null;
 
   return json(
@@ -256,6 +278,7 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
 async function buildCurrentObservedSignal(
   db: ReturnType<typeof createD1ServingDb>,
   month: string,
+  splitCurrentSignal: boolean,
 ): Promise<{
   month: string;
   runId: string | null;
@@ -267,7 +290,9 @@ async function buildCurrentObservedSignal(
   sampleCount: number;
   caveats: readonly string[];
 }> {
-  const rows = await listRouteObservedReliabilitySummaries(db, month);
+  const rows = splitCurrentSignal
+    ? await listCurrentObservedReliabilitySummaries(db, month)
+    : await listRouteObservedReliabilitySummaries(db, month);
   const reliabilityCounts = countReliabilityRoutes(rows);
   const runIds = [...new Set(rows.map((row) => row.runId))].sort();
   const runId = runIds.length === 1 ? (runIds[0] ?? null) : null;
@@ -312,7 +337,7 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
     const db = createD1ServingDb(env.DB);
     [catalog, studioRelease] = await Promise.all([
       findLatestVerifiedFullMapRelease(db),
-      resolvePublicServingRelease(db),
+      resolvePublicServingRelease(db, env),
     ]);
   } catch (error) {
     console.error("Map release catalog query failed.", { error });
@@ -327,7 +352,7 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
 
   let object: R2ObjectBody | null;
   try {
-    object = await env.ARTIFACTS.get(catalog.manifestKey);
+    object = await loadReleaseArtifact(env, catalog.manifestKey);
   } catch (error) {
     console.error("Registered map manifest fetch failed.", {
       error,
@@ -415,9 +440,12 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
 
   const response = decodeSchemaEitherStrict(MapManifestResponseSchema, {
     schemaVersion: manifest.schemaVersion,
-    releaseId: manifest.releaseId,
-    publishedAt: manifest.publishedAt,
-    coverage: manifest.coverage,
+    releaseId:
+      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.releaseId : studioRelease.releaseId,
+    publishedAt:
+      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.publishedAt : studioRelease.publishedAt,
+    coverage:
+      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.coverage : studioRelease.coverage,
     releaseProfile: manifest.releaseProfile,
     buildStatus: manifest.buildStatus,
     verificationStatus: manifest.verificationStatus,
@@ -443,7 +471,11 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
           coordinateCount: artifact.coordinateCount,
           routeId: artifact.routeId,
           apiPath:
-            typeof artifact.artifactKey === "string" ? artifactApiPath(artifact.artifactKey) : "",
+            typeof artifact.artifactKey === "string"
+              ? env.SERVING_RELEASE_CONTEXT === undefined
+                ? legacyArtifactApiPath(artifact.artifactKey)
+                : artifactApiPath(studioRelease.releaseId, artifact.artifactKey)
+              : "",
         }))
       : manifest.artifacts,
     quality: {
@@ -456,6 +488,19 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
     },
   });
   if (Result.isFailure(response)) {
+    console.error("Registered map manifest response failed strict decoding.", {
+      issues: schemaErrorIssues(response.failure),
+      releaseId: studioRelease.releaseId,
+      coverage: studioRelease.coverage,
+      routeFactsRelease:
+        typeof manifest.routeFacts === "object" && manifest.routeFacts !== null
+          ? {
+              releaseId: (manifest.routeFacts as { releaseId?: unknown }).releaseId,
+              publishedAt: (manifest.routeFacts as { publishedAt?: unknown }).publishedAt,
+              coverage: (manifest.routeFacts as { coverage?: unknown }).coverage,
+            }
+          : null,
+    });
     return errorJson(502, "The registered map manifest has an invalid v2 contract.");
   }
 
@@ -489,7 +534,16 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
   return json(value);
 }
 
-async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Response> {
+function artifactBodyResponse(object: R2ObjectBody): Response {
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("etag", object.httpEtag);
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/octet-stream");
+  return new Response(object.body, { headers });
+}
+
+async function buildLegacyArtifactResponse(url: URL, env: StudioApiEnv): Promise<Response> {
   if (env.ARTIFACTS === undefined) {
     return dependencyNotConfigured("ARTIFACTS", "artifact passthrough");
   }
@@ -504,26 +558,64 @@ async function buildArtifactResponse(url: URL, env: StudioApiEnv): Promise<Respo
   if (key.startsWith(PLAN097_RECOVERY_NAMESPACE)) {
     return errorJson(404, "Artifact was not found.");
   }
+  const pointed = env.SERVING_RELEASE_CONTEXT;
+  if (pointed !== undefined) {
+    return new Response(null, {
+      status: 307,
+      headers: {
+        Location: artifactApiPath(pointed.release.releaseId, key),
+        "Cache-Control": "no-store",
+      },
+    });
+  }
 
   const object = await loadReleaseArtifact(env, key);
   if (object === null) {
     return errorJson(404, "Artifact was not found.");
   }
 
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set(
-    "Cache-Control",
-    isContentAddressedArtifactKey(key)
-      ? "public, max-age=31536000, immutable"
-      : "public, max-age=300, stale-while-revalidate=3600",
-  );
-  if (!headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/octet-stream");
+  const response = artifactBodyResponse(object);
+  if (!isContentAddressedArtifactKey(key)) {
+    response.headers.set("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   }
+  return response;
+}
 
-  return new Response(object.body, { headers });
+async function buildReleaseArtifactResponse(url: URL, env: StudioApiEnv): Promise<Response> {
+  if (env.ARTIFACTS === undefined || env.SERVING_UNSCOPED_DB === undefined) {
+    return dependencyNotConfigured("ARTIFACTS/DB", "release-qualified artifact");
+  }
+  const match = /^\/api\/v1\/releases\/([^/]+)\/artifacts\/(.+)$/u.exec(url.pathname);
+  const rawReleaseId = match?.[1];
+  const rawLogicalId = match?.[2];
+  if (rawReleaseId === undefined || rawLogicalId === undefined) {
+    return errorJson(404, "Artifact was not found.");
+  }
+  let releaseId: string;
+  try {
+    releaseId = decodeURIComponent(rawReleaseId);
+  } catch {
+    return errorJson(400, "Release ID is invalid.");
+  }
+  const logicalId = decodeArtifactKey(rawLogicalId);
+  if (logicalId === null || !isValidArtifactKey(logicalId)) {
+    return errorJson(400, "Artifact key is invalid.");
+  }
+  const artifact = await resolvePublicArtifactForRelease(
+    env.SERVING_UNSCOPED_DB,
+    releaseId,
+    logicalId,
+  );
+  if (artifact === null) return errorJson(404, "Artifact was not found.");
+  const object = await env.ARTIFACTS.get(artifact.key);
+  if (object === null || object.size !== artifact.bytes) {
+    return errorJson(502, "Published artifact is unavailable or corrupt.");
+  }
+  const { sha256: metadataSha256 } = object.customMetadata ?? {};
+  if (metadataSha256 !== artifact.sha256) {
+    return errorJson(502, "Published artifact failed integrity verification.");
+  }
+  return artifactBodyResponse(object);
 }
 
 export function isContentAddressedArtifactKey(key: string): boolean {
@@ -541,7 +633,11 @@ export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promis
   }
 
   if (url.pathname.startsWith("/api/v1/artifacts/")) {
-    return buildArtifactResponse(url, env);
+    return buildLegacyArtifactResponse(url, env);
+  }
+
+  if (url.pathname.startsWith("/api/v1/releases/")) {
+    return buildReleaseArtifactResponse(url, env);
   }
 
   return null;

@@ -20,7 +20,10 @@
     "db:generate:local": "drizzle-kit generate --config drizzle.config.local.ts",
     "db:migrate:local": "bun run src/local/migrate.ts",
     "db:migrate:d1:local": "wrangler d1 migrations apply bus-priority-serving --local --config wrangler.d1.jsonc",
-    "db:migrate:d1:remote": "wrangler d1 migrations apply bus-priority-serving --remote --config wrangler.d1.jsonc",
+    "db:migrate:d1:remote": "bun run scripts/refuse-legacy-d1-remote.ts",
+    "db:migrate:d1:v2:local": "bun run check:migrations:d1:v2 && wrangler d1 migrations apply bus-priority-serving --local --config wrangler.d1-v2.jsonc",
+    "db:migrate:d1:v2:remote": "bun run check:migrations:d1:v2 && wrangler d1 migrations apply bus-priority-serving --remote --config wrangler.d1-v2.jsonc",
+    "check:migrations:d1:v2": "bun run scripts/check-d1-v2-migrations.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "bun test ./test --timeout 5000"
   },

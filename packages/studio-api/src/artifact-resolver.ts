@@ -105,7 +105,7 @@ export async function loadReleaseArtifactForRelease(input: {
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   const contentType = headers.get("Content-Type");
-  const metadataSha256 = object.customMetadata?.["sha256"];
+  const { sha256: metadataSha256 } = object.customMetadata ?? {};
   if (
     object.size !== entry.bytes ||
     contentType !== entry.mediaType ||
@@ -122,11 +122,46 @@ export async function loadReleaseArtifactForRelease(input: {
 export async function loadReleaseArtifact(
   env: Pick<
     StudioApiEnv,
-    "ARTIFACTS" | "DB" | "PLAN097_PREVIOUS_RELEASE_ID" | "PLAN097_RECOVERY_ENABLED"
+    | "ARTIFACTS"
+    | "DB"
+    | "PLAN097_PREVIOUS_RELEASE_ID"
+    | "PLAN097_RECOVERY_ENABLED"
+    | "SERVING_RELEASE_CONTEXT"
   >,
   logicalKey: string,
 ): Promise<R2ObjectBody | null> {
   if (env.ARTIFACTS === undefined) return null;
+  const pointed = env.SERVING_RELEASE_CONTEXT;
+  if (pointed !== undefined) {
+    const artifact = pointed.artifactByLogicalId.get(logicalKey);
+    if (artifact === undefined) {
+      throw new Plan097ArtifactResolutionError(
+        "logical_entry_missing",
+        `Active candidate lacks logical artifact ${logicalKey}.`,
+      );
+    }
+    const object = await env.ARTIFACTS.get(artifact.key);
+    if (object === null) {
+      throw new Plan097ArtifactResolutionError(
+        "object_missing",
+        `Active candidate artifact ${artifact.logicalId} is unavailable.`,
+      );
+    }
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    const { sha256: metadataSha256 } = object.customMetadata ?? {};
+    if (
+      object.size !== artifact.bytes ||
+      headers.get("Content-Type") !== artifact.mediaType ||
+      metadataSha256 !== artifact.sha256
+    ) {
+      throw new Plan097ArtifactResolutionError(
+        "object_invalid",
+        `Active candidate artifact ${artifact.logicalId} failed metadata verification.`,
+      );
+    }
+    return object;
+  }
   if (isPublicInterventionArtifactKey(logicalKey)) {
     return env.ARTIFACTS.get(logicalKey);
   }

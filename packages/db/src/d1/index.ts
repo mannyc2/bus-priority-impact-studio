@@ -1,5 +1,9 @@
-export type { D1ServingDb, D1ServingSchema } from "./client.js";
-export { createD1ServingDb } from "./client.js";
+export type { D1ServingDb, D1ServingSchema, ServingQueryScope } from "./client.js";
+export {
+  createCandidateScopedD1Database,
+  createD1ServingDb,
+  scopeServingQuery,
+} from "./client.js";
 export type { CorridorArtifactRow, RouteArtifactRow } from "./queries/brief-artifacts.js";
 export {
   listCorridorArtifacts,
@@ -63,7 +67,9 @@ export type {
   RouteObservedReliabilitySummaryRow,
 } from "./queries/route-observed-reliability.js";
 export {
+  findLatestCurrentObservedMonthExcluding,
   findLatestObservedMonthExcluding,
+  listCurrentObservedReliabilitySummaries,
   listRouteObservedReliabilitySummaries,
 } from "./queries/route-observed-reliability.js";
 export type { RouteReadiness, RouteReadinessRow } from "./queries/route-readiness.js";
@@ -104,3 +110,35 @@ export {
   findLatestStudioServingMonth,
   listStudioRouteIndexSourceRows,
 } from "./queries/studio-route-index.js";
+export type { RegisterServingCandidateInput } from "./serving-candidate.js";
+export {
+  D1_CANDIDATE_PROJECTION_TABLES,
+  markServingCandidateArtifactVerified,
+  markServingCandidateReady,
+  registerServingCandidate,
+} from "./serving-candidate.js";
+export type {
+  LegacyServingReleaseContext,
+  PointedServingReleaseContext,
+  ServingActivationInput,
+  ServingPointerTransition,
+  ServingReleaseContext,
+} from "./serving-release.js";
+export {
+  activateServingRelease,
+  isServingReleaseContextCurrent,
+  resolveActiveServingRelease,
+  resolvePublicArtifactForRelease,
+  ServingReleaseResolutionError,
+} from "./serving-release.js";
+export type {
+  D1ServingTableName,
+  D1ServingTableOwner,
+  D1ServingTableOwnership,
+} from "./serving-table-ownership.js";
+export {
+  D1_GENERATED_CANDIDATE_TABLES,
+  D1_MIXED_LEGACY_TABLES,
+  D1_SERVING_TABLE_OWNER_VALUES,
+  D1_SERVING_TABLE_OWNERSHIP,
+} from "./serving-table-ownership.js";

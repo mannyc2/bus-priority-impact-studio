@@ -93,6 +93,8 @@ import {
   decodeSchemaStrict,
   schemaErrorIssues,
 } from "../schema-decode.js";
+import { servingArtifactCorruptionOrLegacyAbsence } from "../serving-decode-policy.js";
+import { pointedReleaseIdentity } from "../serving-request-context.js";
 import {
   loadStudioProjection,
   maybeLoadPublishedRouteInterventions,
@@ -137,6 +139,9 @@ export type StudioReadEnv = Pick<
   | "DB"
   | "PLAN097_PREVIOUS_RELEASE_ID"
   | "PLAN097_RECOVERY_ENABLED"
+  | "SERVING_POINTER_ENABLED"
+  | "SERVING_RELEASE_CONTEXT"
+  | "SERVING_UNSCOPED_DB"
   | "STUDIO_RELEASE_KEY"
 >;
 
@@ -381,6 +386,13 @@ type ResolvedServingRelease = {
 async function resolveServingRelease(env: StudioReadEnv): Promise<ResolvedServingRelease | null> {
   if (env.DB === undefined) return null;
   const db = createD1ServingDb(env.DB);
+  const pointed = pointedReleaseIdentity(env);
+  if (pointed !== null) {
+    return {
+      ...pointed,
+      latestSpeedMonth: await findLatestSpeedTrendMonth(db),
+    };
+  }
   const [publishedRelease, coverageStart, latestSpeedMonth] = await Promise.all([
     findLatestPublishedStudioServingRelease(db),
     findEarliestSpeedTrendMonth(db),
@@ -675,12 +687,28 @@ async function loadStudioRouteEvidenceIndex(
   let payload: unknown;
   try {
     payload = await object.json();
-  } catch {
-    return null;
+  } catch (error) {
+    return servingArtifactCorruptionOrLegacyAbsence(
+      env,
+      {
+        code: "active_artifact_json",
+        endpoint: "studio-route-evidence-index",
+        logicalArtifactId: STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+        schemaId: "bp.studio.route_evidence_index",
+      },
+      error,
+    );
   }
 
   const parsed = decodeSchemaEitherStrict(StudioRouteEvidenceIndexSchema, payload);
-  return Result.isSuccess(parsed) ? parsed.success : null;
+  return Result.isSuccess(parsed)
+    ? parsed.success
+    : servingArtifactCorruptionOrLegacyAbsence(env, {
+        code: "active_artifact_schema",
+        endpoint: "studio-route-evidence-index",
+        logicalArtifactId: STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
+        schemaId: "bp.studio.route_evidence_index",
+      });
 }
 
 async function loadModelArtifactServingProjection(
@@ -693,11 +721,20 @@ async function loadModelArtifactServingProjection(
   let payload: unknown;
   try {
     payload = await object.json();
-  } catch {
+  } catch (error) {
     console.error("Model artifact serving projection is not valid JSON.", {
       key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
     });
-    return null;
+    return servingArtifactCorruptionOrLegacyAbsence(
+      env,
+      {
+        code: "active_artifact_json",
+        endpoint: "studio-model-artifact-projection",
+        logicalArtifactId: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+        schemaId: "bp.studio.model_artifact_serving_projection",
+      },
+      error,
+    );
   }
 
   const parsed = decodeSchemaEitherPreserve(ModelArtifactServingProjectionSchema, payload);
@@ -706,7 +743,12 @@ async function loadModelArtifactServingProjection(
       key: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
       issues: schemaErrorIssues(parsed.failure),
     });
-    return null;
+    return servingArtifactCorruptionOrLegacyAbsence(env, {
+      code: "active_artifact_schema",
+      endpoint: "studio-model-artifact-projection",
+      logicalArtifactId: STUDIO_MODEL_ARTIFACT_SERVING_PROJECTION_KEY,
+      schemaId: "bp.studio.model_artifact_serving_projection",
+    });
   }
   return parsed.success;
 }
@@ -721,15 +763,31 @@ async function loadDetectorReadinessServingManifest(
   let payload: unknown;
   try {
     payload = await object.json();
-  } catch {
-    return null;
+  } catch (error) {
+    return servingArtifactCorruptionOrLegacyAbsence(
+      env,
+      {
+        code: "active_artifact_json",
+        endpoint: "studio-detector-readiness",
+        logicalArtifactId: STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
+        schemaId: "bp.studio.detector_readiness_serving_manifest",
+      },
+      error,
+    );
   }
 
   const parsed = decodeSchemaEitherPreserve(
     DetectorReadinessServingManifestForInsightsSchema,
     payload,
   );
-  return Result.isSuccess(parsed) ? parsed.success : null;
+  return Result.isSuccess(parsed)
+    ? parsed.success
+    : servingArtifactCorruptionOrLegacyAbsence(env, {
+        code: "active_artifact_schema",
+        endpoint: "studio-detector-readiness",
+        logicalArtifactId: STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
+        schemaId: "bp.studio.detector_readiness_serving_manifest",
+      });
 }
 
 async function loadRouteCapabilityManifest(
@@ -742,12 +800,28 @@ async function loadRouteCapabilityManifest(
   let payload: unknown;
   try {
     payload = await object.json();
-  } catch {
-    return null;
+  } catch (error) {
+    return servingArtifactCorruptionOrLegacyAbsence(
+      env,
+      {
+        code: "active_artifact_json",
+        endpoint: "studio-route-capability",
+        logicalArtifactId: STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
+        schemaId: "bp.studio.route_capability_manifest",
+      },
+      error,
+    );
   }
 
   const parsed = decodeSchemaEitherPreserve(RouteCapabilityManifestForIndexSchema, payload);
-  return Result.isSuccess(parsed) ? parsed.success : null;
+  return Result.isSuccess(parsed)
+    ? parsed.success
+    : servingArtifactCorruptionOrLegacyAbsence(env, {
+        code: "active_artifact_schema",
+        endpoint: "studio-route-capability",
+        logicalArtifactId: STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY,
+        schemaId: "bp.studio.route_capability_manifest",
+      });
 }
 
 function routeCapabilityByRouteId(
@@ -787,12 +861,28 @@ async function loadRouteDossierSummaryForDetail(input: {
     let payload: unknown;
     try {
       payload = await object.json();
-    } catch {
+    } catch (error) {
+      servingArtifactCorruptionOrLegacyAbsence(
+        input.env,
+        {
+          code: "active_artifact_json",
+          endpoint: "studio-route-dossier",
+          logicalArtifactId: routeDossierSummaryKey(slug),
+          schemaId: "bp.studio.route_dossier_summary",
+        },
+        error,
+      );
       continue;
     }
 
     const parsed = decodeSchemaEitherPreserve(RouteDossierSummaryForDetailSchema, payload);
     if (Result.isSuccess(parsed)) return parsed.success;
+    servingArtifactCorruptionOrLegacyAbsence(input.env, {
+      code: "active_artifact_schema",
+      endpoint: "studio-route-dossier",
+      logicalArtifactId: routeDossierSummaryKey(slug),
+      schemaId: "bp.studio.route_dossier_summary",
+    });
   }
   return null;
 }
@@ -819,12 +909,30 @@ async function loadRouteHourlyProfileForDetail(input: {
     let payload: unknown;
     try {
       payload = await object.json();
-    } catch {
+    } catch (error) {
+      servingArtifactCorruptionOrLegacyAbsence(
+        input.env,
+        {
+          code: "active_artifact_json",
+          endpoint: "studio-route-hourly-profile",
+          logicalArtifactId: routeHourlyProfileArtifactKey(slug),
+          schemaId: "bp.studio.route_hourly_profile_response.v1",
+        },
+        error,
+      );
       continue;
     }
 
     const parsed = decodeSchemaEitherStrict(StudioRouteHourlyProfileResponseSchema, payload);
-    if (Result.isFailure(parsed)) continue;
+    if (Result.isFailure(parsed)) {
+      servingArtifactCorruptionOrLegacyAbsence(input.env, {
+        code: "active_artifact_schema",
+        endpoint: "studio-route-hourly-profile",
+        logicalArtifactId: routeHourlyProfileArtifactKey(slug),
+        schemaId: "bp.studio.route_hourly_profile_response.v1",
+      });
+      continue;
+    }
     return {
       peakWindows: parsed.success.peakWindows,
       slowestWindows: parsed.success.slowestWindows,
@@ -889,12 +997,28 @@ async function loadRouteSpeedSpineForSegments(
   let payload: unknown;
   try {
     payload = await object.json();
-  } catch {
-    return null;
+  } catch (error) {
+    return servingArtifactCorruptionOrLegacyAbsence(
+      env,
+      {
+        code: "active_artifact_json",
+        endpoint: "studio-route-speed-spine",
+        logicalArtifactId: `studio/v2/routes/${routeSlug}/speed-spine.json`,
+        schemaId: "bp.studio.route_speed_spine",
+      },
+      error,
+    );
   }
 
   const parsed = decodeSchemaEitherPreserve(RouteSpeedSpineArtifactForSegmentsSchema, payload);
-  return Result.isSuccess(parsed) ? parsed.success : null;
+  return Result.isSuccess(parsed)
+    ? parsed.success
+    : servingArtifactCorruptionOrLegacyAbsence(env, {
+        code: "active_artifact_schema",
+        endpoint: "studio-route-speed-spine",
+        logicalArtifactId: `studio/v2/routes/${routeSlug}/speed-spine.json`,
+        schemaId: "bp.studio.route_speed_spine",
+      });
 }
 
 async function loadRouteSpeedSpineCandidatesForSegments(input: {

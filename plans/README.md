@@ -134,8 +134,9 @@ Plan 106 was refreshed against `origin/main@5dd08062` after `mta-wiki` Plans
 `resolved-pack-v1-production` GitHub Release was published. The exact release,
 archive, manifest, resource, and accepted-conformance hashes are pinned in the
 plan. The strict v2 importer, projection, readers, and deterministic unpublished
-candidate are complete. Plan 098 remains a hard prerequisite for activation,
-not for the completed Tracker candidate handoff.
+candidate are complete. Plan 098's local implementation and rollback proof are
+complete; its protected production activation remains the hard prerequisite
+for the completed Tracker candidate handoff.
 
 ## Execution order & status (gen 19)
 
@@ -156,9 +157,10 @@ not for the completed Tracker candidate handoff.
   104 placements are 95 `last_confirmed_active` and nine `unknown`; the
   confirmed-current footprint is empty, so the site may make no current-active
   producer claim.
-- Producer publication and `LATEST` promotion are complete. Tracker pin and
-  deployment are owner-approved but technically STOP-blocked until Plans 098
-  and 106 complete. Plan 098 must cover every new logical key atomically.
+- Producer publication and `LATEST` promotion are complete. Plan 106 is
+  complete. Tracker pin and deployment are owner-approved but technically
+  STOP-blocked until Plan 098's protected activation covers every new logical
+  key atomically.
 
 ---
 
@@ -245,7 +247,7 @@ it via selective serving-data recovery rather than replacing the database;
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE (2026-07-26; production serves `pub_20260725T164123260Z`, 375 exact routes; no rollback invoked) |
-| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | TODO |
+| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | IN PROGRESS (local proof passed; protected activation pending) |
 | 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
 | 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
 | 101 | Deterministic incremental publication and final de-month cleanup | P2 | L-XL | 098-100 active + rollback drill | TODO |

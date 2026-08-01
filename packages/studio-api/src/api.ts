@@ -11,6 +11,7 @@ import { withServerTiming } from "./http/timing.js";
 import { handleObservabilityRoutes } from "./observability.js";
 import { handlePublicApiRoutes } from "./public-api.js";
 import { handleSchemaRoutes } from "./schema-routes.js";
+import { prepareServingRequest, servingRequestStillCurrent } from "./serving-request-context.js";
 import { handleStudioReadRequest } from "./studio/read-handlers.js";
 
 function cacheControlForRoute(route: RouteSpec): string {
@@ -84,6 +85,21 @@ export async function handleStudioApiRequest(
   const requestId = crypto.randomUUID();
 
   try {
+    const servingRequest = await prepareServingRequest(env, requestId);
+    const requestEnv = servingRequest.env;
+    const finalizeServingResponse = async (response: Response): Promise<Response> => {
+      if (await servingRequestStillCurrent(servingRequest)) return response;
+      console.warn("Serving pointer changed while a request was assembling.", {
+        code: "serving_pointer_changed_during_request",
+        requestId,
+        path: url.pathname,
+      });
+      return errorResponse(
+        503,
+        "Serving release changed while the response was assembled; retry the request.",
+        "SERVING_RELEASE_CHANGED",
+      );
+    };
     const allowedMethods = allowedApiMethodsForPath(url.pathname);
     if (isStudioApiPath(url.pathname) && allowedMethods.length === 0) {
       return withRequestId(errorResponse(404, "API route was not found.", "NOT_FOUND"), requestId);
@@ -107,24 +123,44 @@ export async function handleStudioApiRequest(
 
     const observabilityResponse = await handleObservabilityRoutes(request, url);
     if (observabilityResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, observabilityResponse, env), requestId);
+      return withRequestId(
+        applyRouteCachePolicy(
+          routeSpec,
+          await finalizeServingResponse(observabilityResponse),
+          requestEnv,
+        ),
+        requestId,
+      );
     }
 
     const schemaResponse = handleSchemaRoutes(url);
     if (schemaResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, schemaResponse, env), requestId);
+      return withRequestId(
+        applyRouteCachePolicy(routeSpec, await finalizeServingResponse(schemaResponse), requestEnv),
+        requestId,
+      );
     }
 
     if (isStudioApiPath(url.pathname)) {
       const response = await withServerTiming("studio", () =>
-        handleStudioReadRequest(request, url, env),
+        handleStudioReadRequest(request, url, requestEnv),
       );
-      return withRequestId(applyRouteCachePolicy(routeSpec, response, env), requestId);
+      return withRequestId(
+        applyRouteCachePolicy(routeSpec, await finalizeServingResponse(response), requestEnv),
+        requestId,
+      );
     }
 
-    const publicApiResponse = await handlePublicApiRoutes(url, env);
+    const publicApiResponse = await handlePublicApiRoutes(url, requestEnv);
     if (publicApiResponse !== null) {
-      return withRequestId(applyRouteCachePolicy(routeSpec, publicApiResponse, env), requestId);
+      return withRequestId(
+        applyRouteCachePolicy(
+          routeSpec,
+          await finalizeServingResponse(publicApiResponse),
+          requestEnv,
+        ),
+        requestId,
+      );
     }
 
     return withRequestId(errorResponse(404, "API route was not found.", "NOT_FOUND"), requestId);

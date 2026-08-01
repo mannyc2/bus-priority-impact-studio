@@ -263,6 +263,39 @@ export const routeObservedReliabilitySummary = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month, table.runId] })],
 );
 
+// Current-signal rows are intentionally outside serving-candidate namespaces. They use a
+// separate table name so pointer-scoped reads cannot accidentally mix post-coverage observations
+// into an immutable release.
+export const routeObservedReliabilityCurrentSignal = sqliteTable(
+  "route_observed_reliability_current_signal",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    runId: text("run_id").notNull(),
+    reliabilityStatus: text("reliability_status", {
+      enum: ["observed", "insufficient_gtfs_rt_samples"],
+    }).notNull(),
+    minSampleThreshold: integer("min_sample_threshold").notNull(),
+    sampleCount: integer("sample_count").notNull(),
+    stopCount: integer("stop_count").notNull(),
+    directionCount: integer("direction_count").notNull(),
+    averageObservedHeadwayMinutes: real("average_observed_headway_minutes"),
+    medianObservedHeadwayMinutes: real("median_observed_headway_minutes"),
+    p90ObservedHeadwayMinutes: real("p90_observed_headway_minutes"),
+    maxObservedHeadwayMinutes: real("max_observed_headway_minutes"),
+    scheduledMedianHeadwayMinutes: real("scheduled_median_headway_minutes"),
+    bunchingThresholdMinutes: real("bunching_threshold_minutes"),
+    longGapThresholdMinutes: real("long_gap_threshold_minutes"),
+    observedBunchingShare: real("observed_bunching_share"),
+    observedLongGapShare: real("observed_long_gap_share"),
+    expectedWaitMinutes: real("expected_wait_minutes"),
+    scheduledExpectedWaitMinutes: real("scheduled_expected_wait_minutes"),
+    excessWaitMinutes: real("excess_wait_minutes"),
+    waitReliabilityRatio: real("wait_reliability_ratio"),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month, table.runId] })],
+);
+
 export const interventionEvent = sqliteTable("intervention_event", {
   eventId: text("event_id").primaryKey(),
   routeId: text("route_id").notNull(),
@@ -423,6 +456,23 @@ export const corridorArtifact = sqliteTable(
 
 export const routeMonthSourceStatus = sqliteTable(
   "route_month_source_status",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    sourceScope: text("source_scope").notNull(),
+    sourceId: text("source_id").notNull(),
+    status: text("status").notNull(),
+    rowCount: integer("row_count"),
+    snapshotId: text("snapshot_id"),
+    note: text("note"),
+  },
+  (table) => [
+    primaryKey({ columns: [table.routeId, table.month, table.sourceScope, table.sourceId] }),
+  ],
+);
+
+export const routeMonthSourceStatusCurrentSignal = sqliteTable(
+  "route_month_source_status_current_signal",
   {
     routeId: text("route_id").notNull(),
     month: text("month").notNull(),
