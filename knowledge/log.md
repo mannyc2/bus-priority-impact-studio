@@ -9911,3 +9911,11 @@ original provisioning and release-closure attestations record artifact manifest
 activation workflow had transcribed it as `6bc5cc638…`. The correction uses the reviewed value in
 both strict checks and adds a harness assertion that keeps them synchronized with the immutable
 closure record. Production remained unchanged by this diagnostic run.
+
+With the manifest pin corrected, expand run `30718807061` obtained a valid preflight response and
+then an immediate 404 from the redundant next request while the just-recreated `workers.dev`
+service was still converging. It stopped before migration/reader changes and again removed the
+operator successfully. The workflow now applies its bounded retry rule to every expand operator
+call (only transport, 404, and 5xx results are retryable; terminal 4xx diagnostics remain
+fail-closed). The protected activation workflow requires three consecutive valid preflights before
+starting its long A→B→A→B drill.

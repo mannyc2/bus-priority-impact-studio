@@ -92,61 +92,72 @@ jobs:
             --secrets-file "$output_dir/secrets.json"
           rm "$output_dir/secrets.json"
 
-          for attempt in $(seq 1 30); do
-            status="$(curl --silent --show-error --output "$output_dir/convergence.json" --write-out '%{http_code}' \
-              --request POST --header 'Content-Type: application/json' \
-              --header "Authorization: Bearer $execution_token" \
-              --data '{"action":"verify-plan097-preflight"}' "$endpoint")"
-            jq -n \
-              --argjson attempt "$attempt" \
-              --arg status "$status" \
-              '{attempt:$attempt,httpStatus:($status | tonumber)}' \
-              > "$output_dir/convergence-status.json"
-            if [ "$status" = 200 ]; then
-              break
-            fi
-            case "$status" in
-              404|5??)
-                if [ "$attempt" -lt 30 ]; then
-                  sleep 2
-                  continue
-                fi
-                ;;
-            esac
-            echo "Plan 098 operator preflight failed: HTTP $status" >&2
-            jq -c '{ok,error,message}' "$output_dir/convergence.json" >&2 || true
-            exit 1
-          done
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $execution_token" \
-            --data '{"action":"verify-plan097-preflight"}' \
-            "$endpoint" > "$output_dir/preflight-before.json"
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $execution_token" \
-            --data '{"action":"protected-fingerprints","scope":"legacy-live"}' \
-            "$endpoint" > "$output_dir/protected-before.json"
+          operator_post() {
+            local payload="$1"
+            local output="$2"
+            local status_output="$3"
+            local label="$4"
+            local status
+            for attempt in $(seq 1 30); do
+              if ! status="$(curl --silent --show-error --output "$output" --write-out '%{http_code}' \
+                --request POST --header 'Content-Type: application/json' \
+                --header "Authorization: Bearer $execution_token" \
+                --data "$payload" "$endpoint")"; then
+                status=000
+              fi
+              jq -n \
+                --arg operation "$label" \
+                --argjson attempt "$attempt" \
+                --arg status "$status" \
+                '{operation:$operation,attempt:$attempt,httpStatus:($status | tonumber)}' \
+                > "$status_output"
+              if [ "$status" = 200 ]; then
+                return 0
+              fi
+              case "$status" in
+                000|404|5??)
+                  if [ "$attempt" -lt 30 ]; then
+                    sleep 2
+                    continue
+                  fi
+                  ;;
+              esac
+              echo "Plan 098 operator $label failed: HTTP $status" >&2
+              jq -c '{ok,error,message}' "$output" >&2 || true
+              return 1
+            done
+          }
+
+          operator_post \
+            '{"action":"verify-plan097-preflight"}' \
+            "$output_dir/preflight-before.json" \
+            "$output_dir/preflight-before-status.json" \
+            preflight-before
+          operator_post \
+            '{"action":"protected-fingerprints","scope":"legacy-live"}' \
+            "$output_dir/protected-before.json" \
+            "$output_dir/protected-before-status.json" \
+            protected-before
           jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
             "$output_dir/preflight-before.json"
 
           bun --filter @bp/db db:migrate:d1:v2:remote
 
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $execution_token" \
-            --data '{"action":"verify-plan097-preflight"}' \
-            "$endpoint" > "$output_dir/preflight-after.json"
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $execution_token" \
-            --data '{"action":"protected-fingerprints","scope":"legacy-live"}' \
-            "$endpoint" > "$output_dir/protected-after.json"
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $execution_token" \
-            --data '{"action":"status"}' \
-            "$endpoint" > "$output_dir/pointer.json"
+          operator_post \
+            '{"action":"verify-plan097-preflight"}' \
+            "$output_dir/preflight-after.json" \
+            "$output_dir/preflight-after-status.json" \
+            preflight-after
+          operator_post \
+            '{"action":"protected-fingerprints","scope":"legacy-live"}' \
+            "$output_dir/protected-after.json" \
+            "$output_dir/protected-after-status.json" \
+            protected-after
+          operator_post \
+            '{"action":"status"}' \
+            "$output_dir/pointer.json" \
+            "$output_dir/pointer-status.json" \
+            pointer-status
           test "$(jq -S -c '.result.fingerprints' "$output_dir/protected-before.json")" = \
             "$(jq -S -c '.result.fingerprints' "$output_dir/protected-after.json")"
           jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
