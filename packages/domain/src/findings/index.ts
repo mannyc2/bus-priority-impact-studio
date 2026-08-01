@@ -4,8 +4,7 @@ import { registerProjectSchema } from "../schema-registry.js";
 
 const schemaVersion = 1;
 
-// Detector contracts. See knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md
-// for the candidate/evidence/coverage spine. These schemas are the strict
+// Detector contracts — the candidate/evidence/coverage spine. These schemas are the strict
 // internal contract for `findings:detect`; Studio projections derive a public
 // subset from reviewed/promoted candidates in the Studio finding contracts.
 

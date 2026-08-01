@@ -1,6 +1,5 @@
 // Repository functions for the post-v1 corpus-expansion sources.
 // One section per source; each section: type, replace-by-scope, list/get reads.
-// See knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md.
 
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { insertAll, type LocalPipelineDb } from "../client.js";

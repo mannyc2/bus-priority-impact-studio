@@ -25,6 +25,10 @@ data/working/*
 data/artifacts/*
 data/exports/*
 data/local/*
+# The detector-calibration register is a small top-level index read by
+# packages/domain/test/studio-route-insights.test.ts. The calibration run
+# directories themselves were deleted (plan 112) and stay untracked.
+!data/artifacts/detector-calibration-register.json
 # The reviewed Plan 073 documentation corpus is a pinned source input, not a
 # generated serving artifact. Keep this one file commit-able while retaining
 # the rest of the multi-gigabyte capture tree as local data.

@@ -8,8 +8,8 @@ What to look at:
 
 - [Live app](https://bus-priority-impact-studio.c20carroll.workers.dev/) - deployed Cloudflare Workers app backed by D1/R2 serving projections.
 - [analytics-primer.html](analytics-primer.html) - open in a browser for a visual map of the analytics architecture.
-- [Detector calibration ADR](docs/decisions/0018-detector-calibration-readiness-loop.md) and [readiness artifacts](data/artifacts/analytics-detector-readiness/) - reviewed-label loop for detector publication discipline.
-- [Tier 2 status runbook](knowledge/wiki/engineering/tier2_processing_status_and_resume.md) - OCR, extraction, vocabulary, route resolution, and intervention corpus state.
+- [Detector calibration ADR](docs/decisions/0018-detector-calibration-readiness-loop.md) and [detector calibration register](data/artifacts/detector-calibration-register.json) - reviewed-label loop for detector publication discipline.
+- Document-evidence backend: the OCR, extraction, vocabulary, and route-resolution corpus now lives in the separate `mta-wiki` repository and is consumed here via versioned release bundles.
 - [Architecture decisions](docs/decisions/) - start with 0017, 0018, and 0019 for publication freshness, detector readiness, and the Effect pipeline runtime.
 
 Contributor and agent note: read [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), and [knowledge/index.md](knowledge/index.md) before changing code.

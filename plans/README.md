@@ -30,6 +30,120 @@ conditions, and update your row when done.
 
 ---
 
+# Generation 20 — aggressive LOC cleanup (2026-08-01)
+
+Planned at commit `292d2bd0` on the dirty `ops/gen18-artifact-publication`
+tree by an `improve` read-only audit (six parallel scoped audits — pipeline-v2,
+packages, apps/web, docs+data receipts, knowledge+plans, and a
+reference-graph safety rail — with every load-bearing claim re-verified
+against source by the lead session). Only `plans/**` changed. Operator
+direction: aggressive cleanup — delete docs, one-off files, and legacy code;
+reduce LOC significantly. Session ran non-interactively; plans were written
+for all high-confidence findings per that direction, with the
+operator-judgment deletions isolated in 114.
+
+Measured baseline (tracked lines at `292d2bd0`): ~248K code, ~2.5M JSON,
+~104K markdown. The plans remove ~24.4K code LOC and ~1.69M receipt/doc lines
+outright, plus up to ~152K more behind 114's operator gates — roughly 60% of
+all tracked lines, ~10% of code. Honest caveat recorded from the audit: none
+of the deleted web code ships in the production bundle (already tree-shaken),
+so no plan may claim bundle-size wins.
+
+## Execution order & status (gen 20)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 107 | Truth sweep: stale pointers + reclaim-script footgun | P1 | S | none | DONE (executed, reviewer-verified, MERGED PR #118 2026-08-01) |
+| 108 | pipeline-v2 dead code (forensics, one-offs, no-ship spike; ~9.5K LOC) | P1 | M | none | DONE (executed, reviewer-verified, MERGED PR #119 2026-08-01; −9,520 lines; registry 115→114; the 7 pre-existing oversize-receipt `check:style` errors clear when plan 112 deletes those files) |
+| 109 | packages dead code (records policy, detector primitives, identity; ~7.7K LOC) | P1 | M | none (111 needs its step 8) | IN PROGRESS (executor dispatched 2026-08-01) |
+| 112 | Receipts purge: docs/research + tracked data receipts (~1.63M lines) | P1 | M | 108 hard; 107 rec. | TODO |
+| 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | TODO |
+| 110 | apps/web dead code (~3.5K LOC + 41 CSS) | P2 | S-M | none (coordinate branch base) | TODO |
+| 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | TODO |
+| 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | TODO (all three operator tokens APPROVED 2026-08-01 — recorded in the plan's Status block; executable once deps land) |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency and safety notes (gen 20)
+
+- 107 first (defuses `reclaim-raw-json.sh`'s `rm -rf data/artifacts/docs`
+  line, which would delete a CI-load-bearing tracked file). 108 before 112:
+  108 deletes the tests that are the only readers of ~217K lines of
+  `docs/research/artifacts` receipts, and dissolves the receipt hash-pins on
+  plans 074/075/083. 112 before 113 for the same receipt-constraint reason.
+- 111 and 113 both require the gen-19 branch merged first (they edit
+  `data-products/registry.ts` / `test/cli/registry.test.ts` /
+  `plans/README.md`, all dirty on that branch). 110 has zero file overlap
+  with the branch's dirty set but coordinate the base anyway.
+- The nine-file load-bearing keep-set for 112 (SHA-pinned rc26 candidate set,
+  rc24 fixture receipt, detector-calibration register, gap-roadmap corpus,
+  approvals receipts/scope-bindings, capability manifest, temporal-anchor
+  audit) is enumerated inside the plan — violating it breaks `bun run test:unit`.
+- `data/` deletions remain operator-approved-by-PR-merge; each such PR lists
+  every cluster with line counts. `knowledge/raw/**` and all
+  `packages/db/migrations*/` are untouchable in every plan.
+- Registry-count arithmetic: `test/cli/registry.test.ts` pins the command
+  inventory; 108 decrements it by 1, 111 by 10 more. The gen-19 branch adds
+  commands, so executors reconcile against the live count, not this note.
+- **Rebaseline (2026-08-01, mid-execution)**: main advanced to `90dd5282`
+  (PRs #114-#117 merged — plan 105 landed; the gen-19 public-episodes work
+  committed). Executors 107-109 run against that baseline; targeted diffs
+  verified all deletion targets byte-identical, with only the registry-test
+  count (114→115, new `public-intervention-episodes` command) and 10 new
+  out-of-scope `packages/domain/package.json` export lines as in-scope-adjacent
+  drift. Plans 108/109/113 carry rebaseline blocks; 105's landing moves
+  103/105/mockups-082 into 113's delete-list. The "gen-19 merged" gates on
+  110/111/113 are now satisfied.
+
+## Findings considered and rejected / deferred (gen 20 — do not re-audit)
+
+- **Plan-097 recovery machinery (~3.7K LOC across apps/web + db + pipeline)**
+  — NOT dead: `PLAN097_RECOVERY_ENABLED` routes every production artifact
+  read through the per-release recovery manifest until plan 098 lands. Its
+  deletion belongs on plan 098's checklist, not on a cleanup sweep.
+- **`TreatmentsHistorySection` (623 LOC) as superseded by gen-18
+  `PublicRouteHistory`** — wrong: it is what production actually serves
+  (the new artifact key cannot resolve pre-098, and `?study=`/`?record=`
+  deep links pin the legacy branch). Consolidation belongs to the gen-18/19
+  owner after the artifact serves.
+- **`route-briefs` lib, `corridor` group, ingest/backfill/collect/gtfs-rt
+  acquisition layer, all `packages/sources` adapters, `source-refresh` cron,
+  data-products registry/completeness, JSON-Schema/OpenAPI machinery** — all
+  verified live during this audit; do not re-propose.
+- **Squashing or pruning `packages/db/migrations*/`** (~150K generated JSON
+  lines) — rejected again; generation-17 D1-ledger safety stands, and the
+  repo's own LOC accounting already excludes generated migrations.
+- **`knowledge/log.md` deletion or rewrite** — declined; append-only doctrine
+  and sole narrative record. Optional by-month split recorded in 114 step D.
+- **Four drifted `schema-decode` copies** (analytics/studio-api/pipeline/web)
+  — real duplication, deferred: consolidation is a refactor with live-path
+  risk, not a deletion; keep out of cleanup PRs.
+- **`StudyEvent*` V2–V5 schema generations** (`domain/studio/study.ts`) —
+  investigate-only: V2–V4 readers still decode on-disk artifacts; collapsing
+  requires a re-cut at V5 first (HIGH risk, L effort).
+- **Orphaned schema-table constants** (`localParkingViolationMatch`,
+  `localLionSegmentGeom`, `localRouteShapeGeom`, `studioActor*`) — tables
+  outlive code by design here; removal is gated on migration policy nobody
+  has commissioned.
+- **Dead exports inside gen-18/19 in-flight files** (7 in
+  `studio/pages/interventions.tsx`, 2 in `api-client.ts`, 3 constants in
+  `network-map-model.ts`, `RouteDetailLoadingPage` in `route-detail.tsx`) —
+  deliberately left to the branch owner; listed in plan 110's maintenance
+  notes.
+- **`geoclient-current-v2.yaml` and `docs/research/analytics-package.zip`** —
+  both untracked and gitignored; zero tracked LOC; operator can delete from
+  disk at will, no plan needed.
+- **`.agents/`, `.codex/`, `.gstack/`, `.repos/`** — not git-tracked; out of
+  scope for a tracked-LOC cleanup.
+- **`bun run loc` snapshot artifact** — the repo's own LOC check
+  (`check-loc.ts`) writes `data/artifacts/loc/latest.json`; use it to measure
+  the before/after once plans land (report-only, always exits 0).
+
+---
+
+---
+
 # Generation 18 — the interventions and route-history rethink (2026-07-24)
 
 Planned against `origin/main@b25542b0` from an operator-approved design concept

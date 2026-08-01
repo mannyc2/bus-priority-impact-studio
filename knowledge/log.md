@@ -2,6 +2,74 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-08-01] engineering | Plan 112 purges the frozen receipt corpora (~1.63M tracked lines)
+
+Completed Plan 112. Deleted seven clusters of frozen JSON/markdown receipts across `data/` and
+`docs/`, all preserved in git history: (1) the 15 `data/artifacts/detector-calibration-*/`
+directories, 183 files, 828,329 lines — the top-level `detector-calibration-register.json` (read by
+`packages/domain/test/studio-route-insights.test.ts`) was kept; (2) 26 of 28 files in
+`docs/research/artifacts/`, 497,054 lines — kept the SHA-256-pinned rc26 study-events cut and the
+rc24 route-fixture receipt, both still read by `tools/pipeline-v2` tests; (3) 69 of 72 files in
+`docs/research/reviews/` (rc19/rc25/rc26/rc27-member-grain/review-cut-5298f37a), 287,080 lines —
+kept `plan097/`, the gen-17 production-recovery attestations; (4) six unreferenced data receipts,
+18,896 lines; (5) four superseded authoring-era `docs/architecture/` specs, 1,332 lines (governing
+ADRs 0014/0015/0016 already carry Superseded/Retired markers); (6) six superseded
+`docs/research/*.md` handoffs, 1,141 lines; (7) `docs/screenshots/`, 14 PNGs (plan 022/025
+before/after evidence, both DONE). Also added a `.gitignore` negation for
+`data/artifacts/detector-calibration-register.json` beneath the `data/artifacts/*` blanket rule, so
+the surviving tracked file no longer drifts from what git tracks. An ignore-drift probe over the
+remaining 36 tracked `data/` paths found two pre-existing, plan-112-unrelated drifts left as-is per
+the plan's explicit "report, don't chase" instruction: `data/artifacts/detector-calibration-register.NOTE.md`
+and `data/artifacts/studio/v2/routes/route-capability-manifest.json` both match un-negated blanket
+ignore rules despite being tracked; both predate this plan.
+
+Verification passed: `bun run test` (1050 unit + 448 web + 32 worker, 0 fail), `bun run check:types`,
+`bun run check:architecture`, `bun run check:knowledge`. `bun run check:style` (`biome check .`)
+stays red on both sides of this change, but for reasons entirely outside plan 112's scope: at the
+`origin/main` baseline it reports 7 errors / 39 warnings (1108 files checked); after this plan, 2
+errors / 24 warnings (1046 files checked). The prior Plan 108 log entry's "7 pre-existing errors —
+all 'file exceeds 1.0 MiB' warnings" characterization conflated two different biome diagnostics: the
+7 baseline *errors* are formatter diffs (5 inside files this plan deletes — one in
+`docs/research/artifacts/`, four in `docs/research/reviews/rc25/` — plus 2 pre-existing and
+unrelated, in `packages/db/migrations-drizzle/.../snapshot.json` and
+`tools/pipeline-v2/test/mta-wiki-route-identities.test.ts`); the oversized-file diagnostic is a
+separate *warning* class, and there were 13 of them in `docs/research/artifacts/` alone at baseline,
+not 7. This plan's cluster-2 deletion removes 12 of those 13; the 13th,
+`candidate-set-v3-80050ed598f3b2ab0d0a1e99.study-events.json` (1.1 MiB), is the SHA-256-pinned keep
+file and will keep tripping the size warning permanently — it is out of scope to shrink, move, or
+exclude. The 2 remaining errors after this plan are exactly the 2 pre-existing/unrelated ones above;
+`check:style`'s exit code will stay non-zero until those are fixed on their own, unrelated track.
+
+## [2026-08-01] engineering | Plan 108 deletes pipeline-v2's completed-operation and no-ship code
+
+Completed Plan 108. Removed ~9,520 LOC of `tools/pipeline-v2` machinery for finished, adjudicated
+operations across five clusters: (A) ten completed rc19/rc25/rc26/plan074/member-grain review-cut
+reconciliation scripts under `scripts/`, zero repo-wide references (3,202 LOC); (B) eight mta-wiki
+rc19/rc22/rc23 migration-forensics files — the rc22 lineage library, its audit/replay scripts, the
+rc23 delta audit, the candidate-set audit, and two tests reading frozen `docs/research/artifacts/`
+receipts (4,281 LOC); (C) the Plan 076 opportunity-ranking prototype command, its sole study-engine
+dependency, and both tests, per the operator's on-record no-ship decision, plus the study-engine
+barrel export (1,720 LOC); (D) two orphan micro-modules, `route-ids.ts` and the
+`speed-pace-feature-resolver.ts` re-export shim (85 LOC); (E) the never-wired
+`check-map-segment-identity` check and its test, which had no `package.json` script and no CI step
+(232 LOC). The distinct root-level `test/map-segment-identity.test.ts` doctrine check over
+`src/lib/route-briefs/model.ts` was left untouched.
+
+Also updated the CLI registry inventory test (`test/cli/registry.test.ts`) to drop
+`"opportunity-prototype"` from the `study` array and decrement the discovered-command count. The
+worktree baseline had drifted from the plan's assumed `292d2bd0` to `90dd5282` (PRs #114-#117,
+adding an unrelated `"public-intervention-episodes"` studio command); the coordinator adjudicated
+`90dd5282` as the correct baseline and confirmed all five clusters were byte-identical between the
+two commits, so the registry count moved 115 -> 114 rather than the plan's originally stated 115
+baseline.
+
+Verification passed: `bun --filter @bp/pipeline-v2 test` (529 pass, 0 fail, down from 546 before
+deletion, across 124 files); `bun run check:types`; `bun run check:architecture`. `bun run
+check:style` fails with 7 pre-existing errors — all "file exceeds 1.0 MiB" warnings on
+`docs/research/artifacts/*.json` receipts this plan does not touch (confirmed byte-identical to the
+pre-deletion baseline). That failure predates this change and is unrelated to it; the directory it
+flags is explicitly deferred to Plan 112.
+
 ## [2026-07-19] engineering | Plan 085 de-months the public serving contract
 
 Completed Plan 085. Release-bearing Studio and public API responses now resolve the latest passing
@@ -9403,6 +9471,10 @@ The operations runbook forbids reusing the Plan 097 recovery path for an
 artifact cutover, so serving any new artifact key is blocked on Plan 098. The
 standing prerequisite in `plans/README.md` had recorded this as the
 highest-value data operation available; it is not a data operation at all.
+
+## [2026-08-01] docs | Plan 107 truth sweep: stale pointers and reclaim-script footgun fixed
+
+Five drifted defects were closed before any further cleanup lands. `scripts/reclaim-raw-json.sh` carried an `rm -rf -- 'data/artifacts/docs'` line under a comment calling the tree fully orphaned; that line is gone, replaced with a comment explaining that `.gitignore` pins one file in that tree (`gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json`) which `route-treatment-crosswalk.test.ts` and `export-intervention-corpus.ts` both read, so no `rm` line in the script targets a tracked path anymore. `README.md` swapped its dead `data/artifacts/analytics-detector-readiness/` link for the tracked `detector-calibration-register.json`, and its Tier 2 status runbook link (a system deleted by plan 024) for a sentence pointing at the separate `mta-wiki` repo consumed via versioned release bundles. `apps/web/public/llms.txt` dropped its two `/methods` and `/api/v1/studio/methods` links, both dead since plan 052, and `apps/web/public/sitemap.xml` gained the `/routes` entry it was missing. Three source comments — `packages/db/src/local/schema.ts`, `packages/db/src/local/repositories/corpus-context.ts`, and `packages/domain/src/findings/index.ts` — no longer point at the deleted `knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md`, keeping the rest of each comment where it still describes the code. `docs/decisions/0018-detector-calibration-readiness-loop.md`'s Status line now records the calibration-readiness program complete as of 2026-06-11 with all 21 detectors dispositioned, instead of a bare "Accepted" for a program whose producing package is gone.
 
 ## [2026-08-01] implementation | Plan 109 deletes the dead detector/feature subtrees in packages/*
 

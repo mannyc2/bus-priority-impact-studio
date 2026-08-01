@@ -105,7 +105,6 @@ const expectedRegistry = {
   study: [
     "merge-events",
     "migrate-member-scope-bindings",
-    "opportunity-prototype",
     "prepare-review-worksheet",
     "refresh-scope-bindings",
     "run",
@@ -134,7 +133,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(115);
+    expect(commands).toHaveLength(114);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

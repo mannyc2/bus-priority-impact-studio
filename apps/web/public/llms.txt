@@ -8,7 +8,6 @@ Bus Priority Impact Studio publishes route-first evidence pages for NYC bus prio
 - [M15 SBS route evidence page](https://bus-priority-impact-studio.c20carroll.workers.dev/routes/m15-sbs)
 - [Network map](https://bus-priority-impact-studio.c20carroll.workers.dev/map)
 - [Intervention timelines](https://bus-priority-impact-studio.c20carroll.workers.dev/interventions)
-- [Source and methodology notes](https://bus-priority-impact-studio.c20carroll.workers.dev/methods)
 
 ## API
 
@@ -16,4 +15,3 @@ Bus Priority Impact Studio publishes route-first evidence pages for NYC bus prio
 - [Route cards](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes)
 - [M15 SBS route profile](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes/m15-sbs)
 - [M15 SBS speed history](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/routes/m15-sbs/speed-history)
-- [Methodology payload](https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/studio/methods)
