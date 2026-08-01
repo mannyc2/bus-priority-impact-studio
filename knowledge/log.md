@@ -9942,8 +9942,14 @@ ordered files capped at 30 statements and roughly 6 KiB. The checksum checker ve
 file and proves their normalized concatenation is exactly the retained failed statement stream.
 
 Expand run `30720050586` applied `active/0001` successfully, then failed and rolled back `0002`
-with SQLite `incomplete input` before any reader or pointer step. The first splitter had treated an
-inner `CASE ... END;` as a trigger terminator. The applied `0001` remains byte-identical; the failed
-14-file set is checksum-retained under `failed-split-30720050586`, and only the unapplied tail is
-regenerated with trigger-aware statement boundaries. A focused parser regression covers the nested
-`CASE` form and establishes the correct 301-statement stream before the remote retry.
+with SQLite `incomplete input` before any reader or pointer step. The first splitter had counted an
+inner `CASE ... END;` as a statement boundary, but inspection showed it changed only whitespace;
+the emitted SQL remained complete. The applied `0001` remains byte-identical, and the failed
+14-file set is checksum-retained under `failed-split-30720050586`.
+
+Expand run `30720458733` retried a trigger-aware, statement-equivalent `0002`; D1's remote query
+endpoint returned the same `incomplete input`, again before reader or pointer work. The exact
+failed `0002` is retained under `failed-query-30720458733`. The active unapplied tail now rewrites
+only three `CASE` trigger bodies into equivalent conditional `SELECT RAISE ... WHERE` bodies,
+avoiding the remote compound parser while preserving trigger names, abort conditions, ordering,
+and effects. Focused tests bind the 301-statement source, deterministic rewrite, and behavior.

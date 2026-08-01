@@ -47,12 +47,14 @@ or "is this data product complete enough?" decisions here. Pure policy belongs i
   immutable and every correction is a new migration.
 - `migrations/d1-v2/0000_atomic_serving_release.sql` and its sibling checksum
   manifest retain the exact oversized first attempt. Cloudflare rolled that
-  failed migration back; Wrangler discovers only the mechanically equivalent
-  bounded files under `active/` through `migrations_pattern`.
+  failed migration back; Wrangler discovers only the bounded, deterministically
+  derived files under `active/` through `migrations_pattern`.
 - `migrations/d1-v2/failed-split-30720050586` retains the first bounded split.
-  Production committed only its byte-identical `active/0001`; `0002` rolled back
-  after a nested `CASE ... END;` parser boundary, so the trigger-aware active
-  tail replaces only migrations that were never applied.
+  Production committed only its byte-identical `active/0001`; `0002` rolled
+  back twice when D1's remote query endpoint rejected compound `CASE` trigger
+  bodies. `failed-query-30720458733` retains the second exact `0002`. The
+  active tail deterministically replaces only those three unapplied `CASE`
+  bodies with equivalent conditional `SELECT RAISE ... WHERE` forms.
 - `migrations-drizzle/d1` remains the full-schema Drizzle snapshot cache, not
   an application ledger. Snapshot-only catch-up entries may have no-op
   `migration.sql` files when live Wrangler SQL already applied the change.

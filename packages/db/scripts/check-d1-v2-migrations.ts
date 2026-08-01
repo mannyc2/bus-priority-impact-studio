@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { decodeStrict } from "@bp/domain/decode";
 import { Schema } from "effect";
-import { parseD1MigrationStatements } from "./d1-migration-statements";
+import { parseD1MigrationStatements, rewriteD1RemoteSafeTrigger } from "./d1-migration-statements";
 
 const ChecksumManifestSchema = Schema.Record(
   Schema.String.check(Schema.isPattern(/^\d{4}_[a-z0-9_]+\.sql$/)),
@@ -17,6 +17,10 @@ const failedMigrationSha256 = "7317ead645a989632662f6f0de95a4f10d11935d3e56905d2
 const migrationsDirectory = new URL("../migrations/d1-v2/active/", import.meta.url);
 const failedSplitDirectory = new URL(
   "../migrations/d1-v2/failed-split-30720050586/",
+  import.meta.url,
+);
+const failedQueryDirectory = new URL(
+  "../migrations/d1-v2/failed-query-30720458733/",
   import.meta.url,
 );
 const manifestPath = new URL("checksums.json", migrationsDirectory);
@@ -73,6 +77,26 @@ for (const filename of failedSplitFiles) {
   }
 }
 
+const failedQueryManifest = decodeStrict(ChecksumManifestSchema)(
+  await Bun.file(new URL("checksums.json", failedQueryDirectory)).json(),
+);
+const failedQueryFiles = (await readdir(failedQueryDirectory))
+  .filter((filename) => filename.endsWith(".sql"))
+  .toSorted();
+if (
+  JSON.stringify(failedQueryFiles) !== JSON.stringify(Object.keys(failedQueryManifest).toSorted())
+) {
+  throw new Error("Failed-query D1 v2 migration archive inventory differs from its manifest.");
+}
+for (const filename of failedQueryFiles) {
+  const actual = createHash("sha256")
+    .update(await Bun.file(new URL(filename, failedQueryDirectory)).bytes())
+    .digest("hex");
+  if (actual !== failedQueryManifest[filename]) {
+    throw new Error(`Failed-query D1 v2 migration archive ${filename} drifted.`);
+  }
+}
+
 const failedMigration = await Bun.file(failedMigrationPath).text();
 const failedActualSha256 = createHash("sha256").update(failedMigration).digest("hex");
 if (failedActualSha256 !== failedMigrationSha256) {
@@ -91,10 +115,13 @@ const failedStatements = normalizedStatements(failedMigration);
 if (failedStatements.length !== 301) {
   throw new Error(`Expected 301 trigger-aware statements, received ${failedStatements.length}.`);
 }
-if (JSON.stringify(activeStatements) !== JSON.stringify(failedStatements)) {
-  throw new Error("Split D1 v2 migrations do not preserve the failed migration statement stream.");
+const remoteSafeStatements = failedStatements.map(rewriteD1RemoteSafeTrigger);
+if (JSON.stringify(activeStatements) !== JSON.stringify(remoteSafeStatements)) {
+  throw new Error(
+    "Split D1 v2 migrations do not preserve the approved remote-safe statement stream.",
+  );
 }
 
 console.log(
-  `Verified ${migrationFiles.length} trigger-safe D1 v2 migration checksum(s), the failed split archive, and statement equivalence against ${failedMigrationSha256}.`,
+  `Verified ${migrationFiles.length} trigger-safe D1 v2 migration checksum(s), failed-query archives, and the approved remote-safe statement stream against ${failedMigrationSha256}.`,
 );
