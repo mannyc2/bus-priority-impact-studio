@@ -107,11 +107,46 @@ jobs:
         run: |
           set -euo pipefail
           output_dir=/tmp/plan098-activation
-          curl --fail --silent --show-error \
-            --request POST --header 'Content-Type: application/json' \
-            --header "Authorization: Bearer $PLAN098_TOKEN" \
-            --data '{"action":"verify-plan097-preflight"}' \
-            "$PLAN098_ENDPOINT" > "$output_dir/preflight.json"
+          success_streak=0
+          for attempt in $(seq 1 30); do
+            if ! status="$(curl --silent --show-error \
+              --output "$output_dir/preflight.json" \
+              --write-out '%{http_code}' \
+              --request POST --header 'Content-Type: application/json' \
+              --header "Authorization: Bearer $PLAN098_TOKEN" \
+              --data '{"action":"verify-plan097-preflight"}' \
+              "$PLAN098_ENDPOINT")"; then
+              status=000
+            fi
+            if [ "$status" = 200 ]; then
+              success_streak=$((success_streak + 1))
+              if [ "$success_streak" -eq 3 ]; then
+                break
+              fi
+            else
+              success_streak=0
+              case "$status" in
+                000|404|5??) ;;
+                *)
+                  echo "Plan 098 activation preflight failed: HTTP $status" >&2
+                  jq -c '{ok,error,message}' "$output_dir/preflight.json" >&2 || true
+                  exit 1
+                  ;;
+              esac
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Plan 098 activation operator did not converge: HTTP $status" >&2
+              jq -c '{ok,error,message}' "$output_dir/preflight.json" >&2 || true
+              exit 1
+            fi
+            sleep 2
+          done
+          jq -n \
+            --argjson attempt "$attempt" \
+            --arg status "$status" \
+            --argjson consecutiveSuccesses "$success_streak" \
+            '{attempt:$attempt,httpStatus:($status | tonumber),consecutiveSuccesses:$consecutiveSuccesses}' \
+            > "$output_dir/preflight-status.json"
           jq -e '.ok == true and .result.receiptSha256 == "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6"' \
             "$output_dir/preflight.json"
           bun tools/pipeline-v2/scripts/run-plan098-production-drill.ts \

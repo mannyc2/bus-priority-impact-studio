@@ -66,6 +66,14 @@ manifest `6bc5cc028…`. The correction synchronizes the strict receipt check an
 activation download check to the latter and adds a repository guard tying both
 to the closure attestation; no check is removed or generalized.
 
+After that correction, run `30718807061` received one valid 200 preflight and
+then an immediate 404 on the redundant next call while the freshly recreated
+`workers.dev` service was still converging. It stopped before migration and
+again cleaned up successfully. Operator calls now retry only transport, 404,
+and 5xx propagation results while retaining terminal 4xx failures and their
+diagnostics. The activation gate additionally requires three consecutive valid
+preflights before the long drill begins.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2
