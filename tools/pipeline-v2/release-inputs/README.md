@@ -9,7 +9,10 @@ The archive contains the original closed artifact map
 one global public body, and 188 public route-history bodies. It deliberately
 excludes the private operator conformance body. The Plan 098 builder verifies
 the map identity and all 189 declared body hashes before it can construct a
-serving candidate.
+serving candidate. Archive entries are rooted at `public-episodes.json` and
+`routes/`; the builder removes the already-verified
+`studio/v2/candidates/<candidate-id>/` prefix from each physical key before
+resolving those local source paths.
 
 Archive SHA-256:
 `eb08bb84a8e8f3c99c8be8f6e5595d3f34694e523ec7fd7d4ae8fc52a51326c7`.

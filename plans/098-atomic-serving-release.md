@@ -351,6 +351,24 @@ explicitly supports custom migration directories and tables in
 [D1 migrations](https://developers.cloudflare.com/d1/reference/migrations/).
 No future production workflow may execute a migration file with `d1 execute`.
 
+Expand run `30720931515` completed all migration, invariant, reader, smoke, and
+receipt gates with the public pointer still at legacy generation 0. Activation
+run `30721093553` stopped before deploying its operator because the immutable
+Plan 106 archive is rooted at `public-episodes.json` and `routes/`, while the
+candidate builder had joined candidate-qualified physical keys directly to the
+archive root. The corrected builder strips only the exact verified
+`studio/v2/candidates/<candidate-id>/` prefix and rejects cross-candidate,
+empty, absolute, or traversal paths before reading any body.
+A no-mutation replay against that run's captured D1 export and Plan 097
+manifest then exposed a second pre-deployment contract defect: the serving
+logical-ID schema rejected the exact `+` route suffix already present in 20
+immutable Plan 097 route-segment keys. The schema now admits `+` within a
+logical ID while retaining its anchored safe-character boundary, so exact
+route identities such as `b44+` remain distinct. The same replay also caught
+local upload `sourcePath` metadata leaking into Candidate B's strict semantic
+manifest; upload inventory and public descriptors are now separate, keeping
+local paths out of candidate identity.
+
 ### 4. Add candidate catalog, release catalog, and CAS pointer
 
 The migration adds normalized tables for:

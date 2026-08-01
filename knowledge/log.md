@@ -9953,3 +9953,19 @@ failed `0002` is retained under `failed-query-30720458733`. The active unapplied
 only three `CASE` trigger bodies into equivalent conditional `SELECT RAISE ... WHERE` bodies,
 avoiding the remote compound parser while preserving trigger names, abort conditions, ordering,
 and effects. Focused tests bind the 301-statement source, deterministic rewrite, and behavior.
+
+Expand run `30720931515` completed the v2 migration, protected-state comparison, zero-traffic
+reader proof, ordinary-traffic promotion, D1 re-audit, public smoke checks, receipt upload, and
+operator cleanup. Downloaded evidence reverified every recorded hash; the pointer remained legacy
+generation 0 as required. Activation run `30721093553` then failed before operator deployment or
+any production mutation because the checked-in Plan 106 archive is rooted at `public-episodes.json`
+and `routes/`, while the builder joined its candidate-qualified physical keys directly to that
+root. The builder now removes only the exact verified candidate prefix, rejects traversal or
+cross-candidate paths, and has focused layout tests. A no-mutation replay against that run's
+captured D1 export and Plan 097 manifest then exposed a second pre-deployment contract defect: the
+serving logical-ID schema rejected the exact `+` route suffix already present in 20 immutable
+Plan 097 route-segment keys. The schema now admits `+` within a logical ID while retaining its
+anchored safe-character boundary, so exact route identities such as `b44+` remain distinct. The
+same replay also caught local upload `sourcePath` metadata leaking into Candidate B's strict
+semantic manifest; upload inventory and public descriptors are now separate, keeping local paths
+out of candidate identity.

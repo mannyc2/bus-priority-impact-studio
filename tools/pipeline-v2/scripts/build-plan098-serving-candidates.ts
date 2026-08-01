@@ -6,6 +6,7 @@ import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { Plan097RecoveryArtifactManifestSchema } from "@bp/db/recovery/plan097/artifacts";
 import { decodeStrict } from "@bp/domain/decode";
 import { canonicalServingJson } from "@bp/domain/studio/serving-release";
+import { plan106ArchiveRelativePath } from "../src/lib/plan106-release-input.ts";
 import {
   buildServingCandidateFromDescriptors,
   type ServingCandidateArtifactDescriptor,
@@ -147,10 +148,14 @@ async function plan106Descriptors(
   if (map.candidateId !== "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef") {
     throw new Error("Plan 106 artifact map does not identify the completed candidate.");
   }
-  const uploads = [];
+  const descriptors: ServingCandidateArtifactDescriptor[] = [];
+  const uploads: Array<ServingCandidateArtifactDescriptor & { sourcePath: string }> = [];
   for (const entry of map.entries) {
     if (entry.role === "operator_conformance") continue;
-    const sourcePath = join(artifactRoot, entry.physicalKey);
+    const sourcePath = join(
+      artifactRoot,
+      plan106ArchiveRelativePath(map.candidateId, entry.physicalKey),
+    );
     const body = new Uint8Array(await Bun.file(sourcePath).arrayBuffer());
     const sha256 = servingSha256(body);
     if (sha256 !== entry.sha256) {
@@ -164,6 +169,7 @@ async function plan106Descriptors(
       mediaType: entry.mediaType,
       schemaId: entry.schemaId,
     };
+    descriptors.push(descriptor);
     uploads.push({ ...descriptor, sourcePath });
   }
   if (uploads.length !== 189) {
@@ -171,7 +177,7 @@ async function plan106Descriptors(
   }
   const logicalIds = new Set(uploads.map((entry) => entry.logicalId));
   if (logicalIds.size !== uploads.length) throw new Error("Plan 106 overlay has duplicate keys.");
-  return { descriptors: uploads, uploads };
+  return { descriptors, uploads };
 }
 
 async function main(): Promise<void> {
