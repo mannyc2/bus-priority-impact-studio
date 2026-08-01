@@ -78,26 +78,15 @@ jobs:
         if: steps.cloudflare.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
-          PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
         run: |
           set -euo pipefail
-          test -n "$PLAN097_SIGNING_KEY_ID"
-          test -n "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64"
-          test "$PLAN097_SIGNING_KEY_ID" = "plan097-20260725-rc28"
           output_dir=/tmp/plan098-expand
           endpoint=https://bus-priority-plan098-operator.c20carroll.workers.dev/__operations/plan098
           mkdir -p "$output_dir"
           execution_token="$(openssl rand -hex 32)"
           jq -n \
             --arg executionToken "$execution_token" \
-            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
-            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
-            '{
-              PLAN098_EXECUTION_TOKEN:$executionToken,
-              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
-              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey
-            }' > "$output_dir/secrets.json"
+            '{PLAN098_EXECUTION_TOKEN:$executionToken}' > "$output_dir/secrets.json"
           bunx wrangler deploy \
             --config apps/web/wrangler.plan098-operator.example.jsonc \
             --secrets-file "$output_dir/secrets.json"

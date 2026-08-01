@@ -20,8 +20,6 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: 7aa7065a7e971d97435b3f22098d78b0
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      PLAN097_SIGNING_KEY_ID: ${{ secrets.PLAN097_SIGNING_KEY_ID }}
-      PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64: ${{ secrets.PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64 }}
     steps:
       - uses: actions/checkout@v6
 
@@ -36,9 +34,6 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$PLAN097_SIGNING_KEY_ID"
-          test -n "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64"
-          test "$PLAN097_SIGNING_KEY_ID" = "plan097-20260725-rc28"
           output_dir=/tmp/plan098-activation
           plan106_root="$output_dir/plan106"
           candidate_root="$output_dir/candidates"
@@ -94,13 +89,7 @@ jobs:
           execution_token="$(openssl rand -hex 32)"
           jq -n \
             --arg executionToken "$execution_token" \
-            --arg keyId "$PLAN097_SIGNING_KEY_ID" \
-            --arg publicKey "$PLAN097_SIGNING_PUBLIC_KEY_SPKI_BASE64" \
-            '{
-              PLAN098_EXECUTION_TOKEN:$executionToken,
-              PLAN097_PREFLIGHT_SIGNING_KEY_ID:$keyId,
-              PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64:$publicKey
-            }' > "$output_dir/operator-secrets.json"
+            '{PLAN098_EXECUTION_TOKEN:$executionToken}' > "$output_dir/operator-secrets.json"
           bunx wrangler deploy \
             --config apps/web/wrangler.plan098-operator.example.jsonc \
             --secrets-file "$output_dir/operator-secrets.json"
@@ -109,7 +98,7 @@ jobs:
           echo "endpoint=$endpoint" >> "$GITHUB_OUTPUT"
           echo "token=$execution_token" >> "$GITHUB_OUTPUT"
 
-      - name: Reverify signed preflight and execute A-B-A-B drill
+      - name: Verify pinned signed preflight and execute A-B-A-B drill
         timeout-minutes: 65
         env:
           PLAN098_ENDPOINT: ${{ steps.operator.outputs.endpoint }}

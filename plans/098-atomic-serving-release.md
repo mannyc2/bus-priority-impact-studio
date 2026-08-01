@@ -38,6 +38,14 @@ generation 0→1→2→3→4 drill, verifies cross-surface HTTP evidence and unc
 live/current fingerprints, and leaves B active. This plan becomes `DONE` only
 after those durable remote receipts are downloaded and independently checked.
 
+The first merged expand attempt failed closed before operator deployment or any
+production mutation because Plan 097's one-time signing secrets had correctly
+been retired during its cleanup. The follow-up does not recreate retired key
+material: it verifies the exact signed receipt digest plus the embedded signer
+key ID and independently recorded SPKI fingerprint, then performs the same
+schema/ledger/fingerprint comparisons. This keeps the preserved attestation as
+the trust anchor without introducing a new signer.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2

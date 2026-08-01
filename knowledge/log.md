@@ -9881,3 +9881,15 @@ denial, and byte-identical live/current sentinels. Verification passed with 985 
 Worker tests, typecheck, repository style, architecture, knowledge, web release/bundle budgets, and
 migration checksum validation. Production activation and the dependent Tracker pin/deployment remain
 intentionally unclaimed until the protected workflow runs and its evidence is independently checked.
+
+The first post-merge expand attempt (`ci-cd` run `30717782934`) failed closed before deploying the
+operator, applying the v2 migration, or uploading/promoting a public Worker. Its only Cloudflare API
+call was the idempotent cleanup of an operator that did not exist. The cause was explicit: the
+workflow expected the Plan 097 signing key ID/public-key secrets, but Plan 097 had intentionally
+retired all one-time signing material after its final independent verification. The correction does
+not recreate or rotate that authority. It pins the already verified signed receipt's exact SHA-256,
+embedded `plan097-20260725-rc28` key ID, and independently recorded SPKI SHA-256
+`7b6bb824b4754df8686bfc10e4295a2e47d9ab4da34a92c29af1199842adb8c6`, while retaining strict
+receipt decode, signed-payload digest, production resource, schema envelope, legacy ledger, and
+protected-fingerprint comparisons. This removes a nonexistent-secret dependency without weakening
+or relabeling the historical attestation.
