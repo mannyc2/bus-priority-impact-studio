@@ -9984,3 +9984,11 @@ correctly retains the content-addressed physical manifest key while the pointed 
 looked only in the candidate's logical-ID index. The resolver now accepts either a declared logical
 ID or an exact candidate-declared physical key, without fallback outside the candidate manifest.
 Public smoke GETs also retry only transport, 404, and 5xx transients with bounded diagnostics.
+
+The post-repair expansion then proved the pointed catalog reader in production. Before resuming
+the protected activation drill, its completion assertion was corrected to preserve two distinct
+content identities: `b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`
+is the reviewed Plan 106 producer pack, while
+`a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5` is the derived 3,191-object
+serving candidate selected by the atomic pointer. The drill and workflow now bind the exact
+3,002-object baseline and 3,191-object overlay candidate without conflating those identities.

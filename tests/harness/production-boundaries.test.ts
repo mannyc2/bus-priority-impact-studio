@@ -235,6 +235,21 @@ describe("production boundary harness", () => {
     expect(closureAttestation).toContain(expectedManifestSha256);
   });
 
+  test("Plan 098 distinguishes the producer pack from its derived serving candidate", async () => {
+    const activationWorkflow = await Bun.file(
+      ".github/workflows/plan098-production-activation.yml",
+    ).text();
+
+    expect(activationWorkflow).toContain(
+      '.plan106CandidateId == "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef"',
+    );
+    expect(activationWorkflow).toContain("and .pointer.candidateId == .candidateB.candidateId");
+    expect(activationWorkflow).toContain(
+      'and .candidateB.candidateId == "a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5"',
+    );
+    expect(activationWorkflow).toContain("and .candidateB.artifactCount == 3191");
+  });
+
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
     const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();

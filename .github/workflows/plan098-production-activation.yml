@@ -158,7 +158,9 @@ jobs:
           jq -e \
             '.pointer.kind == "pointed"
              and .pointer.generation == 4
-             and .pointer.candidateId == "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef"' \
+             and .pointer.candidateId == .candidateB.candidateId
+             and .candidateB.candidateId == "a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5"
+             and .candidateB.artifactCount == 3191' \
             "$output_dir/completion.json"
           bunx wrangler deployments status --json --config apps/web/wrangler.jsonc \
             > "$output_dir/public-worker-deployment.json"

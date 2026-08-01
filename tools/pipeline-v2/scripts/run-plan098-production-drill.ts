@@ -22,8 +22,18 @@ type Args = {
 
 type StagePlan = {
   baselineReleaseId: string;
-  candidateA: { candidateId: string; manifestKey: string; manifestSha256: string };
-  candidateB: { candidateId: string; manifestKey: string; manifestSha256: string };
+  candidateA: {
+    artifactCount: number;
+    candidateId: string;
+    manifestKey: string;
+    manifestSha256: string;
+  };
+  candidateB: {
+    artifactCount: number;
+    candidateId: string;
+    manifestKey: string;
+    manifestSha256: string;
+  };
 };
 
 type UploadEntry = {
@@ -95,6 +105,8 @@ async function main(): Promise<void> {
   if (
     manifestA.candidateId !== stagePlan.candidateA.candidateId ||
     manifestB.candidateId !== stagePlan.candidateB.candidateId ||
+    stagePlan.candidateA.artifactCount !== 3002 ||
+    stagePlan.candidateB.artifactCount !== 3191 ||
     stagePlan.baselineReleaseId !== "pub_20260725T164123260Z"
   ) {
     throw new Error("Plan 098 stage plan does not bind the exact candidate manifests.");
