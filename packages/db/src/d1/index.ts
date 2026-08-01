@@ -76,7 +76,6 @@ export { listRouteReliabilityBaselines } from "./queries/route-reliability-basel
 export type { RouteScorecardCitationRow, RouteScorecardRow } from "./queries/route-scorecard.js";
 export {
   deserializeRouteScorecard,
-  getRouteScorecard,
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";

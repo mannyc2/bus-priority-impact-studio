@@ -93,20 +93,3 @@ export function deserializeRouteScorecard(
       })),
   });
 }
-
-export async function getRouteScorecard(
-  db: D1ServingDb,
-  routeId: string,
-  month: string,
-): Promise<RouteScorecard | null> {
-  const rows = await selectRouteScorecardRows(db, routeId, month);
-  const row = rows[0] ?? null;
-
-  if (row === null) {
-    return null;
-  }
-
-  const citations = await selectRouteScorecardCitationRows(db, routeId, month);
-
-  return deserializeRouteScorecard(row, citations);
-}

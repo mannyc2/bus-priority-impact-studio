@@ -5,22 +5,10 @@ import {
   findLatestPublishedStudioServingRelease,
   findLatestVerifiedFullMapRelease,
   getRouteBatchStatus,
-  getRouteBriefSummary,
-  getRouteScorecard,
-  listCorridorSummaries,
-  listRouteArtifacts,
-  listRouteBriefSummaries,
   listRouteObservedReliabilitySummaries,
 } from "@bp/db/d1";
 import { isSafeArtifactKey, MapManifestResponseSchema } from "@bp/domain/maps";
-import { IsoMonthSchema, type RouteId, RouteIdCodec } from "@bp/domain/primitives";
-import {
-  HotspotListResponseSchema,
-  ReleaseStatusResponseSchema,
-  RouteListResponseSchema,
-  RouteProfileResponseSchema,
-  RouteScorecardSchema,
-} from "@bp/domain/routes";
+import { ReleaseStatusResponseSchema } from "@bp/domain/routes";
 import {
   type ReleaseIdentity,
   ReleaseIdentitySchema,
@@ -37,53 +25,6 @@ import { decodeSchemaEitherStrict, decodeSchemaStrict } from "./schema-decode.js
 function dependencyNotConfigured(dependency: string, context: string): Response {
   console.error("Service dependency is not configured.", { context, dependency });
   return errorJson(503, SERVICE_DEPENDENCY_NOT_CONFIGURED_MESSAGE);
-}
-
-async function buildRouteScorecardResponse(url: URL, env: StudioApiEnv): Promise<Response> {
-  if (env.DB === undefined) {
-    return dependencyNotConfigured("DB", "route scorecard");
-  }
-
-  const match = url.pathname.match(/^\/api\/routes\/([^/]+)\/scorecard$/);
-  const rawRouteId = match?.[1];
-  const rawAsOfMonth = url.searchParams.get("asOfMonth");
-
-  if (rawRouteId === undefined) {
-    return errorJson(404, "Route scorecard endpoint not found.");
-  }
-
-  const month = decodeSchemaEitherStrict(IsoMonthSchema, rawAsOfMonth);
-  if (Result.isFailure(month)) {
-    return errorJson(400, "Query parameter asOfMonth must use YYYY-MM format.");
-  }
-
-  let routeId: RouteId;
-  try {
-    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
-  } catch {
-    return errorJson(400, "Route ID is invalid.");
-  }
-
-  const scorecard = await getRouteScorecard(createD1ServingDb(env.DB), routeId, month.success);
-  if (scorecard === null) {
-    return errorJson(404, "Route scorecard was not found.");
-  }
-
-  return json(decodeSchemaStrict(RouteScorecardSchema, scorecard));
-}
-
-function parseLimit(url: URL, fallback: number, maximum: number): number | null {
-  const rawLimit = url.searchParams.get("limit");
-  if (rawLimit === null) {
-    return fallback;
-  }
-
-  const limit = Number.parseInt(rawLimit, 10);
-  if (!Number.isFinite(limit) || limit < 1) {
-    return null;
-  }
-
-  return Math.min(limit, maximum);
 }
 
 async function resolvePublicServingRelease(
@@ -227,58 +168,6 @@ function countReliabilityRoutes(rows: readonly ObservedReliabilityRow[]): {
   };
 }
 
-function buildRouteCard(input: {
-  routeId: string;
-  month: string;
-  rank: number;
-  routeScore: number;
-  averageSpeedMph: number;
-  hotspotCount: number;
-  totalRidership: number;
-  aceActive: boolean;
-  busLaneMatchedLaneCount: number;
-  observed: ObservedReliabilityRow | null;
-}) {
-  const source = realtimeSourceForRunId(input.observed?.runId ?? null);
-  const hasObservedReliability = input.observed?.reliabilityStatus === "observed";
-  const completenessStatus =
-    input.observed === null
-      ? "missing_realtime"
-      : hasObservedReliability
-        ? "complete"
-        : "insufficient_samples";
-
-  return {
-    routeId: input.routeId,
-    shortName: input.routeId,
-    month: input.month,
-    rank: input.rank,
-    routeScore: input.routeScore,
-    averageSpeedMph: input.averageSpeedMph,
-    hotspotCount: input.hotspotCount,
-    totalRidership: input.totalRidership,
-    aceActive: input.aceActive,
-    busLaneMatchedLaneCount: input.busLaneMatchedLaneCount,
-    observedBunchingShare: input.observed?.observedBunchingShare ?? null,
-    observedLongGapShare: input.observed?.observedLongGapShare ?? null,
-    reliabilityStatus: input.observed?.reliabilityStatus ?? null,
-    sampleCount: input.observed?.sampleCount ?? 0,
-    quality: {
-      releaseLayer: hasObservedReliability
-        ? ("observed_release" as const)
-        : ("published_release" as const),
-      completenessStatus,
-      confidence: source === "third_party_recovered" ? ("medium" as const) : ("high" as const),
-      caveats:
-        source === "third_party_recovered"
-          ? ["Observed reliability is recovered from the third-party Bus Observatory archive."]
-          : input.observed === null
-            ? ["No observed realtime reliability row is attached to this route card."]
-            : [],
-    },
-  };
-}
-
 async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> {
   if (env.DB === undefined) {
     return dependencyNotConfigured("DB", "release status");
@@ -407,191 +296,6 @@ async function buildCurrentObservedSignal(
     sampleCount,
     caveats,
   };
-}
-
-async function buildRouteListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
-  if (env.DB === undefined) {
-    return dependencyNotConfigured("DB", "route list");
-  }
-
-  const limit = parseLimit(url, 50, 250);
-  if (limit === null) {
-    return errorJson(400, "Query parameter limit must be a positive integer.");
-  }
-
-  const db = createD1ServingDb(env.DB);
-  const release = await resolvePublicServingRelease(db);
-  if (release === null) {
-    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
-  }
-  const month = release.coverage.end;
-  const [summaries, reliability] = await Promise.all([
-    listRouteBriefSummaries(db, month),
-    listRouteObservedReliabilitySummaries(db, month),
-  ]);
-  const reliabilityByRoute = new Map(reliability.map((row) => [row.routeId, row]));
-
-  const routes = summaries.slice(0, limit).map((summary, index) => {
-    const observed = reliabilityByRoute.get(summary.routeId) ?? null;
-    return buildRouteCard({
-      routeId: summary.routeId,
-      month: summary.month,
-      rank: index + 1,
-      routeScore: summary.routeScore,
-      averageSpeedMph: summary.averageSpeedMph,
-      hotspotCount: summary.hotspotCount,
-      totalRidership: summary.totalRidership,
-      aceActive: summary.aceActive,
-      busLaneMatchedLaneCount: summary.busLaneMatchedLaneCount,
-      observed,
-    });
-  });
-
-  return json(
-    decodeSchemaStrict(RouteListResponseSchema, {
-      schemaVersion: 1,
-      generatedAt: new Date().toISOString(),
-      ...release,
-      routes,
-      quality: {
-        releaseLayer: routes.some((route) => route.quality.releaseLayer === "observed_release")
-          ? "observed_release"
-          : "published_release",
-        completenessStatus: routes.every((route) => route.quality.completenessStatus === "complete")
-          ? "complete"
-          : "insufficient_samples",
-        confidence: routes.some((route) => route.quality.confidence === "medium")
-          ? "medium"
-          : "high",
-        caveats: [
-          "Route cards are compact D1 serving projections; full evidence lives in generated route briefs and artifacts.",
-        ],
-      },
-    }),
-  );
-}
-
-async function buildRouteProfileResponse(url: URL, env: StudioApiEnv): Promise<Response> {
-  if (env.DB === undefined) {
-    return dependencyNotConfigured("DB", "route profile");
-  }
-
-  const match = url.pathname.match(/^\/api\/v1\/routes\/([^/]+)\/profile$/);
-  const rawRouteId = match?.[1];
-  if (rawRouteId === undefined) {
-    return errorJson(404, "Route profile endpoint not found.");
-  }
-
-  let routeId: RouteId;
-  try {
-    routeId = decodeSchemaStrict(RouteIdCodec, decodeURIComponent(rawRouteId));
-  } catch {
-    return errorJson(400, "Route ID is invalid.");
-  }
-
-  const db = createD1ServingDb(env.DB);
-  const release = await resolvePublicServingRelease(db);
-  if (release === null) {
-    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
-  }
-  const month = release.coverage.end;
-  const [summary, reliability, artifacts] = await Promise.all([
-    getRouteBriefSummary(db, routeId, month),
-    listRouteObservedReliabilitySummaries(db, month),
-    listRouteArtifacts(db, month),
-  ]);
-
-  if (summary === null) {
-    return errorJson(404, "Route profile was not found.");
-  }
-
-  const observed = reliability.find((row) => row.routeId === routeId) ?? null;
-  const source = realtimeSourceForRunId(observed?.runId ?? null);
-  const hasObservedReliability = observed?.reliabilityStatus === "observed";
-  const completenessStatus =
-    observed === null
-      ? "missing_realtime"
-      : hasObservedReliability
-        ? "complete"
-        : "insufficient_samples";
-  const quality = {
-    releaseLayer: hasObservedReliability ? "observed_release" : "published_release",
-    completenessStatus,
-    confidence: source === "third_party_recovered" ? "medium" : "high",
-    caveats:
-      source === "third_party_recovered"
-        ? ["Observed reliability is recovered from the third-party Bus Observatory archive."]
-        : observed === null
-          ? ["No observed realtime reliability row is attached to this route profile."]
-          : [],
-  };
-
-  return json(
-    decodeSchemaStrict(RouteProfileResponseSchema, {
-      schemaVersion: 1,
-      generatedAt: new Date().toISOString(),
-      ...release,
-      route: {
-        ...buildRouteCard({
-          routeId: summary.routeId,
-          month: summary.month,
-          rank: 1,
-          routeScore: summary.routeScore,
-          averageSpeedMph: summary.averageSpeedMph,
-          hotspotCount: summary.hotspotCount,
-          totalRidership: summary.totalRidership,
-          aceActive: summary.aceActive,
-          busLaneMatchedLaneCount: summary.busLaneMatchedLaneCount,
-          observed,
-        }),
-        quality,
-      },
-      peakRidership:
-        summary.peakRidership === null
-          ? null
-          : {
-              dayOfWeek: summary.peakRidership.dayOfWeek,
-              hourOfDay: summary.peakRidership.hourOfDay,
-              ridership: summary.peakRidership.ridership,
-              transfers: summary.peakRidership.transfers,
-              weightedAverageSpeedMph: summary.peakRidership.weightedAverageSpeedMph,
-            },
-      slowestWindow:
-        summary.slowestWindow === null
-          ? null
-          : {
-              dayOfWeek: summary.slowestWindow.dayOfWeek,
-              hourOfDay: summary.slowestWindow.hourOfDay,
-              observationCount: summary.slowestWindow.observationCount,
-              busTripCount: summary.slowestWindow.busTripCount,
-              weightedAverageSpeedMph: summary.slowestWindow.weightedAverageSpeedMph,
-              slowObservationShare: summary.slowestWindow.slowObservationShare,
-            },
-      observedReliability:
-        observed === null
-          ? null
-          : {
-              runId: observed.runId,
-              reliabilityStatus: observed.reliabilityStatus,
-              sampleCount: observed.sampleCount,
-              medianObservedHeadwayMinutes: observed.medianObservedHeadwayMinutes,
-              p90ObservedHeadwayMinutes: observed.p90ObservedHeadwayMinutes,
-              observedBunchingShare: observed.observedBunchingShare,
-              observedLongGapShare: observed.observedLongGapShare,
-              excessWaitMinutes: observed.excessWaitMinutes,
-            },
-      artifacts: artifacts
-        .filter((artifact) => artifact.route_id === routeId)
-        .map((artifact) => ({
-          name: artifact.artifact_name,
-          key: artifact.artifact_key,
-          contentType: artifact.content_type,
-          byteLength: artifact.byte_length,
-          sha256: artifact.sha256,
-        })),
-      quality,
-    }),
-  );
 }
 
 async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<Response> {
@@ -827,86 +531,9 @@ export function isContentAddressedArtifactKey(key: string): boolean {
   return /^.+\.[a-f0-9]{64}\.[^.]+$/.test(filename);
 }
 
-async function buildHotspotListResponse(url: URL, env: StudioApiEnv): Promise<Response> {
-  if (env.DB === undefined) {
-    return dependencyNotConfigured("DB", "hotspot list");
-  }
-
-  const limit = parseLimit(url, 50, 250);
-  if (limit === null) {
-    return errorJson(400, "Query parameter limit must be a positive integer.");
-  }
-
-  const db = createD1ServingDb(env.DB);
-  const release = await resolvePublicServingRelease(db);
-  if (release === null) {
-    return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
-  }
-  const month = release.coverage.end;
-  const corridors = await listCorridorSummaries(db, month);
-  const hotspots = corridors
-    .flatMap((corridor) =>
-      corridor.topHotspots.map((hotspot) => ({
-        corridorId: corridor.corridorId,
-        corridorName: corridor.corridorName,
-        routeId: hotspot.route_id,
-        month: hotspot.month,
-        rank: hotspot.corridor_hotspot_rank,
-        routeHotspotRank: hotspot.route_hotspot_rank,
-        fromStopName: hotspot.from_stop_name,
-        toStopName: hotspot.to_stop_name,
-        averageSpeedMph: hotspot.weighted_average_speed_mph,
-        hotspotScore: hotspot.hotspot_score,
-        riderImpactScore: hotspot.rider_impact_score,
-        quality: {
-          releaseLayer: "published_release" as const,
-          completenessStatus: "complete" as const,
-          confidence: "high" as const,
-          caveats: ["Hotspots are precomputed from the latest covered public speed month."],
-        },
-      })),
-    )
-    .sort((left, right) => {
-      const impactDelta = (right.riderImpactScore ?? -1) - (left.riderImpactScore ?? -1);
-      return (
-        impactDelta ||
-        right.hotspotScore - left.hotspotScore ||
-        left.averageSpeedMph - right.averageSpeedMph ||
-        left.routeId.localeCompare(right.routeId)
-      );
-    })
-    .slice(0, limit)
-    .map((hotspot, index) => ({ ...hotspot, rank: index + 1 }));
-
-  return json(
-    decodeSchemaStrict(HotspotListResponseSchema, {
-      schemaVersion: 1,
-      generatedAt: new Date().toISOString(),
-      ...release,
-      hotspots,
-      quality: {
-        releaseLayer: "published_release",
-        completenessStatus: "complete",
-        confidence: "high",
-        caveats: [
-          "Hotspot cards are generated monthly evidence, not live GTFS-RT current-state claims.",
-        ],
-      },
-    }),
-  );
-}
-
 export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promise<Response | null> {
   if (url.pathname === "/api/v1/status") {
     return buildReleaseStatusResponse(env);
-  }
-
-  if (url.pathname === "/api/v1/routes") {
-    return buildRouteListResponse(url, env);
-  }
-
-  if (url.pathname.match(/^\/api\/v1\/routes\/[^/]+\/profile$/)) {
-    return buildRouteProfileResponse(url, env);
   }
 
   if (url.pathname === "/api/v1/map/manifest") {
@@ -915,14 +542,6 @@ export async function handlePublicApiRoutes(url: URL, env: StudioApiEnv): Promis
 
   if (url.pathname.startsWith("/api/v1/artifacts/")) {
     return buildArtifactResponse(url, env);
-  }
-
-  if (url.pathname === "/api/v1/hotspots") {
-    return buildHotspotListResponse(url, env);
-  }
-
-  if (url.pathname.match(/^\/api\/routes\/[^/]+\/scorecard$/)) {
-    return buildRouteScorecardResponse(url, env);
   }
 
   return null;

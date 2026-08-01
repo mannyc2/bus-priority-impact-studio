@@ -51,8 +51,10 @@ and contains 484 candidates. The validated complete receipt under `receipts/`
 has seven approvals and 477 rejections. Deterministic reconciliation proved
 that 482 rc25 decisions retained identical admission semantics before replay;
 B41 and B67 were freshly adjudicated against the corrected Flatbush chronology.
-The worksheet under `reviews/` remains the immutable non-authorizing starting
-point. Estimator gates, anchor review, and publication remain independent.
+The worksheet that produced this receipt is no longer tracked under
+`reviews/`; it remains available in git history and was never itself
+authorizing — the receipt above carries the authority. Estimator gates,
+anchor review, and publication remain independent.
 
 ## Exact physical-scope bindings
 
@@ -139,7 +141,9 @@ complete receipt; it must not replay rc26 authorization.
 The completed May 2026 cycle is bound to
 `study-review-cut-v1:5298f37aac8780666c742f7d`. Its immutable v4 receipt is
 `receipts/study-review-cut-v1-5298f37aac8780666c742f7d.approval.json` and has 484 complete
-decisions: 9 approved and 475 rejected. The matching complete worksheet and scope bindings use the
-same review-cut filename under `reviews/` and `scope-bindings/`. The source candidate universe is
+decisions: 9 approved and 475 rejected. The matching scope bindings use the
+same review-cut filename under `scope-bindings/`; the complete worksheet that
+produced this receipt is no longer tracked under `reviews/` and remains
+available in git history. The source candidate universe is
 still the immutable rc26 `candidate-set-v3:80050ed598f3b2ab0d0a1e99`; this new receipt neither
 overwrites nor reauthorizes the historical v3 receipt.

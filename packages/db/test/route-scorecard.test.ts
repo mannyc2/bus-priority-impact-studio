@@ -1,16 +1,11 @@
-import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
 import { decodeStrict } from "@bp/domain/decode";
 import { RouteScorecardSchema } from "@bp/domain/routes";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import type { D1ServingDb } from "../src/d1/index.js";
 import {
   deserializeRouteScorecard,
-  getRouteScorecard,
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "../src/d1/index.js";
-import { routeScorecard, routeScorecardCitation } from "../src/d1/schema.js";
 
 const scorecard = decodeStrict(RouteScorecardSchema)({
   schemaVersion: 1,
@@ -30,22 +25,6 @@ const scorecard = decodeStrict(RouteScorecardSchema)({
   ],
 });
 
-async function createTestDb(): Promise<{ db: D1ServingDb; sqlite: Database }> {
-  const sqlite = new Database(":memory:");
-  const migrationSql = await Bun.file(
-    new URL("../migrations/d1/0000_tense_jane_foster.sql", import.meta.url),
-  ).text();
-  sqlite.exec(migrationSql);
-
-  return {
-    db: drizzle({
-      client: sqlite,
-      schema: { routeScorecard, routeScorecardCitation },
-    }) as unknown as D1ServingDb,
-    sqlite,
-  };
-}
-
 describe("D1 route scorecard read model", () => {
   test("round-trips scorecards through a compact row shape", () => {
     const row = serializeRouteScorecard(scorecard);
@@ -59,40 +38,5 @@ describe("D1 route scorecard read model", () => {
     const row = serializeRouteScorecard(scorecard);
 
     expect(() => deserializeRouteScorecard(row, [])).toThrow();
-  });
-
-  test("gets one scorecard by route and month", async () => {
-    const { db, sqlite } = await createTestDb();
-    await db.insert(routeScorecard).values({
-      routeId: scorecard.routeId,
-      month: scorecard.month,
-      routeScore: scorecard.routeScore,
-      coverageStatus: scorecard.coverageStatus,
-      averageSpeedMph: scorecard.averageSpeedMph,
-      hotspotCount: scorecard.hotspotCount,
-    });
-    await db.insert(routeScorecardCitation).values(
-      scorecard.citations.map((citation, index) => ({
-        routeId: scorecard.routeId,
-        month: scorecard.month,
-        citationRank: index + 1,
-        sourceId: citation.sourceId,
-        title: citation.title,
-        url: citation.url,
-        verifiedAt: citation.verifiedAt,
-      })),
-    );
-
-    const row = await getRouteScorecard(db, "M1", "2026-01");
-
-    expect(row).toEqual(scorecard);
-    sqlite.close();
-  });
-
-  test("returns null when a scorecard row does not exist", async () => {
-    const { db, sqlite } = await createTestDb();
-
-    await expect(getRouteScorecard(db, "M2", "2026-01")).resolves.toBeNull();
-    sqlite.close();
   });
 });

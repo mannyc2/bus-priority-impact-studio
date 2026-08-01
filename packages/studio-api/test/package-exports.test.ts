@@ -51,7 +51,7 @@ describe("Studio API package exports", () => {
     expect(studioRouteTemplate("/api/v1/studio/routes/m15-sbs")).toBe(
       "/api/v1/studio/routes/:routeId",
     );
-    expect(studioApiRoutes.length).toBe(17);
+    expect(studioApiRoutes.length).toBe(14);
 
     const route = getStudioApiRoute("studio.route");
     expect(buildRoutePath(route, { params: { routeId: "M15-SBS" } })).toBe(

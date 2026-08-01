@@ -1644,7 +1644,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           months: "latest_month",
         },
         requiredInputs: ["route metrics", "local_route_month_trend"],
-        downstreamConsumers: ["GET /api/v1/routes", "Studio route cards"],
+        downstreamConsumers: ["Studio route cards"],
         freshnessPolicy: { cadence: "latest_month" },
         checks: [
           {
