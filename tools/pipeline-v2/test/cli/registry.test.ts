@@ -41,14 +41,6 @@ const expectedRegistry = {
   collect: ["gtfs-rt"],
   corridor: ["model"],
   export: ["d1", "route-speed-history-coverage-index"],
-  geocode: [
-    "311",
-    "nypd-collisions",
-    "parking-violations",
-    "permits",
-    "traffic-speeds",
-    "traffic-volumes",
-  ],
   "gtfs-rt": ["preflight", "run-status"],
   import: [
     "bus-observatory-gtfs-rt",
@@ -129,7 +121,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(110);
+    expect(commands).toHaveLength(104);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 
