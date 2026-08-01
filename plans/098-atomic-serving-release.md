@@ -326,19 +326,23 @@ Production expand run `30719529746` reached the first remote v2 apply, but the
 64,196-byte `0000` file, initially miscounted as 303 statements, exceeded D1's storage-operation timeout
 (`7429`) and Wrangler rolled the failed migration back. The exact file and
 checksum remain archived at the top of `migrations/d1-v2`; the active stream is
-its mechanically identical ordered statement sequence split into 14 files of
+its deterministically derived ordered statement sequence split into 14 files of
 at most 30 statements and roughly 6 KiB each. The checker binds every active
 file checksum and proves the normalized concatenation equals the retained
 failed archive. Wrangler discovers only `active/*.sql` through its supported
 `migrations_pattern` boundary.
 
 Run `30720050586` then committed `active/0001` and rolled back `0002` with
-SQLite `incomplete input`: the first splitter had mistaken an inner trigger
-`CASE ... END;` for the outer trigger terminator. `0001` is retained
-byte-for-byte, the complete failed split is checksum-archived under
-`failed-split-30720050586`, and a trigger-aware parser regenerates only the
-unapplied tail. Its regression test requires nested `CASE` and the outer
-`END;` to remain one statement, establishing the correct 301-statement stream.
+SQLite `incomplete input`. The first splitter miscounted an inner trigger
+`CASE ... END;`, but had changed only whitespace; its complete failed split is
+checksum-archived under `failed-split-30720050586`. Run `30720458733` retried a
+trigger-aware, statement-equivalent `0002` and D1's remote query endpoint
+returned the same error. That exact file is retained under
+`failed-query-30720458733`. `0001` remains byte-for-byte unchanged. The active
+unapplied tail deterministically rewrites only the three compound `CASE`
+trigger bodies as equivalent conditional `SELECT RAISE ... WHERE` statements.
+Tests bind the correct 301-statement source stream, exact rewrite inventory,
+trigger names, abort conditions, and pointer/candidate behavior.
 
 Use only `bun --filter @bp/db db:migrate:d1:v2:local` and
 `bun --filter @bp/db db:migrate:d1:v2:remote`; those scripts pin the immutable

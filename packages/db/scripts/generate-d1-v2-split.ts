@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readdir } from "node:fs/promises";
-import { parseD1MigrationStatements } from "./d1-migration-statements";
+import { parseD1MigrationStatements, rewriteD1RemoteSafeTrigger } from "./d1-migration-statements";
 
 const sourcePath = new URL("../migrations/d1-v2/0000_atomic_serving_release.sql", import.meta.url);
 const targetDirectory = new URL("../migrations/d1-v2/active/", import.meta.url);
@@ -48,12 +48,11 @@ for (const [index, statementsForFile] of groups.entries()) {
     `-- Plan 098 split migration ${part}/${String(groups.length).padStart(2, "0")}.`,
     "-- Mechanically derived from the checksum-retained failed 0000 migration.",
     "",
-    ...statementsForFile,
+    ...statementsForFile.map((statement) => `${rewriteD1RemoteSafeTrigger(statement.trimEnd())}\n`),
   ].join("\n");
   if (index === 0 && existing.length > 0) {
-    if (existing.length !== 1 || existing[0] !== filename) {
-      throw new Error(`Only the applied ${filename} may exist before tail generation.`);
-    }
+    if (!existing.includes(filename))
+      throw new Error(`Applied D1 v2 migration ${filename} is missing.`);
     const applied = await Bun.file(new URL(filename, targetDirectory)).text();
     if (applied !== text) throw new Error(`Applied D1 v2 migration ${filename} would drift.`);
   } else {

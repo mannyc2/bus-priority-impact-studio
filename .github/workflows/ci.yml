@@ -169,6 +169,8 @@ jobs:
             packages/db/migrations/d1-v2/active/checksums.json \
             packages/db/migrations/d1-v2/failed-split-30720050586/*.sql \
             packages/db/migrations/d1-v2/failed-split-30720050586/checksums.json \
+            packages/db/migrations/d1-v2/failed-query-30720458733/*.sql \
+            packages/db/migrations/d1-v2/failed-query-30720458733/checksums.json \
             "$output_dir"/*.json > "$output_dir/plan098-expand.receipt.sha256"
           echo "operator_endpoint=$endpoint" >> "$GITHUB_OUTPUT"
 
