@@ -108,12 +108,6 @@ export {
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
 export type {
-  RouteTimelineIndex,
-  RouteTimelineIndexRow,
-  RouteTimelineSupportLevel,
-} from "./queries/route-timelines.js";
-export { getRouteTimelineIndex, listRouteTimelineIndex } from "./queries/route-timelines.js";
-export type {
   PublicSnapshotSourceMonthCoverage,
   RouteSpeedHistoryCoverage,
   RouteSpeedHistoryCoverageRow,
