@@ -10001,3 +10001,11 @@ event ID. Plan 098 deliberately separates those identities. The map reader now v
 manifest and nested route-facts identity against the candidate-scoped catalog first, then injects
 the pointed release envelope and release-qualified artifact paths into the public response. A
 generation-resume smoke is recorded before any subsequent rollback or reactivation mutation.
+
+Main deployment run `30723658463` proved the map-envelope repair locally and in CI, then correctly
+rejected its zero-traffic Worker version before promotion because schema-3 route identity still
+looked up the activation event ID in candidate source metadata. Rollback restored the prior Worker;
+the generation-2 pointer remained on Candidate B. The exact-identity reader now selects the newest
+registration inside the already candidate-scoped D1 view, verifies its self-consistent source
+release and hashes/counts against the candidate rows, and publishes the distinct pointed release
+envelope. Legacy reads remain bound to their requested exact release ID.

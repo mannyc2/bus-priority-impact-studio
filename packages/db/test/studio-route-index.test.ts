@@ -5,6 +5,7 @@ import { createBunSqliteServingDb } from "../src/d1/bun-sqlite.js";
 import {
   findEarliestSpeedTrendMonth,
   findExactRouteIdentityRelease,
+  findLatestExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   listStudioRouteIndexSourceRows,
@@ -230,6 +231,10 @@ describe("Studio route index D1 read model", () => {
         'pub_20260605T183601689Z', '2026-06-05T18:36:01.689Z', '2023-04', '2026-03',
         'v1-rc25', '${"1".repeat(64)}', '${"2".repeat(64)}', '${"3".repeat(64)}',
         '${"4".repeat(64)}', '${"5".repeat(64)}', '${"6".repeat(64)}', 375, 394, 394
+      ), (
+        'pub_20260725T164123260Z', '2026-07-25T16:41:23.260Z', '2023-04', '2026-05',
+        'v1-rc28', '${"7".repeat(64)}', '${"8".repeat(64)}', '${"9".repeat(64)}',
+        '${"a".repeat(64)}', '${"b".repeat(64)}', '${"c".repeat(64)}', 375, 394, 394
       );
     `);
     const db = createBunSqliteServingDb(sqlite);
@@ -241,6 +246,11 @@ describe("Studio route index D1 read model", () => {
       exactRouteCount: 375,
       routeTypeCount: 394,
       tripTypeCount: 394,
+    });
+    await expect(findLatestExactRouteIdentityRelease(db)).resolves.toMatchObject({
+      releaseId: "pub_20260725T164123260Z",
+      sourceWikiRelease: "v1-rc28",
+      coverageEnd: "2026-05",
     });
   });
 });

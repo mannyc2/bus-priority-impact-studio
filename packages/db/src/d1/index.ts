@@ -105,6 +105,7 @@ export type {
 export {
   findEarliestSpeedTrendMonth,
   findExactRouteIdentityRelease,
+  findLatestExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   findLatestStudioServingMonth,

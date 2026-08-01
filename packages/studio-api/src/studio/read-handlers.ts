@@ -5,6 +5,7 @@ import {
   type SourceMonthCoverage as D1SourceMonthCoverage,
   findEarliestSpeedTrendMonth,
   findExactRouteIdentityRelease,
+  findLatestExactRouteIdentityRelease,
   findLatestPublishedStudioServingRelease,
   findLatestSpeedTrendMonth,
   findRouteEquityContext,
@@ -432,9 +433,12 @@ async function resolveExactRouteRows(
     };
   }
   const db = createD1ServingDb(env.DB);
+  const pointed = env.SERVING_RELEASE_CONTEXT !== undefined;
   const [rows, identityRelease] = await Promise.all([
     listNormalizedStudioRouteIndexSourceRows(db, release.coverage.end),
-    findExactRouteIdentityRelease(db, release.releaseId),
+    pointed
+      ? findLatestExactRouteIdentityRelease(db)
+      : findExactRouteIdentityRelease(db, release.releaseId),
   ]);
   if (identityRelease === null) {
     return { ok: false, response: errorResponse(503, NO_EXACT_ROUTE_IDENTITY_MESSAGE) };
@@ -444,7 +448,9 @@ async function resolveExactRouteRows(
   const tripTypeCount = exactRows.reduce((sum, row) => sum + row.tripTypes.length, 0);
   const sha256Pattern = /^[0-9a-f]{64}$/u;
   const releaseMatches =
-    identityRelease.publishedAt === release.publishedAt &&
+    (pointed
+      ? releaseIdFromPublishedAt(identityRelease.publishedAt) === identityRelease.releaseId
+      : identityRelease.publishedAt === release.publishedAt) &&
     identityRelease.coverageStart === release.coverage.start &&
     identityRelease.coverageEnd === release.coverage.end;
   const countsMatch =

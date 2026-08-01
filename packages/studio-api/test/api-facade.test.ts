@@ -3037,6 +3037,46 @@ describe("Studio API facade", () => {
     );
   });
 
+  it("projects candidate exact identity through a distinct pointed release envelope", async () => {
+    const pointedRelease = {
+      releaseId: "pub_20260801T232501631Z",
+      publishedAt: "2026-08-01T23:25:01.631Z",
+    } as const;
+    const response = await fetchApi("/api/v1/studio/routes?schema=3", {
+      DB: createSparseStudioRouteDb() as unknown as D1Database,
+      SERVING_RELEASE_CONTEXT: {
+        kind: "pointed",
+        generation: 2,
+        release: {
+          schemaVersion: 1,
+          ...pointedRelease,
+          candidateId: "a".repeat(64),
+          activatedAt: pointedRelease.publishedAt,
+        },
+        candidate: {
+          datasets: [
+            {
+              datasetId: "reviewed-serving",
+              grain: "month",
+              coverage: STUDIO_COVERAGE,
+              sourceSnapshotIds: [],
+            },
+          ],
+          artifacts: [],
+        },
+        artifactByLogicalId: new Map(),
+      } as unknown as NonNullable<StudioApiEnv["SERVING_RELEASE_CONTEXT"]>,
+    });
+
+    expect(response.status).toBe(200);
+    expect(decodeStrict(StudioRouteIndex3ResponseSchema)(await response.json())).toEqual(
+      expect.objectContaining({
+        ...pointedRelease,
+        coverage: STUDIO_COVERAGE,
+      }),
+    );
+  });
+
   it("keeps schema v2 available while exact schema v3 fails closed without its registry", async () => {
     const db = createSparseStudioRouteDb({ exactRouteIdentityReleases: [] });
     const [legacy, exact] = await Promise.all([
