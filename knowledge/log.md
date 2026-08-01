@@ -9969,3 +9969,10 @@ anchored safe-character boundary, so exact route identities such as `b44+` remai
 same replay also caught local upload `sourcePath` metadata leaking into Candidate B's strict
 semantic manifest; upload inventory and public descriptors are now separate, keeping local paths
 out of candidate identity.
+
+Activation run `30721688188` built both exact candidates and passed three consecutive signed
+preflights, then stopped before staging or pointer mutation when its first read-only `status` call
+received a transient non-JSON provider response. Evidence upload and operator cleanup passed, and
+the public app still served the Plan 097 release with 3,002 artifacts. The drill client now retries
+only read-only actions on transport, 404, or 5xx responses, while mutations remain single-attempt
+and all terminal failures include bounded HTTP/body diagnostics.
