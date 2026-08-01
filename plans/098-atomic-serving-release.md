@@ -81,6 +81,15 @@ name, the diagnostic is being made exhaustive: it still fails closed, but
 reports the full sorted absent partition in one response so the legacy
 production boundary can be reconciled without serial guesses.
 
+Run `30719319121` returned the exhaustive result: all 22 repo-classified
+live-write tables are absent in the legacy production database, rather than a
+partial live schema with an isolated missing `alert` table. The expansion now
+records that absence partition and compares the complete before/after result;
+any present live table is row-fingerprinted, and either v2 current-signal table
+remains mandatory. This protects the production database's actual boundary
+without manufacturing never-applied auth/editorial tables or treating their
+absence as mutable serving state.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2

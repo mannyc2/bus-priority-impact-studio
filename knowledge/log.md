@@ -9925,3 +9925,10 @@ the first absent classified live-write table, `alert`, before applying the v2 mi
 the reader. Cleanup succeeded. The fingerprint diagnostic now scans the complete sorted table
 partition before returning the same terminal failure, so one audited response identifies every
 legacy classification/presence mismatch rather than revealing them one at a time.
+
+Exhaustive audit run `30719319121` found that all 22 repo-classified live-write tables are absent
+from the legacy production database; this is not a partial schema with only `alert` missing. The
+Plan 098 sentinel now records the sorted absent partition, fingerprints every present live table,
+and compares the complete result before/after migration and across the pointer drill. The two v2
+current-signal tables are still mandatory after migration. No nonexistent auth/editorial tables are
+created, and production's exact pre-existing presence/absence boundary becomes durable evidence.
