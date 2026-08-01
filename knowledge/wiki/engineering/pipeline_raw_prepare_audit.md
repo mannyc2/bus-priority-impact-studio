@@ -1,7 +1,7 @@
 ---
 title: Pipeline Raw Prepare Audit
 type: engineering
-status: complete
+status: archived
 last_updated: 2026-06-02
 owner: codex
 tags: [drizzle, sqlite, pipeline, raw-sql, spatial, bulk-ingest]

@@ -1,3 +1,13 @@
+---
+title: Studio design-pass status
+type: engineering
+status: active
+last_updated: 2026-07-26
+owner: codex
+source_count: 0
+tags: [design, studio, ui, design-authority]
+---
+
 # Studio design-pass status
 
 Current and historical design-source status for the Studio web app.

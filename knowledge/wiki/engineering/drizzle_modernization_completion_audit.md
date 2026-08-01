@@ -1,7 +1,7 @@
 ---
 title: Drizzle Modernization Completion Audit
 type: engineering
-status: complete
+status: archived
 last_updated: 2026-06-02
 owner: codex
 tags: [drizzle, d1, sqlite, migrations, verification]

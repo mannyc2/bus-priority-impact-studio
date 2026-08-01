@@ -1,7 +1,7 @@
 ---
 title: Drizzle Query Modernization Plan
 type: engineering
-status: complete
+status: archived
 last_updated: 2026-06-02
 owner: codex
 source_count: 5

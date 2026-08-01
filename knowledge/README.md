@@ -5,20 +5,19 @@ This directory contains the LLM-maintained wiki for **Bus Priority Impact Studio
 ## Directory roles
 
 - `raw/` — source registry, immutable source notes/captures, metadata JSON, and assets.
-- `wiki/` — maintained synthesis pages for project, data, engineering, and analysis.
+- `wiki/` — maintained synthesis pages for project, data, and engineering.
 - `AGENTS.md` — wiki-specific operating contract for Codex.
 - `index.md` — navigation index. Read this first before answering or editing.
 - `log.md` — append-only chronological log.
 
 Actual downloaded datasets for local analytics belong in repo-level `data/raw/`, not here.
 
-## First Codex prompt
+## Getting oriented
 
-From repo root, paste:
-
-```text
-Read CLAUDE.md, AGENTS.md, knowledge/index.md, knowledge/wiki/project/overview.md, knowledge/wiki/project/managed_services_options.md, and knowledge/wiki/engineering/package_structure.md. Then perform Phase 0 from knowledge/wiki/project/codex_roadmap.md: validate the TypeScript-only package layout and implement the first fixture-backed source probe in tools/pipeline. Do not add Python, FastAPI, hosted Postgres/PostGIS, or a VPS.
-```
+Read `CLAUDE.md` and `AGENTS.md` at the repo root, then `knowledge/index.md`. Open plan rows
+live in `plans/README.md`. Run `bun run check:knowledge` after editing anything under `wiki/`:
+it verifies that every index link resolves, that no wiki page is missing an index entry, and
+that frontmatter `status:` values stay inside the enum declared in `AGENTS.md`.
 
 ## Current architecture stance
 

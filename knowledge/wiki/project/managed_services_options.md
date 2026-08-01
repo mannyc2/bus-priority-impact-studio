@@ -152,7 +152,7 @@ Those should not be hosted the same way. The cheapest credible MVP should make t
    See [[#What Should Stay Local Even If Hosting Is Managed]].
 
 8. **Cleanest migration path?**  
-   Keep the current `tools/pipeline`, `packages/*`, `apps/web`, and `data/artifacts` boundaries so that the serving DB can move from D1 to Neon/PostGIS or a VPS without rewriting analytics.
+   Keep the current `tools/pipeline-v2`, `packages/*`, `apps/web`, and `data/artifacts` boundaries so that the serving DB can move from D1 to Neon/PostGIS or a VPS without rewriting analytics.
 
 ### Cheapest credible MVP stack
 
