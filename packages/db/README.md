@@ -40,11 +40,15 @@ or "is this data product complete enough?" decisions here. Pure policy belongs i
 - `migrations/d1` and `wrangler.d1.jsonc` are the frozen clean-bootstrap
   history. Production's legacy ledger diverged after the reviewed Plan 095/097
   recovery, so it must never be replayed against the populated database.
-- Forward production D1 SQL lives in `migrations/d1-v2`, is checksummed by
-  `migrations/d1-v2/checksums.json`, and is applied only through
+- Forward production D1 SQL lives in `migrations/d1-v2/active`, is checksummed
+  by `migrations/d1-v2/active/checksums.json`, and is applied only through
   `wrangler.d1-v2.jsonc` into `bp_d1_migrations_v2`. Local live-schema tests
   apply legacy and then v2; production applies only v2. An applied v2 file is
   immutable and every correction is a new migration.
+- `migrations/d1-v2/0000_atomic_serving_release.sql` and its sibling checksum
+  manifest retain the exact oversized first attempt. Cloudflare rolled that
+  failed migration back; Wrangler discovers only the mechanically equivalent
+  bounded files under `active/` through `migrations_pattern`.
 - `migrations-drizzle/d1` remains the full-schema Drizzle snapshot cache, not
   an application ledger. Snapshot-only catch-up entries may have no-op
   `migration.sql` files when live Wrangler SQL already applied the change.
