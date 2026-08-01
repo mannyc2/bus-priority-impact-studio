@@ -1131,8 +1131,7 @@ export const localContextEventRouteTouch = sqliteTable(
 );
 
 // Detector outputs — short, citable claims with severity and status.
-// Hardened in 0027 to match the contract in
-// knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md.
+// Hardened in 0027 to match the contract.
 export const localFindingCandidate = sqliteTable(
   "local_finding_candidate",
   {
