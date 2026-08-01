@@ -74,6 +74,13 @@ and 5xx propagation results while retaining terminal 4xx failures and their
 diagnostics. The activation gate additionally requires three consecutive valid
 preflights before the long drill begins.
 
+The propagation-hardened run (`30719053200`) passed the signed preflight and
+then stopped on the first missing classified live-write table, `alert`, before
+migration. Because the fingerprint loop originally failed on the first absent
+name, the diagnostic is being made exhaustive: it still fails closed, but
+reports the full sorted absent partition in one response so the legacy
+production boundary can be reconciled without serial guesses.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2

@@ -468,11 +468,13 @@ async function jsonAction(
           "route_observed_reliability_current_signal",
         ];
     const fingerprints = [];
+    const absentTables = [];
     for (const table of tables) {
       if (!/^[a-z][a-z0-9_]*$/u.test(table)) throw new Error("Unsafe protected table name.");
       const info = await env.DB.prepare(`PRAGMA table_info("${table}")`).all<{ name: string }>();
       if (!info.success || info.results.length === 0) {
-        throw new Error(`Protected table ${table} is absent.`);
+        absentTables.push(table);
+        continue;
       }
       const columns = info.results.map((column) => column.name);
       if (columns.some((column) => !/^[a-z][a-z0-9_]*$/u.test(column))) {
@@ -486,6 +488,9 @@ async function jsonAction(
         rowCount: rows.results.length,
         sha256: await sha256(`${canonicalServingJson(rows.results)}\n`),
       });
+    }
+    if (absentTables.length > 0) {
+      throw new Error(`Protected tables are absent: ${absentTables.join(", ")}.`);
     }
     return { fingerprints };
   }
