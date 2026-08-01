@@ -9919,3 +9919,9 @@ operator successfully. The workflow now applies its bounded retry rule to every 
 call (only transport, 404, and 5xx results are retryable; terminal 4xx diagnostics remain
 fail-closed). The protected activation workflow requires three consecutive valid preflights before
 starting its long A→B→A→B drill.
+
+Propagation-hardened expand run `30719053200` passed the signed preflight and then failed closed on
+the first absent classified live-write table, `alert`, before applying the v2 migration or changing
+the reader. Cleanup succeeded. The fingerprint diagnostic now scans the complete sorted table
+partition before returning the same terminal failure, so one audited response identifies every
+legacy classification/presence mismatch rather than revealing them one at a time.
