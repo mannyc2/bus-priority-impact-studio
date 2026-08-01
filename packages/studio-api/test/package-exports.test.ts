@@ -26,7 +26,6 @@ describe("Studio API package exports", () => {
       "./contracts/openapi",
       "./server",
       "./server/scheduled",
-      "./server/testing",
       "./server/worker",
     ]);
   });

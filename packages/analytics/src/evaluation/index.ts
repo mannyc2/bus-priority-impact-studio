@@ -11,8 +11,6 @@ export {
   type RouteDossierTrendPoint,
   type RouteDossierWorstSegmentMonth,
 } from "./build-route-dossier-summary.js";
-export type { GoldSetEvaluation, GoldSetExpectation } from "./gold-set.js";
-export { evaluateGoldSet } from "./gold-set.js";
 export {
   buildMapArtifactManifest,
   buildMapJsonArtifact,
@@ -56,25 +54,3 @@ export {
   routeSpeedAvailabilityReleaseDecision,
   summarizeRouteSpeedAvailabilityMonths,
 } from "./route-speed-availability.js";
-export type {
-  DetectorEvaluationComponentId,
-  DetectorEvaluationComponentScore,
-  DetectorEvaluationFlag,
-  DetectorEvaluationHardGate,
-  DetectorEvaluationHardGateId,
-  DetectorEvaluationRecommendation,
-  DetectorEvaluationScorecard,
-} from "./scorecard.js";
-export {
-  buildDetectorEvaluationScorecard,
-  combineHardGateMultipliers,
-  componentScore,
-  DETECTOR_EVALUATION_COMPONENT_LABELS,
-  DETECTOR_EVALUATION_COMPONENT_WEIGHTS,
-  detectorReadinessHardGate,
-  goldSetEvaluationFlags,
-  negativeOrNearMissHardGate,
-  recommendDetectorEvaluation,
-  scoreFromShare,
-  weightedMeanScore,
-} from "./scorecard.js";
