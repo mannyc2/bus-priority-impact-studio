@@ -2,6 +2,36 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-08-01] engineering | Plan 108 deletes pipeline-v2's completed-operation and no-ship code
+
+Completed Plan 108. Removed ~9,520 LOC of `tools/pipeline-v2` machinery for finished, adjudicated
+operations across five clusters: (A) ten completed rc19/rc25/rc26/plan074/member-grain review-cut
+reconciliation scripts under `scripts/`, zero repo-wide references (3,202 LOC); (B) eight mta-wiki
+rc19/rc22/rc23 migration-forensics files — the rc22 lineage library, its audit/replay scripts, the
+rc23 delta audit, the candidate-set audit, and two tests reading frozen `docs/research/artifacts/`
+receipts (4,281 LOC); (C) the Plan 076 opportunity-ranking prototype command, its sole study-engine
+dependency, and both tests, per the operator's on-record no-ship decision, plus the study-engine
+barrel export (1,720 LOC); (D) two orphan micro-modules, `route-ids.ts` and the
+`speed-pace-feature-resolver.ts` re-export shim (85 LOC); (E) the never-wired
+`check-map-segment-identity` check and its test, which had no `package.json` script and no CI step
+(232 LOC). The distinct root-level `test/map-segment-identity.test.ts` doctrine check over
+`src/lib/route-briefs/model.ts` was left untouched.
+
+Also updated the CLI registry inventory test (`test/cli/registry.test.ts`) to drop
+`"opportunity-prototype"` from the `study` array and decrement the discovered-command count. The
+worktree baseline had drifted from the plan's assumed `292d2bd0` to `90dd5282` (PRs #114-#117,
+adding an unrelated `"public-intervention-episodes"` studio command); the coordinator adjudicated
+`90dd5282` as the correct baseline and confirmed all five clusters were byte-identical between the
+two commits, so the registry count moved 115 -> 114 rather than the plan's originally stated 115
+baseline.
+
+Verification passed: `bun --filter @bp/pipeline-v2 test` (529 pass, 0 fail, down from 546 before
+deletion, across 124 files); `bun run check:types`; `bun run check:architecture`. `bun run
+check:style` fails with 7 pre-existing errors — all "file exceeds 1.0 MiB" warnings on
+`docs/research/artifacts/*.json` receipts this plan does not touch (confirmed byte-identical to the
+pre-deletion baseline). That failure predates this change and is unrelated to it; the directory it
+flags is explicitly deferred to Plan 112.
+
 ## [2026-07-19] engineering | Plan 085 de-months the public serving contract
 
 Completed Plan 085. Release-bearing Studio and public API responses now resolve the latest passing
