@@ -7,7 +7,7 @@ import { decodeSchemaStrict } from "./schema-decode.js";
 
 export const PLAN097_RECOVERY_NAMESPACE = "operations/plan097/";
 const PUBLIC_ROUTE_INTERVENTION_HISTORY_KEY =
-  /^studio\/v2\/routes\/[a-z0-9]+(?:-[a-z0-9]+)*\/intervention-history\.json$/;
+  /^studio\/v2\/routes\/[a-z0-9]+(?:-[a-z0-9]+)*\/intervention-history-v2\.json$/;
 
 /**
  * Public intervention episodes are an independently generated release: route

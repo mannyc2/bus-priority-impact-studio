@@ -34,6 +34,7 @@ import {
 export type RouteHistoryVariant = "trend" | "chronology";
 
 export type RouteHistoryInput = {
+  routeKey: string;
   routeId: string;
   routeLabel: string;
   corridor: string | null;
@@ -139,7 +140,7 @@ function TrendVariant({ input }: { input: RouteHistoryInput }) {
               : `Every source-backed dated change on this route happened before our speed record opens in ${monthLabel(firstMonth)}.`}
           </p>
         ) : (
-          <ChangeList episodes={inWindow} numbers={numbers} highlightRouteId={input.routeId} />
+          <ChangeList episodes={inWindow} numbers={numbers} highlightRouteKey={input.routeKey} />
         )}
       </SectionCard>
 
@@ -152,7 +153,7 @@ function TrendVariant({ input }: { input: RouteHistoryInput }) {
               : `Our speed record opens in ${monthLabel(firstMonth)}, so these cannot be measured here.`
           }
         >
-          <ChangeList episodes={before} numbers={numbers} highlightRouteId={input.routeId} />
+          <ChangeList episodes={before} numbers={numbers} highlightRouteKey={input.routeKey} />
         </SectionCard>
       )}
     </>
@@ -309,7 +310,7 @@ function ChronologyVariant({ input }: { input: RouteHistoryInput }) {
         <ChangeList
           episodes={input.episodes}
           numbers={numbers}
-          highlightRouteId={input.routeId}
+          highlightRouteKey={input.routeKey}
           tones={toneByEpisode}
         />
       </SectionCard>
@@ -406,12 +407,12 @@ function chronologyLabel(
 function ChangeList({
   episodes,
   numbers,
-  highlightRouteId,
+  highlightRouteKey,
   tones,
 }: {
   episodes: readonly PublicInterventionEpisode[];
   numbers: ReadonlyMap<string, string>;
-  highlightRouteId: string;
+  highlightRouteKey: string;
   tones?: ReadonlyMap<string, string>;
 }) {
   return (
@@ -425,7 +426,7 @@ function ChangeList({
             episode={episode}
             markerNumber={numbers.get(episode.episodeId)}
             markerTone={tones?.get(episode.episodeId)}
-            highlightRouteId={highlightRouteId}
+            highlightRouteKey={highlightRouteKey}
           />
         </li>
       ))}

@@ -14,6 +14,7 @@ import type {
   PublicEpisodeRoute,
   PublicInterventionEpisode,
 } from "@bp/domain/studio/public-intervention-episodes";
+import { Link } from "@tanstack/react-router";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 
@@ -28,25 +29,18 @@ const ROUTE_FACE_CAP = 4;
 /** Component detail sentences shown before the rest collapse. */
 const COMPONENT_FACE_CAP = 3;
 
-const ROLE_LABELS: Record<PublicEpisodeRoute["role"], string> = {
-  affected: "affected",
-  changed: "changed",
-  continued: "kept running",
-  introduced: "new service",
-};
-
 export function ChangeEntry({
   episode,
   markerNumber,
   markerTone,
-  highlightRouteId,
+  highlightRouteKey,
 }: {
   episode: PublicInterventionEpisode;
   /** Set when the change also carries a numbered marker on a chart above. */
   markerNumber?: string | undefined;
   markerTone?: string | undefined;
   /** The route whose page this is, so its own badge reads first. */
-  highlightRouteId?: string | undefined;
+  highlightRouteKey?: string | undefined;
 }) {
   return (
     <article className={`grid ${ENTRY_GUTTER} gap-y-2`}>
@@ -75,6 +69,11 @@ export function ChangeEntry({
         <div className="font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
           {episode.date.display}
         </div>
+        <div className="mt-1 text-[10.5px] font-medium uppercase tracking-[0.04em] text-[var(--bp-color-ink-40)]">
+          {episode.authority === "producer"
+            ? "Resolved MTA source pack"
+            : "Tracker camera-enforcement enrichment"}
+        </div>
         <h3 className="m-0 mt-1 text-[14.5px] font-semibold leading-snug tracking-[-0.005em]">
           {episode.title}
         </h3>
@@ -84,8 +83,9 @@ export function ChangeEntry({
           </p>
         )}
 
-        <AffectedRoutes routes={episode.routes} highlightRouteId={highlightRouteId} />
+        <AffectedRoutes routes={episode.routes} highlightRouteKey={highlightRouteKey} />
         <Components episode={episode} />
+        <PlacementHistory episode={episode} />
         {episode.finding === null ? null : <Finding episode={episode} />}
         {episode.caveat === null ? null : (
           <p className="mt-2.5 max-w-[68ch] border-l-2 border-[var(--bp-color-warn)] pl-2.5 text-[11.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
@@ -102,24 +102,23 @@ export function ChangeEntry({
 
 /**
  * Affected routes as nested relationships. A change on seven routes is one
- * change with seven relationships, never seven rows, and the roles stay
- * distinct so a new SBS service is not confused with the local route that kept
- * running beside it.
+ * change with seven relationships, never seven rows. Membership is exact; the
+ * UI does not invent a route role the producer did not review.
  */
 function AffectedRoutes({
   routes,
-  highlightRouteId,
+  highlightRouteKey,
 }: {
   routes: readonly PublicEpisodeRoute[];
-  highlightRouteId: string | undefined;
+  highlightRouteKey: string | undefined;
 }) {
   if (routes.length === 0) return null;
   const ordered =
-    highlightRouteId === undefined
+    highlightRouteKey === undefined
       ? routes
       : [
-          ...routes.filter((route) => route.routeId === highlightRouteId),
-          ...routes.filter((route) => route.routeId !== highlightRouteId),
+          ...routes.filter((route) => route.routeKey === highlightRouteKey),
+          ...routes.filter((route) => route.routeKey !== highlightRouteKey),
         ];
   const face = ordered.slice(0, ROUTE_FACE_CAP);
   const rest = ordered.slice(ROUTE_FACE_CAP);
@@ -127,7 +126,7 @@ function AffectedRoutes({
   return (
     <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
       {face.map((route) => (
-        <RouteRelation key={route.routeId} route={route} />
+        <RouteRelation key={route.routeKey} route={route} />
       ))}
       {rest.length === 0 ? null : (
         <details className="group">
@@ -136,7 +135,7 @@ function AffectedRoutes({
           </summary>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {rest.map((route) => (
-              <RouteRelation key={route.routeId} route={route} />
+              <RouteRelation key={route.routeKey} route={route} />
             ))}
           </div>
         </details>
@@ -147,10 +146,18 @@ function AffectedRoutes({
 
 function RouteRelation({ route }: { route: PublicEpisodeRoute }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <Link
+      to="/routes/$routeId"
+      params={{ routeId: route.slug }}
+      search={{ tab: "history" }}
+      viewTransition
+      className="inline-flex items-center gap-1.5 no-underline"
+    >
       <RouteBadge route={route.routeId} displayLabel={route.label} size="sm" />
-      <span className="text-[11px] text-[var(--bp-color-ink-55)]">{ROLE_LABELS[route.role]}</span>
-    </span>
+      <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">
+        {route.routeKey}
+      </span>
+    </Link>
   );
 }
 
@@ -169,10 +176,7 @@ function Components({ episode }: { episode: PublicInterventionEpisode }) {
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {face.map((component) => (
           <li key={component.componentId} className="text-[12px] leading-[1.5]">
-            <span className="font-semibold">{component.label}</span>
-            {component.detail === null ? null : (
-              <span className="text-[var(--bp-color-ink-70)]">{` ${component.detail}`}</span>
-            )}
+            <ComponentText component={component} />
           </li>
         ))}
       </ul>
@@ -184,16 +188,69 @@ function Components({ episode }: { episode: PublicInterventionEpisode }) {
           <ul className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
             {rest.map((component) => (
               <li key={component.componentId} className="text-[12px] leading-[1.5]">
-                <span className="font-semibold">{component.label}</span>
-                {component.detail === null ? null : (
-                  <span className="text-[var(--bp-color-ink-70)]">{` ${component.detail}`}</span>
-                )}
+                <ComponentText component={component} />
               </li>
             ))}
           </ul>
         </details>
       )}
     </div>
+  );
+}
+
+function ComponentText({
+  component,
+}: {
+  component: PublicInterventionEpisode["components"][number];
+}) {
+  if (component.authority === "tracker_enrichment") {
+    return (
+      <>
+        <span className="font-semibold">{component.label}</span>
+        {component.detail === null ? null : (
+          <span className="text-[var(--bp-color-ink-70)]">{` ${component.detail}`}</span>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      <span className="font-semibold">{`${component.actionLabel}: ${component.treatmentFamilyLabel}`}</span>
+      <span className="text-[var(--bp-color-ink-70)]">{` ${component.details}`}</span>
+      <span className="ml-1.5 text-[11px] text-[var(--bp-color-ink-55)]">
+        {component.extent.label}
+      </span>
+      {component.extent.description === null ? null : (
+        <span className="text-[var(--bp-color-ink-55)]">{` — ${component.extent.description}`}</span>
+      )}
+      {component.caveats.length === 0 ? null : (
+        <ul className="m-0 mt-1 list-disc pl-4 text-[11px] text-[var(--bp-color-ink-55)]">
+          {component.caveats.map((caveat) => (
+            <li key={caveat}>{caveat}</li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function PlacementHistory({ episode }: { episode: PublicInterventionEpisode }) {
+  if (episode.authority !== "producer" || episode.placements.length === 0) return null;
+  return (
+    <details className="mt-2.5 text-[11.5px] text-[var(--bp-color-ink-55)]">
+      <summary className="cursor-pointer list-none text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
+        {`${episode.placements.length} historical placement ${episode.placements.length === 1 ? "record" : "records"}`}
+      </summary>
+      <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4">
+        {episode.placements.map((placement) => (
+          <li key={placement.placementKey}>
+            {placement.confirmedCurrent === null
+              ? `${placement.stateAsOf.replaceAll("_", " ")} as of ${placement.asOfDate}; this is not a confirmed-current claim.`
+              : `Confirmed active as of ${placement.confirmedCurrent.asOfDate}.`}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

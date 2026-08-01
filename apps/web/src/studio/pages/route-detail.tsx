@@ -204,6 +204,7 @@ export function RouteDetailPage({
             <PublicRouteHistory
               showHeader={false}
               input={{
+                routeKey: publicHistory.route.routeKey,
                 routeId: publicHistory.route.routeId,
                 routeLabel: publicHistory.route.label,
                 corridor: publicHistory.route.corridor,
