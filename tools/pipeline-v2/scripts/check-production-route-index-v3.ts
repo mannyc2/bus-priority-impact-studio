@@ -55,7 +55,7 @@ async function getJson<A>(input: {
   receipts: RequestReceipt[];
 }): Promise<A> {
   const response = await fetch(new URL(input.path, input.baseUrl), {
-    headers: { accept: "application/json", "user-agent": "bp-plan095-release-smoke/1" },
+    headers: { accept: "application/json", "user-agent": "bp-plan098-release-smoke/2" },
   });
   input.receipts.push({
     path: input.path,
@@ -86,12 +86,10 @@ async function run(argv: readonly string[]): Promise<void> {
     receipts: requests,
   });
   if (
-    status.releaseId !== audit.servingRelease.releaseId ||
-    status.publishedAt !== audit.servingRelease.publishedAt ||
     status.coverage.start !== audit.servingRelease.coverage.start ||
     status.coverage.end !== audit.servingRelease.coverage.end
   ) {
-    throw new Error("Production release status does not match the Plan 095 receipt");
+    throw new Error("Production release coverage does not match the exact-identity source receipt");
   }
   const index = await getJson({
     baseUrl,
@@ -99,6 +97,14 @@ async function run(argv: readonly string[]): Promise<void> {
     schema: StudioRouteIndex3ResponseSchema,
     receipts: requests,
   });
+  if (
+    index.releaseId !== status.releaseId ||
+    index.publishedAt !== status.publishedAt ||
+    index.coverage.start !== status.coverage.start ||
+    index.coverage.end !== status.coverage.end
+  ) {
+    throw new Error("Schema-v3 route index does not match the active pointed release envelope");
+  }
   if (index.routes.length !== audit.counts.exactRouteCount) {
     throw new Error(
       `Schema-v3 route count ${index.routes.length} != ${audit.counts.exactRouteCount}`,
@@ -164,12 +170,17 @@ async function run(argv: readonly string[]): Promise<void> {
   }
 
   const smokeReceipt = {
-    artifactKind: "bp.ops.exact_route_index_v3_production_smoke.v1",
-    schemaVersion: 1,
+    artifactKind: "bp.ops.exact_route_index_v3_production_smoke.v2",
+    schemaVersion: 2,
     checkedAt: new Date().toISOString(),
     baseUrl,
     recoveryId: audit.recoveryId,
-    servingRelease: audit.servingRelease,
+    sourceServingRelease: audit.servingRelease,
+    servingRelease: {
+      releaseId: status.releaseId,
+      publishedAt: status.publishedAt,
+      coverage: status.coverage,
+    },
     exactRouteCount: index.routes.length,
     requests,
   };

@@ -10009,3 +10009,10 @@ the generation-2 pointer remained on Candidate B. The exact-identity reader now 
 registration inside the already candidate-scoped D1 view, verifies its self-consistent source
 release and hashes/counts against the candidate rows, and publishes the distinct pointed release
 envelope. Legacy reads remain bound to their requested exact release ID.
+
+Main deployment run `30724072478` proved that exact-identity repair first at zero traffic and then
+on ordinary traffic. Its later Plan 095 production smoke still compared the active Plan 098 event
+identity to the historical exact-identity source receipt, so the workflow again rolled the Worker
+back and left the generation-2 pointer unchanged. The smoke now treats that historical receipt as
+the source/coverage anchor and separately requires status plus schema-3 routes to publish the same
+active pointed release envelope.
