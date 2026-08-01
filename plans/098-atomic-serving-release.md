@@ -46,6 +46,16 @@ key ID and independently recorded SPKI fingerprint, then performs the same
 schema/ledger/fingerprint comparisons. This keeps the preserved attestation as
 the trust anchor without introducing a new signer.
 
+The second merged expand attempt (`ci-cd` run `30718152077`) deployed only the
+isolated authenticated operator, then received a terminal HTTP 409 from the
+pinned preflight before applying the v2 migration or deploying/promoting a
+reader. The convergence loop discarded that safe diagnostic body, and Wrangler
+cleanup failed because it probed KV namespaces outside the token's deliberately
+narrow scope. The diagnostic follow-up preserves the response and attempt/HTTP
+metadata, retries only deployment-propagation failures, and deletes the
+temporary service through Cloudflare's service endpoint without broadening the
+credential. Production serving and the release pointer remain unchanged.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2
