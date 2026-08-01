@@ -9,6 +9,7 @@
       "database_name": "bus-priority-serving",
       "database_id": "d9cd87e2-1f77-44eb-b712-e834b23497b0",
       "migrations_dir": "./migrations/d1-v2",
+      "migrations_pattern": "./migrations/d1-v2/active/*.sql",
       "migrations_table": "bp_d1_migrations_v2"
     }
   ]

@@ -213,11 +213,11 @@ do not publish operation-only byte churn.
 
 ### 4. Verify and apply migrations through one path
 
-Resolve the immutable D1 database name/id and require Plan 098's exact v2
-lineage: `packages/db/migrations/d1-v2/`,
+Resolve the immutable D1 database name/id and require Plan 098's exact active
+v2 lineage: `packages/db/migrations/d1-v2/active/`,
 `packages/db/wrangler.d1-v2.jsonc`, and `bp_d1_migrations_v2`. Before invoking
 Wrangler, validate the complete local stream against
-`packages/db/migrations/d1-v2/checksums.json` and the checksum manifest recorded
+`packages/db/migrations/d1-v2/active/checksums.json` and the checksum manifest recorded
 by the first-v2-apply receipt; fail on any missing, modified, reordered, or
 extra file. Wrangler's list proves applied names/times only, so compare that
 name sequence with the validated local stream and fail on unknown or out-of-

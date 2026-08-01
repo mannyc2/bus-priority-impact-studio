@@ -49,7 +49,7 @@ function asD1(database: Database): D1Database {
 
 async function migratedDatabase(): Promise<Database> {
   const database = new Database(":memory:");
-  for (const directory of ["../migrations/d1/", "../migrations/d1-v2/"]) {
+  for (const directory of ["../migrations/d1/", "../migrations/d1-v2/active/"]) {
     const migrations = new URL(directory, import.meta.url);
     for (const filename of (await readdir(migrations))
       .filter((candidate) => candidate.endsWith(".sql"))

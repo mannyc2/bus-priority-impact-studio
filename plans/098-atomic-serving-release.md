@@ -295,7 +295,7 @@ the clean-bootstrap history. Freeze the forward stream as
 tests need both streams and production commands must name the v2 config
 explicitly.
 
-The v2 `0000` migration may create **only new Plan 098 tables/indexes**. It
+The v2 migration stream may create **only new Plan 098 tables/indexes**. It
 must not replay, rename, or mark old migrations as applied. A preflight compares
 the signed Plan 097 read-only preflight schema/live-surface receipt and exact
 production fingerprints before first application. If Plan 097 could not
@@ -321,6 +321,16 @@ missing, modified, reordered, or extra applied migration. Wrangler's ledger
 proves applied names/times only; it does **not** prove historical file bytes.
 The first successful v2 apply receipt binds the checksum manifest, and an
 applied file is immutable—any correction is a new migration.
+
+Production expand run `30719529746` reached the first remote v2 apply, but the
+64,196-byte, 303-statement `0000` file exceeded D1's storage-operation timeout
+(`7429`) and Wrangler rolled the failed migration back. The exact file and
+checksum remain archived at the top of `migrations/d1-v2`; the active stream is
+its mechanically identical ordered statement sequence split into 14 files of
+at most 30 statements and roughly 6 KiB each. The checker binds every active
+file checksum and proves the normalized concatenation equals the retained
+failed archive. Wrangler discovers only `active/*.sql` through its supported
+`migrations_pattern` boundary.
 
 Use only `bun --filter @bp/db db:migrate:d1:v2:local` and
 `bun --filter @bp/db db:migrate:d1:v2:remote`; those scripts pin the immutable

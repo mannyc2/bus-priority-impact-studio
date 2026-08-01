@@ -9932,3 +9932,11 @@ Plan 098 sentinel now records the sorted absent partition, fingerprints every pr
 and compares the complete result before/after migration and across the pointer drill. The two v2
 current-signal tables are still mandatory after migration. No nonexistent auth/editorial tables are
 created, and production's exact pre-existing presence/absence boundary becomes durable evidence.
+
+Expand run `30719529746` passed the signed preflight and protected absence sentinel, then reached
+the first remote v2 migration apply. D1 reset the storage object after the 64,196-byte,
+303-statement file exceeded its operation timeout (`7429`); Wrangler reported the migration failed
+and rolled it back. No reader or pointer step ran. The exact failed `0000` file/checksum remains
+retained, while Wrangler's active `migrations_pattern` now selects 14 mechanically equivalent,
+ordered files capped at 30 statements and roughly 6 KiB. The checksum checker verifies every split
+file and proves their normalized concatenation is exactly the retained failed statement stream.

@@ -165,7 +165,8 @@ jobs:
           jq -e '.ok == true and (.result.kind == "legacy" or .result.kind == "pointed")' \
             "$output_dir/pointer.json"
           sha256sum packages/db/migrations/d1-v2/0000_atomic_serving_release.sql \
-            packages/db/migrations/d1-v2/checksums.json \
+            packages/db/migrations/d1-v2/active/*.sql \
+            packages/db/migrations/d1-v2/active/checksums.json \
             "$output_dir"/*.json > "$output_dir/plan098-expand.receipt.sha256"
           echo "operator_endpoint=$endpoint" >> "$GITHUB_OUTPUT"
 
