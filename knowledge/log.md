@@ -9585,3 +9585,100 @@ plan does not touch (`analytics-primer.html` lint findings, two fixable lints in
 `apps/web/src/routes/routes/index.tsx`, and five `docs/research/artifacts/*.json` oversize-file
 warnings); confirmed via `git diff origin/main --stat` that none of those files were touched by this
 plan's commits.
+
+## [2026-08-01] engineering | Plan 111 deletes the dead observation chain (geocode -> context-events -> parking matches -> route-treatment-summary)
+
+Implemented Plan 111 on `advisor/111-dead-observation-chain`, based on `main`
+at `4a7a7dc1` (post plans 108/109/110/112). Steps 1–6 landed as scoped. Net:
+29 files changed, 4 insertions, 4,544 deletions across four commits (one per
+step 2–5).
+
+Deleted: the `studio route-treatment-summary` artifact command (325 LOC) and
+its `route_treatment_summary_artifact` registry entry; the context-event
+build layer (`build context-events`/`build context-event-route-touches`
+commands plus their `local-db-aggregates` implementations, ~1,050 LOC) and
+the `local_context_event_route_touches_history` registry entry; the
+parking-violation matcher (`build parking-violation-matches` command plus
+its ~860-LOC lib, camera/street-code location grouping, LION candidate
+lookup, Geoclient-backed resolution); and all six NYC Geoclient geocode
+commands (311, nypd-collisions, parking-violations, permits, traffic-speeds,
+traffic-volumes) plus the shared `Geocoder` facade. `packages/db`: deleted
+`upsertContextEvents` and `listContextEventRouteTouchesForWindow` from
+`findings.ts` with their exclusive types and the now-orphaned `chunked()`
+helper; `countContextEvents` (flagged orphaned by plan 109, amendment-confirmed
+the sole survivor) stays. `local_context_event`/`local_parking_violation_match`
+dropped from the completeness audit's external-refs allowlist. Registry test:
+114 -> 104 across the four commits (-1/-2/-1/-6).
+
+**Two collateral edits were required, not optional**, for the scoped
+deletions to compile: `tools/pipeline-v2/src/effect/build-local-db.ts` is a
+shared Effect service backing four build commands, only one of which
+(context-events) died here — its `buildContextEvents` method and
+`runBuildContextEventsCommand` export existed solely to serve the deleted
+command, and would have referenced removed barrel exports if left in place,
+so only that slice was cut (observed-headways/route-lion-link/
+lion-geometry-index untouched); `test/effect/build-local-db.test.ts` updated
+to match.
+
+**One save from a plan-gate blind spot.** The plan authorized deleting
+`route-treatment-summary-rows.ts`'s `loadRouteTreatmentSummaryLocalDbRows`
+"if separable" from the live `loadRouteInterventionInventoryLocalDbRows` in
+the same file. Step 2's own gate (grepping the hyphenated string
+`route-treatment-summary` in publish/export/studio-api/web paths) came back
+clean, but a repo-wide grep for the actual camelCase symbol found a second,
+undocumented caller: `commands/studio/export-intervention-corpus.ts`'s
+`--reconcile-report` flag (live, recently touched by plan 112, untested by
+any existing suite) calls it for `.interventionEventRows`. Not separable, so
+`route-treatment-summary-rows.ts` was left fully untouched rather than
+improvised around.
+
+**One plan gate return ambiguous matches, resolved per the plan's own
+instruction.** Step 5's sources-client gate (`normalizeStreetName` etc.)
+returned 6 hits, all traced to two *locally defined* functions of the same
+name in `route-briefs/metrics.ts` and `commands/corridor/model.ts` — neither
+imports from `@bp/sources/clients/geoclient`. Per the plan's explicit STOP
+condition for this case, `packages/sources/src/clients/geoclient/` and its
+package.json export entries were left untouched rather than force-deleted.
+Step 4's `parking-location.ts` gate returned real (non-ambiguous) matches —
+`ingest/parking-violations.ts` still imports through it — so that file and
+its barrel block also stay, exactly as the plan's own conditional expected.
+
+Flagged as newly orphaned but left in place (not named in the plan's scope,
+CLAUDE.md: mention don't delete): `routeLionLinkFanoutCte`
+(`local-db-aggregates/route-lion-link-fanout.ts`, lost both callers across
+steps 3–4); four artifact-path builders in `packages/analytics/src/
+artifacts/index.ts` (`routeTreatmentSummaryArtifactPath`/`Markdown`,
+`contextEventRouteTouchAuditPath`, `parkingViolationMatchAuditPath`); and two
+whole `packages/db` repositories that lost every caller (`geocode-cache.ts`,
+`geocode-updates.ts` + its dedicated test) once the geocode layer was gone —
+the plan's `packages/db` scope named only `findings.ts`. Also untouched:
+four surviving registry products (`local_311_context_history`,
+`local_dot_permit_context_history`, `local_parking_violation_context_history`,
+`local_collision_context_history`) whose completeness `checks` still read
+`local_context_event`/`local_context_event_route_touch`/
+`local_parking_violation_match` row counts directly — not named in the
+plan's two-product delete list, so left as-is; their `minRows: 1` checks
+read already-populated local tables and don't depend on the deleted write
+paths continuing to run.
+
+Verification: `bun run check:types` (exit 0), full `bun run test` (1,430
+pass: 952 unit + 446 web + 32 worker, 0 fail), `bun run check:architecture`
+(production-boundaries/design-doctrine/month-doctrine/claude-config all
+green — the sources package.json export graph stayed fully resolvable since
+nothing was removed from it). `bun run pipeline -- audit
+data-product-completeness` cannot run in this sandboxed worktree: it fails
+identically before any of this plan's edits and after every step with
+`SQLiteError: unable to open database file` (`data/local/pipeline.sqlite`
+does not exist here) — a pre-existing environment gap, not a regression;
+confirmed by running it as a baseline before touching any files. `check:style`
+is red on 2 pre-existing errors (a `biome.jsonc` schema-version mismatch and
+an oversized `docs/research/artifacts/*.json` file), both disjoint from this
+plan's changed files — consistent with the same pre-existing condition plans
+109 and 110 already logged; not chased further per the operator amendment.
+One flaky test observed mid-plan and confirmed unrelated:
+`audit/plan097-readiness.test.ts`'s single test intermittently exceeds its
+hardcoded 5000ms timeout under sandbox load (own temp dir/db/fixtures, zero
+relation to this chain) — split 3 fail / 3 pass across six runs this session,
+including both with and without this plan's step-4 changes present
+(isolated via `git stash`), confirming pre-existing timing flakiness rather
+than a regression.

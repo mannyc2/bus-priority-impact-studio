@@ -1,9 +1,7 @@
 import {
-  type BuildContextEventsResult,
   type BuildLionGeometryIndexResult,
   type BuildObservedHeadwaysResult,
   type BuildRouteLionLinkResult,
-  runBuildContextEvents,
   runBuildLionGeometryIndex,
   runBuildObservedHeadways,
   runBuildRouteLionLink,
@@ -29,10 +27,6 @@ export type BuildLionGeometryIndexCommandInput = {
 export class BuildLocalDbService extends Context.Service<
   BuildLocalDbService,
   {
-    readonly buildContextEvents: () => Effect.Effect<
-      BuildContextEventsResult,
-      BuildLocalDbCommandError
-    >;
     readonly buildObservedHeadways: (
       input: BuildObservedHeadwaysCommandInput,
     ) => Effect.Effect<BuildObservedHeadwaysResult, BuildLocalDbCommandError>;
@@ -52,22 +46,6 @@ export const BuildLocalDbServiceLayer: Layer.Layer<BuildLocalDbService, never, L
       const local = yield* LocalDbConnection;
 
       return {
-        buildContextEvents: Effect.fn("BuildLocalDbService.buildContextEvents")(function* () {
-          yield* Effect.annotateCurrentSpan({
-            command: "build.context-events",
-            dbPath: local.path,
-          });
-
-          return yield* Effect.tryPromise({
-            try: () => runBuildContextEvents({ local }),
-            catch: (cause) =>
-              BuildLocalDbCommandError.make({
-                command: "build.context-events",
-                operation: "runBuildContextEvents",
-                cause,
-              }),
-          });
-        }),
         buildObservedHeadways: Effect.fn("BuildLocalDbService.buildObservedHeadways")(function* (
           input: BuildObservedHeadwaysCommandInput,
         ) {
@@ -142,15 +120,6 @@ export const BuildLocalDbServiceLayer: Layer.Layer<BuildLocalDbService, never, L
       };
     }),
   );
-
-export const runBuildContextEventsCommand = Effect.fn("runBuildContextEventsCommand")(function* () {
-  const service = yield* BuildLocalDbService;
-  const result = yield* service.buildContextEvents();
-
-  yield* Effect.logInfo(`context events complete: ${result.total} rows inserted`);
-
-  return result;
-});
 
 export const runBuildObservedHeadwaysCommand = Effect.fn("runBuildObservedHeadwaysCommand")(
   function* (input: BuildObservedHeadwaysCommandInput) {

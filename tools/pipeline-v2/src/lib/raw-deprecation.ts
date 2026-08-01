@@ -231,11 +231,6 @@ export const RAW_DIRECT_READERS: readonly RawDirectReader[] = [
     reason: "Studio release geometry reads data/raw/network route and stop snapshots.",
   },
   {
-    family: "network",
-    reader: "tools/pipeline-v2/src/commands/studio/route-treatment-summary.ts",
-    reason: "Route treatment summary defaults to data/raw/network route and stop snapshots.",
-  },
-  {
     family: "route-slices",
     reader: "tools/pipeline-v2/src/commands/studio/release.ts",
     reason: "Studio release still defaults --route-slice-raw to data/raw/route-slices.",
