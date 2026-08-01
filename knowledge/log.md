@@ -9403,3 +9403,71 @@ The operations runbook forbids reusing the Plan 097 recovery path for an
 artifact cutover, so serving any new artifact key is blocked on Plan 098. The
 standing prerequisite in `plans/README.md` had recorded this as the
 highest-value data operation available; it is not a data operation at all.
+
+## [2026-08-01] implementation | Plan 109 deletes the dead detector/feature subtrees in packages/*
+
+Implemented Plan 109 on `advisor/109-packages-dead-code`, based on `main` at
+`90dd5282`. Steps 1–6 and 8–10 landed as scoped; step 7 was skipped. Net:
+77 files changed, 8,085 deletions, 90 insertions.
+
+Deleted: the Tier-2 intervention-records policy (`packages/analytics/src/interventions/intervention-records.ts`);
+the dead `@bp/domain/documents` barrel; three dead package-export stubs
+(`studio-api/server/testing`, `db/shared`, `db/local` tier2-intervention-staging);
+`field-provenance.ts` plus its `month-doctrine` harness pin; the v1 half of the
+intervention-evidence registry (`INTERVENTION_EVIDENCE_SPECS`,
+`INTERVENTION_ANALYSIS_DISPOSITIONS_V1`, `interventionEvidenceSpecFor`,
+`serializeInterventionRelevanceCoverageMatrix`) while keeping the live
+`TreatmentRelevance*` family; the entire pre-gen-7 detector primitive layer
+(`analytics/baselines/`, `analytics/core/`, `concentration.ts`,
+`evaluation/{scorecard,gold-set}.ts`) and 13 of 21 `analytics/features/*`
+modules plus their 9 self-referential tests; the dead detector half of the
+local findings repository (8 functions: `insertFindingCandidate`,
+`insertFindingEvidenceLinks`, `insertCoverageAudit`,
+`insertCoverageAuditIgnore`, `listCandidatesByRoute`,
+`listEvidenceForCandidate`, `replaceFindingsForMonth`, `replaceFindingRun`);
+the D1 route-timelines query module; and the unwired identity/auth/alerts
+surface (`d1/queries/{identity,identity-surfaces,studio-auth}.ts`,
+`domain/src/studio/identity/`) while leaving every `studioActor*`/identity/
+alert table in `schema.ts` and all migrations untouched, since production D1
+holds rows there.
+
+**Step 7 (delete `@bp/domain/findings`) was skipped, not forced.** The plan's
+own gate — `grep "@bp/domain/findings\|domain/src/findings"` — came back
+empty, but `packages/domain/test/studio-route-insights.test.ts:373` reaches
+the module through a relative `await import("../src/findings")` the gate's
+pattern can't see. That one test (`S4.1 serving readiness gating`) checks a
+real production invariant: the studio route-insight allowlist must be a
+subset of `KNOWN_DETECTOR_IDS`. This is exactly the plan's own STOP condition
+— "Step 7's gate shows live importers — skip the step and report (do not
+force)" — so `packages/domain/src/findings/index.ts` (920 LOC), its
+`package.json` export, and both test files stay. `@bp/domain/findings` is
+still deletable, but needs `studio-route-insights.test.ts` added to scope
+first (either replace its `KNOWN_DETECTOR_IDS` source or accept dropping that
+one safety check).
+
+Two judgment calls inside step 5, both forced by re-reading `spec.ts` before
+cutting per the plan's own warning that the two registry generations "share
+disposition helpers": `InterventionEvidenceBindingRoleSchema` and
+`InterventionEvidenceWindowSchema` are nominally in the deleted
+`InterventionEvidence*` family but are the literal types backing the live
+`TreatmentRelevanceScopeSemanticSchema.role` and
+`TreatmentRelevanceBindingSchema.window` fields, so both stayed. Likewise
+`validateInterventionEvidenceRegistry()` still validates the live
+`TREATMENT_RELEVANCE_SPECS_V1`/`INTERVENTION_RELEVANCE_DISPOSITIONS_V1`
+registries at module load, so only its two v1-specific validation loops were
+cut, not the function.
+
+Left `countContextEvents` (`packages/db/src/local/repositories/findings.ts`)
+in place though it has zero callers: it wasn't named in either the plan's
+delete-eight or keep-two lists, and it reads the same `local_context_event`
+table as the two kept functions. Flagging it here rather than deleting it
+unasked.
+
+`check:style` fails (8 errors) on this branch, but every flagged file
+(`analytics-primer.html`, `apps/web/src/routes/routes/index.tsx`,
+`biome.jsonc`, `docs/research/artifacts/*.json`) is disjoint from every file
+this plan touched — confirmed by diffing the full list of files this plan
+changed against the flagged paths. Pre-existing on `main`, not introduced
+here; the plan's own Done Criteria section does not gate on `check:style`.
+`check:types`, `check:architecture`, and the full `bun run test` (1,457 tests
+across three suites) all pass at 0 fail / exit 0.
