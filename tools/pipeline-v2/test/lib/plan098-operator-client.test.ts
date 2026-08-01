@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { createPlan098OperatorClient } from "../../src/lib/plan098-operator-client";
+import {
+  createPlan098OperatorClient,
+  fetchPlan098PublicRead,
+} from "../../src/lib/plan098-operator-client";
 
 describe("Plan 098 production operator client", () => {
   test("retries a read-only action across transient non-JSON provider responses", async () => {
@@ -69,5 +72,30 @@ describe("Plan 098 production operator client", () => {
       "status failed with HTTP 409 after 1 attempt(s)",
     );
     expect(attempts).toBe(1);
+  });
+
+  test("retries public smoke reads across transient gateway responses", async () => {
+    const responses = [
+      Response.json({ error: { code: "BAD_GATEWAY" } }, { status: 502 }),
+      Response.json({ releaseId: "pub_20260725T164123260Z" }),
+    ];
+    const sleeps: number[] = [];
+    const result = await fetchPlan098PublicRead({
+      url: "https://public.example.test/api/v1/map/manifest",
+      label: "adopt-a smoke /api/v1/map/manifest",
+      fetch: async () => {
+        const response = responses.shift();
+        if (response === undefined) throw new Error("unexpected request");
+        return response;
+      },
+      sleep: async (milliseconds) => {
+        sleeps.push(milliseconds);
+      },
+      retryDelayMilliseconds: 25,
+    });
+
+    expect(result.response.status).toBe(200);
+    expect(JSON.parse(result.body)).toEqual({ releaseId: "pub_20260725T164123260Z" });
+    expect(sleeps).toEqual([25]);
   });
 });

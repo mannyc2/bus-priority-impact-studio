@@ -378,6 +378,16 @@ only read-only actions on transport, 404, or 5xx responses, while mutations
 remain single-attempt and all terminal failures include bounded HTTP/body
 diagnostics.
 
+Activation run `30722118163` resumed through the read transient, verified all
+391 Candidate A artifact batches (3,002 objects), made Candidate A ready, and
+atomically adopted the byte-equivalent Plan 097 baseline at generation 1. Its
+smoke then failed closed because `map_release_catalog` correctly retains the
+content-addressed physical manifest key while the pointed artifact resolver
+looked only in the candidate's logical-ID index. The resolver now accepts
+either a declared logical ID or an exact candidate-declared physical key,
+without fallback outside the candidate manifest. Public smoke GETs also retry
+only transport, 404, and 5xx transients with bounded diagnostics.
+
 ### 4. Add candidate catalog, release catalog, and CAS pointer
 
 The migration adds normalized tables for:

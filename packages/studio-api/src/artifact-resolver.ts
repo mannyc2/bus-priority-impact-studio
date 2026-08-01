@@ -133,7 +133,11 @@ export async function loadReleaseArtifact(
   if (env.ARTIFACTS === undefined) return null;
   const pointed = env.SERVING_RELEASE_CONTEXT;
   if (pointed !== undefined) {
-    const artifact = pointed.artifactByLogicalId.get(logicalKey);
+    // Candidate-scoped D1 catalogs retain some content-addressed physical references. Resolve
+    // those only when the active candidate manifest declares the exact same immutable key.
+    const artifact =
+      pointed.artifactByLogicalId.get(logicalKey) ??
+      pointed.candidate.artifacts.find((candidate) => candidate.key === logicalKey);
     if (artifact === undefined) {
       throw new Plan097ArtifactResolutionError(
         "logical_entry_missing",
