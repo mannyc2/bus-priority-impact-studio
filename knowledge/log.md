@@ -9746,3 +9746,64 @@ load-bearing keep-set) and a `packages/db/migrations-drizzle` snapshot format di
 file this branch touches, confirmed against `git diff --name-only origin/main...HEAD`. So `bun run
 check`, which chains style, does not reach exit 0; every other component does. `knowledge/log.md`
 untouched except this appended entry.
+
+## [2026-08-01] engineering | Plan 114 executes the three operator-gated deletions
+
+Completed Plan 114 on `advisor/114-operator-gated`, the last plan of generation 20. These three
+deletions were technically low-risk but doctrinally operator-owned — audit-trail defensibility, a
+recorded spike decision, and the shape of a public API — so each ran only against a quoted operator
+token. All three were approved on 2026-08-01; a fourth item was recorded as a decision NOT to delete.
+Net −151,615 lines across 24 files.
+
+**Step A — superseded review worksheets ("Delete them").** Removed the six
+`*.review-worksheet.json` files under `data/study-event-approvals/reviews/` (150,054 lines). The
+study engine consumes the siblings, not the worksheets: `receipts/` is bound through
+`study merge-events --approval`, `scope-bindings/` is read by `study run`, and the directory README
+already framed worksheets as "the immutable non-authorizing starting point" — the receipt carries
+the authority. Amended the two README paragraphs that still asserted a worksheet lives under
+`reviews/`. Every authorizing receipt survives; worksheet↔receipt pairing now lives in git history
+rather than the working tree, which is the tradeoff the operator accepted. After the deletion
+`reviews/` holds exactly one file (the review report), `receipts/` six, `scope-bindings/` four.
+
+**Step B — the plan-083 spine-pattern-grouping prototype ("Delete the code").** Removed the 356-LOC
+prototype and its 314-LOC test and pruned the feature-history barrel block that sourced from it. The
+spike doc's "retain only as a prototype" was read as a status ruling (never productionize), not an
+instruction to keep the code in-tree; both spike deliverables under `docs/research/` stay tracked and
+hold the durable measurements. Re-verified emptiness against both function names and all five
+exported type names before deleting.
+
+**Step C — the four v1 endpoints with no first-party caller ("Retire them").** Retired
+`/api/v1/routes`, `/api/v1/routes/:routeId/profile`, `/api/v1/hotspots`, and
+`/api/routes/:routeId/scorecard`: dispatch, builders, three `contracts/registry.ts` specs, six domain
+schemas plus `RouteArtifactRef`, and a stale `downstreamConsumers` string. The three live v1 routes
+(status, map/manifest, artifacts) are untouched.
+
+Two facts the plan had wrong or missing, both worth recording. First, `contracts/openapi.ts` is NOT
+derived from `contracts/registry.ts` — it keeps its own explicit `paths` record, so removing registry
+specs alone would have left the retired endpoints advertised in the published document. The four path
+entries were removed directly and the built document re-checked: public v1 is now exactly rum,
+status, map/manifest, artifacts. Second, deleting the six domain schemas also orphans three
+`/api/schema/*` routes (route-list, route-profile, hotspots) that the plan never listed; those were
+removed as the mechanical consequence. `/api/schema/route-scorecard` deliberately STAYS — the
+scorecard's data contract is still live even though its HTTP read is gone: `packages/analytics`
+produces it, and the `route_scorecard` D1 table is still seeded, completeness-tracked, and included
+in plan-097 recovery batches.
+
+The plan's caller-free gate for the D1 query modules fired as a STOP on one of the two, exactly as
+written. `corridor-summaries.ts` is KEPT WHOLE: `tools/pipeline-v2/src/commands/verify/d1-loaded.ts`
+calls `listCorridorSummaries`, so it has a live reader. `route-scorecard.ts` is kept as a module too;
+only `getRouteScorecard` — the read function this change orphaned — was removed, with its two barrel
+exports, because its serialize/deserialize row contract keeps live consumers and remains the
+executable spec for a table production still writes.
+
+**Step D — `knowledge/log.md` stays (default accepted).** 9,361 lines, append-only by doctrine, and
+the only narrative record of decisions that never became ADRs. Left whole. Its known internal defect
+— entries are not in chronological order despite the header, e.g. the Plan 112 entry sits near the
+top of the file — is recorded here rather than fixed; an archive-by-month split that keeps `log.md`
+as an index remains available if the operator ever wants it.
+
+Verification: `bun run check:types` 0; `test:unit` 946 pass; `test:web` 446 pass; `test:worker` 32
+pass (which exercises the three surviving v1 routes against real D1/R2 in workerd — stronger than
+the curl smoke the plan asked for); `check:architecture` 0; biome clean on all changed files.
+`check:style` repo-wide still exits 1 on the same 2 pre-existing errors recorded in the Plan 113
+entry, in files this branch does not touch.

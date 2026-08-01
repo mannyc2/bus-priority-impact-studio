@@ -42,7 +42,7 @@ claim bundle-size wins.
 | 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | DONE (executed 2026-08-01; −63,135 net lines; 98 plan bodies + 9 mockup dirs + 61 wiki pages deleted, README 2,163→691, `check:knowledge` hardened from 3 file-existence assertions to link/orphan/status gates) |
 | 110 | apps/web dead code (~3.5K LOC + 41 CSS) | P2 | S-M | none (coordinate branch base) | DONE (executed, MERGED PR #123 2026-08-01) |
 | 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | DONE (executed, reviewer-verified, MERGED PR #124 2026-08-01; −4,544 lines; `export-intervention-corpus.ts --reconcile-report` found to be a live caller of the summary-rows loader, so that file stayed whole) |
-| 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | TODO (all three operator tokens APPROVED 2026-08-01 — recorded in the plan's Status block; runs after 111) |
+| 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | DONE (executed 2026-08-01; −151,615 net lines; all three tokens quoted in their commits, Step D recorded as no-action. `corridor-summaries.ts` kept — its caller-free gate found a live reader in `verify/d1-loaded.ts`) |
 
 ## Dependency and safety notes (gen 20)
 
