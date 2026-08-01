@@ -7,7 +7,10 @@ import {
   ServingCandidateManifestV1Schema,
 } from "@bp/domain/studio/serving-release";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
-import { createPlan098OperatorClient } from "../src/lib/plan098-operator-client.ts";
+import {
+  createPlan098OperatorClient,
+  fetchPlan098PublicRead,
+} from "../src/lib/plan098-operator-client.ts";
 
 type Args = {
   endpoint: string;
@@ -236,15 +239,10 @@ async function main(): Promise<void> {
     const evidence = [];
     for (const path of paths) {
       const separator = path.includes("?") ? "&" : "?";
-      const response = await fetch(
-        `${args.baseUrl}${path}${separator}plan098=${crypto.randomUUID()}`,
-        {
-          redirect: "follow",
-        },
-      );
-      const body = await response.text();
-      if (!response.ok)
-        throw new Error(`Plan 098 ${phase} smoke ${path} returned ${response.status}.`);
+      const { response, body } = await fetchPlan098PublicRead({
+        url: `${args.baseUrl}${path}${separator}plan098=${crypto.randomUUID()}`,
+        label: `${phase} smoke ${path}`,
+      });
       if (path === "/api/v1/status" || path === "/api/v1/map/manifest") {
         const parsed = JSON.parse(body) as { releaseId?: string };
         if (parsed.releaseId !== expectedReleaseId) {

@@ -198,6 +198,45 @@ describe("Plan 097 release artifact resolver", () => {
     expect(result).toBe(body as unknown as R2ObjectBody);
   });
 
+  test("resolves a candidate-declared physical key used by a pointed D1 catalog", async () => {
+    const logicalKey = `map/2026-05/manifest.${sha}.json`;
+    const body = new FakeR2Object(
+      physicalKey,
+      { candidate: true },
+      {
+        contentType: "application/json",
+        size: 123,
+        sha256: sha,
+      },
+    );
+    const bucket = new FakeR2Bucket(new Map([[body.key, body]]));
+    const artifact = {
+      logicalId: logicalKey,
+      key: physicalKey,
+      sha256: sha,
+      bytes: 123,
+      mediaType: "application/json",
+      schemaId: "map_artifact_manifest",
+    };
+    const env = {
+      ARTIFACTS: bucket as unknown as R2Bucket,
+      SERVING_RELEASE_CONTEXT: {
+        candidate: { artifacts: [artifact] },
+        artifactByLogicalId: new Map([[logicalKey, artifact]]),
+      } as unknown as NonNullable<
+        Parameters<typeof loadReleaseArtifact>[0]["SERVING_RELEASE_CONTEXT"]
+      >,
+    };
+
+    await expect(loadReleaseArtifact(env, physicalKey)).resolves.toBe(
+      body as unknown as R2ObjectBody,
+    );
+    await expect(
+      loadReleaseArtifact(env, `operations/plan097/blobs/sha256/bb/${"b".repeat(64)}.json`),
+    ).rejects.toMatchObject({ code: "logical_entry_missing" });
+    expect(bucket.gets).toEqual([physicalKey]);
+  });
+
   test("does not infer aliases or fall back for missing and corrupt candidate entries", async () => {
     const manifestObject = new FakeR2Object(
       plan097RecoveryManifestKey(candidateReleaseId),

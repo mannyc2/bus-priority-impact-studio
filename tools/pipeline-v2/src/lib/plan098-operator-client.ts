@@ -113,3 +113,49 @@ export function createPlan098OperatorClient(input: {
     throw new Error(`Plan 098 operator ${action} exhausted its read retry budget.`);
   };
 }
+
+export async function fetchPlan098PublicRead(input: {
+  url: string;
+  label: string;
+  fetch?: Plan098Fetch;
+  sleep?: (milliseconds: number) => Promise<void>;
+  attempts?: number;
+  retryDelayMilliseconds?: number;
+}): Promise<{ response: Response; body: string }> {
+  const fetchOperation = input.fetch ?? fetch;
+  const sleep =
+    input.sleep ??
+    ((milliseconds: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, milliseconds);
+      }));
+  const maximumAttempts = input.attempts ?? 15;
+  const retryDelayMilliseconds = input.retryDelayMilliseconds ?? 2_000;
+  if (!Number.isInteger(maximumAttempts) || maximumAttempts < 1) {
+    throw new Error("Plan 098 public read attempts must be a positive integer.");
+  }
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchOperation(input.url, { redirect: "follow" });
+    } catch (error) {
+      if (attempt < maximumAttempts) {
+        await sleep(retryDelayMilliseconds);
+        continue;
+      }
+      throw new Error(
+        `Plan 098 ${input.label} transport failed after ${attempt} attempt(s): ${errorMessage(error)}`,
+      );
+    }
+    const body = await response.text();
+    if (response.ok) return { response, body };
+    if ((response.status === 404 || response.status >= 500) && attempt < maximumAttempts) {
+      await sleep(retryDelayMilliseconds);
+      continue;
+    }
+    throw new Error(
+      `Plan 098 ${input.label} failed with HTTP ${response.status} after ${attempt} attempt(s)${body.length === 0 ? "" : `: ${compactDiagnostic(body)}`}`,
+    );
+  }
+  throw new Error(`Plan 098 ${input.label} exhausted its read retry budget.`);
+}
