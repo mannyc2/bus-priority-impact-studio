@@ -1952,6 +1952,67 @@ describe("Studio API facade", () => {
         ],
       }),
     );
+
+    const pointedRelease = {
+      releaseId: "pub_20260801T232501631Z",
+      publishedAt: "2026-08-01T23:25:01.631Z",
+    } as const;
+    const pointedManifestArtifact = {
+      logicalId: manifestKey,
+      key: manifestKey,
+      sha256: manifestSha256,
+      bytes: new TextEncoder().encode(manifestBody).byteLength,
+      mediaType: "application/json; charset=utf-8",
+      schemaId: "map_artifact_manifest",
+    };
+    const pointedManifestObject = Object.assign(
+      new FakeR2Object(manifestBody, pointedManifestArtifact.mediaType),
+      {
+        size: pointedManifestArtifact.bytes,
+        customMetadata: { sha256: manifestSha256 },
+      },
+    );
+    const pointedManifestResponse = await fetchApi("/api/v1/map/manifest", {
+      ARTIFACTS: new FakeR2Bucket({
+        [manifestKey]: pointedManifestObject,
+      }) as unknown as R2Bucket,
+      DB: db as unknown as D1Database,
+      SERVING_RELEASE_CONTEXT: {
+        kind: "pointed",
+        generation: 2,
+        release: {
+          schemaVersion: 1,
+          ...pointedRelease,
+          candidateId: "a".repeat(64),
+          activatedAt: pointedRelease.publishedAt,
+        },
+        candidate: {
+          datasets: [
+            {
+              datasetId: "reviewed-serving",
+              grain: "month",
+              coverage,
+              sourceSnapshotIds: [],
+            },
+          ],
+          artifacts: [pointedManifestArtifact],
+        },
+        artifactByLogicalId: new Map([[manifestKey, pointedManifestArtifact]]),
+      } as unknown as NonNullable<StudioApiEnv["SERVING_RELEASE_CONTEXT"]>,
+    });
+    expect(pointedManifestResponse.status).toBe(200);
+    expect(decodeStrict(MapManifestResponseSchema)(await pointedManifestResponse.json())).toEqual(
+      expect.objectContaining({
+        ...pointedRelease,
+        coverage,
+        routeFacts: expect.objectContaining(pointedRelease),
+        artifacts: [
+          expect.objectContaining({
+            apiPath: `/api/v1/releases/${pointedRelease.releaseId}/artifacts/map/route-segments/b46-sbs/2026-03/all-day.geojson`,
+          }),
+        ],
+      }),
+    );
     expect(manifestResponse.headers.get("Cache-Control")).toBe(
       "public, max-age=60, stale-while-revalidate=86400",
     );

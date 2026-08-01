@@ -75,6 +75,23 @@ function legacyArtifactApiPath(key: string): string {
     .join("/")}`;
 }
 
+function rawReleaseIdentityMatches(value: unknown, expected: ReleaseIdentity): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as {
+    releaseId?: unknown;
+    publishedAt?: unknown;
+    coverage?: unknown;
+  };
+  if (typeof candidate.coverage !== "object" || candidate.coverage === null) return false;
+  const coverage = candidate.coverage as { start?: unknown; end?: unknown };
+  return (
+    candidate.releaseId === expected.releaseId &&
+    candidate.publishedAt === expected.publishedAt &&
+    coverage.start === expected.coverage.start &&
+    coverage.end === expected.coverage.end
+  );
+}
+
 const mapArtifactManifestKeys = [
   "artifactCount",
   "artifactKind",
@@ -346,7 +363,10 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
   if (catalog === null) {
     return errorJson(503, "No verified full map release is registered.");
   }
-  if (studioRelease === null || catalog.releaseId !== studioRelease.releaseId) {
+  if (
+    studioRelease === null ||
+    (env.SERVING_RELEASE_CONTEXT === undefined && catalog.releaseId !== studioRelease.releaseId)
+  ) {
     return errorJson(503, "The verified map release does not match the active Studio release.");
   }
 
@@ -438,18 +458,41 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
     return errorJson(502, "The registered map manifest has an invalid artifact kind.");
   }
 
+  if (!rawReleaseIdentityMatches(manifest, catalog)) {
+    return errorJson(502, "The registered map manifest does not match its catalog record.");
+  }
+  if (
+    typeof manifest.routeFacts === "object" &&
+    manifest.routeFacts !== null &&
+    (manifest.routeFacts as { status?: unknown }).status === "available" &&
+    !rawReleaseIdentityMatches(manifest.routeFacts, catalog)
+  ) {
+    return errorJson(502, "The registered map manifest has an invalid v2 contract.");
+  }
+
+  const pointed = env.SERVING_RELEASE_CONTEXT !== undefined;
+  const routeFacts =
+    pointed &&
+    typeof manifest.routeFacts === "object" &&
+    manifest.routeFacts !== null &&
+    (manifest.routeFacts as { status?: unknown }).status === "available"
+      ? {
+          ...manifest.routeFacts,
+          releaseId: studioRelease.releaseId,
+          publishedAt: studioRelease.publishedAt,
+          coverage: studioRelease.coverage,
+        }
+      : manifest.routeFacts;
+
   const response = decodeSchemaEitherStrict(MapManifestResponseSchema, {
     schemaVersion: manifest.schemaVersion,
-    releaseId:
-      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.releaseId : studioRelease.releaseId,
-    publishedAt:
-      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.publishedAt : studioRelease.publishedAt,
-    coverage:
-      env.SERVING_RELEASE_CONTEXT === undefined ? manifest.coverage : studioRelease.coverage,
+    releaseId: pointed ? studioRelease.releaseId : manifest.releaseId,
+    publishedAt: pointed ? studioRelease.publishedAt : manifest.publishedAt,
+    coverage: pointed ? studioRelease.coverage : manifest.coverage,
     releaseProfile: manifest.releaseProfile,
     buildStatus: manifest.buildStatus,
     verificationStatus: manifest.verificationStatus,
-    routeFacts: manifest.routeFacts,
+    routeFacts,
     sources: manifest.sources,
     layers: manifest.layers,
     routeUniverse: manifest.routeUniverse,
@@ -472,9 +515,9 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
           routeId: artifact.routeId,
           apiPath:
             typeof artifact.artifactKey === "string"
-              ? env.SERVING_RELEASE_CONTEXT === undefined
-                ? legacyArtifactApiPath(artifact.artifactKey)
-                : artifactApiPath(studioRelease.releaseId, artifact.artifactKey)
+              ? pointed
+                ? artifactApiPath(studioRelease.releaseId, artifact.artifactKey)
+                : legacyArtifactApiPath(artifact.artifactKey)
               : "",
         }))
       : manifest.artifacts,
@@ -506,11 +549,12 @@ async function buildMapManifestResponse(_url: URL, env: StudioApiEnv): Promise<R
 
   const value = response.success;
   const routeCount = value.routeUniverse.expectedRouteIds.length;
+  const expectedIdentity = pointed ? studioRelease : catalog;
   const identityMatches =
-    value.releaseId === catalog.releaseId &&
-    value.publishedAt === catalog.publishedAt &&
-    value.coverage.start === catalog.coverage.start &&
-    value.coverage.end === catalog.coverage.end;
+    value.releaseId === expectedIdentity.releaseId &&
+    value.publishedAt === expectedIdentity.publishedAt &&
+    value.coverage.start === expectedIdentity.coverage.start &&
+    value.coverage.end === expectedIdentity.coverage.end;
   const publicationMatches =
     value.releaseProfile === catalog.releaseProfile &&
     value.verificationStatus === catalog.verificationStatus &&
