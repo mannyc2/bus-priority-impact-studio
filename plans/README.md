@@ -39,9 +39,9 @@ claim bundle-size wins.
 | 108 | pipeline-v2 dead code (forensics, one-offs, no-ship spike; ~9.5K LOC) | P1 | M | none | DONE (executed, reviewer-verified, MERGED PR #119 2026-08-01; −9,520 lines; registry 115→114; the 7 pre-existing oversize-receipt `check:style` errors cleared once 112 landed) |
 | 109 | packages dead code (records policy, detector primitives, identity; ~7.7K LOC) | P1 | M | none (111 needs its step 8) | DONE (executed, MERGED PR #122 2026-08-01) |
 | 112 | Receipts purge: docs/research + tracked data receipts (~1.63M lines) | P1 | M | 108 hard; 107 rec. | DONE (executed, MERGED PR #121 2026-08-01) |
-| 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | IN PROGRESS (executor running 2026-08-01) |
+| 113 | Docs corpus cutover: plans/, mockups/, knowledge/ (~63K lines) | P1 | L | 112, 107; gen-19 merged | DONE (executed 2026-08-01; −63,135 net lines; 98 plan bodies + 9 mockup dirs + 61 wiki pages deleted, README 2,163→691, `check:knowledge` hardened from 3 file-existence assertions to link/orphan/status gates) |
 | 110 | apps/web dead code (~3.5K LOC + 41 CSS) | P2 | S-M | none (coordinate branch base) | DONE (executed, MERGED PR #123 2026-08-01) |
-| 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | IN PROGRESS (executor running 2026-08-01) |
+| 111 | Dead observation chain: geocode→context-events→parking→rts (~4.7K LOC) | P2 | M | 108, 109; gen-19 merged | DONE (executed, reviewer-verified, MERGED PR #124 2026-08-01; −4,544 lines; `export-intervention-corpus.ts --reconcile-report` found to be a live caller of the summary-rows loader, so that file stayed whole) |
 | 114 | Operator-gated: approvals worksheets, spine prototype, v1 endpoints | P3 | S-M | 108, 109, 112 | TODO (all three operator tokens APPROVED 2026-08-01 — recorded in the plan's Status block; runs after 111) |
 
 ## Dependency and safety notes (gen 20)

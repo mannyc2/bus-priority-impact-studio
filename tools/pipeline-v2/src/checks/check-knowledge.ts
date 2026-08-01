@@ -31,7 +31,9 @@ export async function checkKnowledge(root = "."): Promise<string[]> {
   const linked = new Set<string>();
 
   for (const [, page] of index.matchAll(wikiLinkPattern)) {
-    linked.add(page);
+    if (page) {
+      linked.add(page);
+    }
   }
 
   for (const page of [...linked].sort()) {
@@ -54,13 +56,13 @@ export async function checkKnowledge(root = "."): Promise<string[]> {
   }
 
   const agents = await Bun.file(at("knowledge/AGENTS.md")).text();
-  const declaredEnum = agents.match(/^status: ([a-z_|]+)$/m);
+  const declaredEnum = agents.match(/^status: ([a-z_|]+)$/m)?.[1];
 
   if (!declaredEnum) {
     return [...errors, "knowledge/AGENTS.md no longer declares a frontmatter status enum"];
   }
 
-  const allowed = new Set(declaredEnum[1].split("|"));
+  const allowed = new Set(declaredEnum.split("|"));
 
   for (const path of pages) {
     const status = (await Bun.file(at(path)).text()).match(/^status: (.+)$/m)?.[1]?.trim();

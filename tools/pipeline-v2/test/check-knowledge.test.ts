@@ -18,7 +18,8 @@ async function fixture(overrides: Record<string, string | null> = {}): Promise<s
   const files: Record<string, string | null> = {
     "knowledge/index.md": "# Wiki Index\n\n- [[wiki/data/speeds|Speeds]]\n",
     "knowledge/log.md": "# Log\n",
-    "knowledge/AGENTS.md": "```yaml\nstatus: draft|active|needs_schema_probe|blocked|archived\n```\n",
+    "knowledge/AGENTS.md":
+      "```yaml\nstatus: draft|active|needs_schema_probe|blocked|archived\n```\n",
     "knowledge/raw/source_manifest.yaml": "sources: []\n",
     "knowledge/wiki/data/speeds.md": "---\nstatus: active\n---\n\n# Speeds\n",
     ...overrides,
@@ -47,7 +48,8 @@ test("fails when a required knowledge file is missing", async () => {
 test("fails when the index links a page that does not exist", async () => {
   const errors = await checkKnowledge(
     await fixture({
-      "knowledge/index.md": "# Wiki Index\n\n- [[wiki/data/speeds|Speeds]]\n- [[wiki/data/gone|Gone]]\n",
+      "knowledge/index.md":
+        "# Wiki Index\n\n- [[wiki/data/speeds|Speeds]]\n- [[wiki/data/gone|Gone]]\n",
     }),
   );
 
