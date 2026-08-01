@@ -64,7 +64,6 @@ describe("domain package shape", () => {
         "./routes",
         "./studio",
         "./studio/docs",
-        "./studio/identity",
         "./studio/interventions",
         "./studio/release",
         "./studio/routes",

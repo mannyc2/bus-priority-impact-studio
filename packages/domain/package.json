@@ -64,11 +64,6 @@
       "bun": "./src/studio/docs/index.ts",
       "import": "./src/studio/docs/index.ts"
     },
-    "./studio/identity": {
-      "types": "./src/studio/identity/index.ts",
-      "bun": "./src/studio/identity/index.ts",
-      "import": "./src/studio/identity/index.ts"
-    },
     "./studio/interventions": {
       "types": "./src/studio/interventions.ts",
       "bun": "./src/studio/interventions.ts",

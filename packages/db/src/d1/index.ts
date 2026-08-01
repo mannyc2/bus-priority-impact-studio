@@ -14,33 +14,6 @@ export type {
   CorridorSummary,
 } from "./queries/corridor-summaries.js";
 export { listCorridorSummaries } from "./queries/corridor-summaries.js";
-export {
-  consumeMagicLinkRequest,
-  createMagicLinkRequest,
-  createSession,
-  getIdentityById,
-  getIdentityBySessionTokenHash,
-  getOperatorRoleForIdentity,
-  recordSessionUse,
-  revokeSession,
-} from "./queries/identity.js";
-export type {
-  AlertKind,
-  AlertRecord,
-  PublicCommentRecord,
-  SavedSearchRecord,
-} from "./queries/identity-surfaces.js";
-export {
-  deactivateAlert,
-  deleteSavedSearch,
-  insertAlert,
-  insertPublicComment,
-  insertSavedSearch,
-  listAlertsForIdentity,
-  listPublicCommentsForBrief,
-  listSavedSearchesForIdentity,
-  softDeletePublicComment,
-} from "./queries/identity-surfaces.js";
 export type {
   MapReleaseCatalogEntry,
   MapReleaseCatalogRow,
@@ -119,8 +92,6 @@ export {
   listRouteSpeedHistoryCoverage,
   listSourceMonthCoverage,
 } from "./queries/snapshot-coverage.js";
-export type { StudioActorAuth } from "./queries/studio-auth.js";
-export { getStudioActorAuthByTokenHash, markStudioActorTokenUsed } from "./queries/studio-auth.js";
 export type {
   ExactRouteIdentityRelease,
   PublishedStudioServingRelease,
