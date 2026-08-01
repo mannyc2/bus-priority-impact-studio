@@ -9,11 +9,6 @@
       "bun": "./src/decode.ts",
       "import": "./src/decode.ts"
     },
-    "./documents": {
-      "types": "./src/documents/index.ts",
-      "bun": "./src/documents/index.ts",
-      "import": "./src/documents/index.ts"
-    },
     "./documents/candidates": {
       "types": "./src/documents/candidates/index.ts",
       "bun": "./src/documents/candidates/index.ts",

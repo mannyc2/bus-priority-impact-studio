@@ -54,7 +54,6 @@ describe("domain package shape", () => {
     expect(exportKeys).not.toContain(".");
     expect(exportKeys).toEqual(
       expect.arrayContaining([
-        "./documents",
         "./documents/candidates",
         "./documents/intervention-records",
         "./documents/operational-date",
