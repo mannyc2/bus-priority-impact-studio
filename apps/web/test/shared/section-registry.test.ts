@@ -292,7 +292,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "reliability")).toBe(false);
     expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "riders")).toBe(true);
   });
-
 });
 
 describe("route tab layer (plan 053 §4 redesign)", () => {

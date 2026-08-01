@@ -2,6 +2,48 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
+## [2026-08-01] engineering | Plan 110 deletes apps/web's unreachable component layer
+
+Completed Plan 110. Removed apps/web's dead component/fixture/token layer: 59 files changed, 3,522
+lines deleted against 4 inserted, across the route-scorecards fixture/test corpse (superseded by
+`packages/db/test/route-scorecard.test.ts`); the May-era `src/dev/system-gallery.tsx` +
+`src/dev/examples/` demo tree and the five components it alone used (SegmentRow, TreatmentRow,
+LaneGlyph, DirIndicator, HourStrip); 23 unadopted shadcn/ui primitives (dropdown-menu, field, item,
+alert-dialog, dialog, pagination, breadcrumb, card, avatar, table, button-group, accordion,
+progress, tooltip, scroll-area, hover-card, radio-group, switch, checkbox, spinner, separator,
+label, tabs); the orphan InterventionOverlay, route/MetricColumns, and HourExposure chart-pair
+components, plus `studio/metric-model.ts` (its `ROUTE_METRICS`/`RouteMetric` die with it; `MetricTone`
+is now a local type in `reliability-summary.ts`, its one live consumer); seven dead exports inside
+otherwise-live modules (`route-derived.ts`'s `dossierSpeedSeries` and three route-history series
+helpers, `treatment-model.ts`'s `countTreatmentStates`/`legacyToTreatments`, `recent-routes.ts`'s
+`useRecentRoutes` hook, `page.tsx`'s `toneForMetric`, `maplibre-style.ts`'s `speedTier`,
+`section-registry.ts`'s `routeSectionNavigationTarget` with its test cases, and `router-events.ts`'s
+`NAVIGATION_RESOLVED_EVENT` with its now-pointless `onResolved` dispatch); and 35 fictional CSS
+custom properties in `global.css`'s plain `:root` block (outside `@theme`, so Tailwind generated no
+utilities from them regardless) — the full spacing scale, the radius and shadow scales down to one
+surviving value each, both layout tokens, and 14 of 16 semantic-alias colors.
+
+`CorridorMap.tsx` and `RouteGeoMap.tsx` were left untouched — both are live no-geometry/non-MapLibre
+fallbacks with design-doctrine allowlist entries. None of this code shipped in the production
+bundle; Rollup already tree-shook it, so the payoff is maintenance surface and typecheck/lint scope,
+not bundle size (budgets held at 144.6 KB / 145 KB entry gz and 412.6 KB / 420 KB total gz throughout,
+unchanged by this plan).
+
+Baseline had drifted from the plan's assumed `292d2bd0` to current `origin/main` (PR #115's trend-marker
+anchors, PRs #116-117's public-intervention episodes, PRs #118-120); every step-5 dead-export gate was
+re-run fresh per the reviewer's amendment rather than trusting the plan's prose, and all seven symbols
+still had zero live importers.
+
+Verification passed: `bun run check:types`; `bun run test:web` (446 pass, down from 447 — one
+`routeSectionNavigationTarget` test removed); `bun --filter @bp/web build`; `bun run
+check:architecture` (production-boundaries, design-doctrine, month-doctrine, claude-config all
+green — the design-doctrine allowlist for `CorridorMap.tsx`/`RouteGeoMap.tsx` stayed non-stale since
+neither file was touched). `bun run check:style` fails with 7 pre-existing errors, all in files this
+plan does not touch (`analytics-primer.html` lint findings, two fixable lints in
+`apps/web/src/routes/routes/index.tsx`, and five `docs/research/artifacts/*.json` oversize-file
+warnings); confirmed via `git diff origin/main --stat` that none of those files were touched by this
+plan's commits.
+
 ## [2026-08-01] engineering | Plan 108 deletes pipeline-v2's completed-operation and no-ship code
 
 Completed Plan 108. Removed ~9,520 LOC of `tools/pipeline-v2` machinery for finished, adjudicated
