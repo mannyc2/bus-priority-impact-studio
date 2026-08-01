@@ -20,7 +20,10 @@ rm -rf -- 'data/raw/parking-violations'
 # socrata-partitioned-smoke/bus_hourly_ridership_2025 - 1301 bytes - 2 raw files, 1301 bytes
 rm -rf -- 'data/raw/socrata-partitioned-smoke/bus_hourly_ridership_2025'
 
-# orphaned artifact - 52582584801 bytes - Tier 2 docs pipeline was deleted in plan 024; plan 038 source audit measured this orphan at about 51 GB.
-rm -rf -- 'data/artifacts/docs'
+# data/artifacts/docs is NOT fully orphaned: .gitignore pins
+# gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json
+# as a tracked, SHA-pinned source input (read by route-treatment-crosswalk.test.ts
+# and export-intervention-corpus). Reclaim the untracked capture subtrees
+# individually if disk pressure requires; never remove the pinned file.
 
 df -h /mnt/models
