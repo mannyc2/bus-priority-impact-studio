@@ -42,56 +42,17 @@
 
   /* Semantic aliases */
   --bp-color-background: var(--bp-color-canvas);
-  --bp-color-background-raised: var(--bp-color-card);
   --bp-color-foreground: var(--bp-color-ink);
-  --bp-color-foreground-muted: var(--bp-color-ink-70);
-  --bp-color-border: var(--bp-color-rule);
-  --bp-color-accent-strong: var(--bp-color-accent);
-  --bp-color-success: var(--bp-color-good);
-  --bp-color-warning: var(--bp-color-warn);
-  --bp-color-hot: var(--bp-color-bad);
-  --bp-color-warm: var(--bp-color-warn);
-  --bp-color-pop: var(--bp-color-accent);
-  --bp-color-slate: var(--bp-color-ink-70);
-  --bp-color-muted: var(--bp-color-ink-55);
-  --bp-color-light: var(--bp-color-ink-10);
-  --bp-color-surface: var(--bp-color-paper);
-  --bp-color-white: var(--bp-color-card);
 
   /* --- Typography --- */
   --bp-font-body: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
   --bp-font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
 
-  /* --- Spacing --- */
-  --bp-space-2xs: 2px;
-  --bp-space-xs: 4px;
-  --bp-space-sm: 6px;
-  --bp-space-md: 8px;
-  --bp-space-lg: 12px;
-  --bp-space-xl: 16px;
-  --bp-space-2xl: 20px;
-  --bp-space-3xl: 24px;
-  --bp-space-4xl: 32px;
-
   /* --- Radii --- */
-  --bp-radius-xs: 2px;
-  --bp-radius-sm: 3px;
   --bp-radius-md: 4px;
-  --bp-radius-lg: 6px;
-  --bp-radius-xl: 8px;
-  --bp-radius-2xl: 12px;
-  --bp-radius-pill: 9999px;
-  --bp-radius-card: var(--bp-radius-md);
 
   /* --- Shadows --- */
-  --bp-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
-  --bp-shadow-md: 0 2px 12px rgba(0, 0, 0, 0.1);
   --bp-shadow-lg: 0 4px 24px rgba(0, 0, 0, 0.12);
-  --bp-shadow-sheet: 0 -4px 20px rgba(0, 0, 0, 0.1);
-
-  /* --- Layout --- */
-  --bp-page-inline: clamp(1rem, 3vw, 3rem);
-  --bp-section-block: clamp(3rem, 7vw, 7rem);
 
   /* --- View transitions --- */
   --duration-enter: 180ms;

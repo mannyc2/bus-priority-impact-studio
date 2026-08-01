@@ -1,6 +1,7 @@
 import type { StudioRoute, StudioRouteInsight } from "@/studio/api-contract";
-import type { MetricTone } from "@/studio/metric-model";
 import { stableInsightSort } from "./route-insight-placement";
+
+type MetricTone = "ink" | "good" | "bad";
 
 type ObservedReliability = NonNullable<StudioRoute["observedReliability"]>;
 

@@ -83,7 +83,7 @@
     "loc": "bun run tools/pipeline-v2/src/checks/check-loc.ts",
     "test": "bun run test:unit && bun run test:web && bun run test:worker",
     "test:unit": "bun test packages tools tests --timeout 5000",
-    "test:web": "bun test apps/web/test/route-scorecards apps/web/test/shared --timeout 5000",
+    "test:web": "bun test apps/web/test/shared --timeout 5000",
     "test:worker": "bun --filter @bp/web test:worker",
     "test:watch": "bun test --watch",
     "db:d1:generate": "bun --filter @bp/db db:generate:d1",

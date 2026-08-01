@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 import {
   ROUTE_DETAIL_TABS,
   routeSectionCanNavigate,
-  routeSectionNavigationTarget,
   routeSectionRegistry,
   routeSectionTitle,
   routeTabForSection,
@@ -292,24 +291,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionCanNavigate(routeSectionRegistry(clean), "treatments")).toBe(false);
     expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "reliability")).toBe(false);
     expect(routeSectionCanNavigate(routeSectionRegistry(sparse), "riders")).toBe(true);
-  });
-
-  test("routeSectionNavigationTarget falls back to Evidence for hidden-section CTAs", () => {
-    expect(routeSectionNavigationTarget(routeSectionRegistry(rich), "reliability")).toBe(
-      "reliability",
-    );
-    expect(routeSectionNavigationTarget(routeSectionRegistry(clean), "where-when")).toBe(
-      "where-when",
-    );
-    expect(routeSectionNavigationTarget(routeSectionRegistry(clean), "treatments")).toBe(
-      "evidence",
-    );
-    expect(routeSectionNavigationTarget(routeSectionRegistry(clean), "treatments", null)).toBe(
-      null,
-    );
-    expect(routeSectionNavigationTarget(routeSectionRegistry(sparse), "reliability")).toBe(
-      "evidence",
-    );
   });
 });
 

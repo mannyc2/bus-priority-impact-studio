@@ -118,12 +118,6 @@ export function scaledMapColor(
   return interpolateRgb(light, dark, t);
 }
 
-export function speedTier(speedMph: number): "bad" | "warn" | "good" {
-  if (speedMph < 5) return "bad";
-  if (speedMph < 6.5) return "warn";
-  return "good";
-}
-
 export function segmentSpeedAtHour(segment: StudioSegment, hour: number): number | null {
   if (segment.scheduledMph === null) return null;
   const severity = segment.hours[hour] ?? 0;

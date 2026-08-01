@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from "react";
-
 const KEY = "bp:recent-routes";
 const MAX = 4;
 const subs = new Set<() => void>();
@@ -33,19 +31,4 @@ export function pushRecentRoute(slug: string): void {
     // localStorage may throw in private mode / quota; in-memory cache still updates
   }
   for (const cb of subs) cb();
-}
-
-const EMPTY: readonly string[] = [];
-
-export function useRecentRoutes(): readonly string[] {
-  return useSyncExternalStore(
-    (cb) => {
-      subs.add(cb);
-      return () => {
-        subs.delete(cb);
-      };
-    },
-    read,
-    () => EMPTY,
-  );
 }

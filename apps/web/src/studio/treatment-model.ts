@@ -1,5 +1,3 @@
-import type { StudioSegment } from "@/studio/api-contract";
-
 export type TreatmentFamilyId = "street" | "enf" | "sig" | "stop" | "svc" | "curb" | "prog";
 
 export type TreatmentType =
@@ -105,22 +103,6 @@ export const TREATMENT_STATE_META: Record<
   unknown: { label: "Unknown", short: "Unknown", present: null, tone: "neutral" },
 };
 
-type LegacyTreatmentInput = Pick<StudioSegment, "ace" | "lane" | "tsp">;
-
-export function legacyToTreatments({
-  lane = "none",
-  ace = false,
-  tsp = false,
-}: Partial<LegacyTreatmentInput> = {}): TreatmentItem[] {
-  const items: TreatmentItem[] = [];
-  if (lane === "yes") items.push({ type: "bus_lane", state: "active", coverage: 1 });
-  if (lane === "partial") items.push({ type: "bus_lane", state: "active", coverage: 0.5 });
-  if (lane === "minimal") items.push({ type: "bus_lane", state: "active", coverage: 0.2 });
-  if (ace) items.push({ type: "ace", state: "active" });
-  if (tsp) items.push({ type: "tsp", state: "active" });
-  return items;
-}
-
 export function groupTreatments(treatments: readonly TreatmentItem[]) {
   const groups = new Map<TreatmentFamilyId, TreatmentItem[]>();
   for (const family of TREATMENT_FAMILIES) groups.set(family.id, []);
@@ -137,17 +119,4 @@ export function groupTreatments(treatments: readonly TreatmentItem[]) {
     });
   }
   return groups;
-}
-
-export function countTreatmentStates(treatments: readonly TreatmentItem[]) {
-  return treatments.reduce(
-    (counts, treatment) => {
-      const present = TREATMENT_STATE_META[treatment.state].present;
-      if (present === true) counts.inPlace += 1;
-      else if (present === null) counts.gaps += 1;
-      else counts.planned += 1;
-      return counts;
-    },
-    { inPlace: 0, planned: 0, gaps: 0 },
-  );
 }

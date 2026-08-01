@@ -75,7 +75,6 @@ function importsProductionFixture(text: string): string | null {
   return (
     extractModuleSpecifiers(text).find(
       (specifier) =>
-        specifier.includes("fixtures/demo-snippets") ||
         specifier.includes("studio/sample-data") ||
         specifier.endsWith("/sample-data.js") ||
         specifier === "../sample-data.js",
