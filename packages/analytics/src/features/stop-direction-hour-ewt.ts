@@ -1,8 +1,83 @@
-import { headwayIrregularityRates } from "../baselines/headway.js";
-import { round } from "../core/numbers.js";
 import type { FeatureQuality } from "./quality.js";
 import type { StopDirectionHourFeature } from "./stop-direction-hour.js";
 import { stopDirectionHourFeatureKey } from "./stop-direction-hour.js";
+
+function round(value: number, decimals = 4): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+type HeadwayIrregularityRates = {
+  pairCount: number;
+  bunchingPairCount: number;
+  gapPairCount: number;
+  bunchingShare: number | null;
+  gapShare: number | null;
+  ratios: number[];
+};
+
+type HeadwayIrregularityOptions = {
+  bunchingRatio: number;
+  gapRatio: number;
+};
+
+const DEFAULT_HEADWAY_IRREGULARITY_OPTIONS: HeadwayIrregularityOptions = {
+  bunchingRatio: 0.25,
+  gapRatio: 2,
+};
+
+function finiteNonnegativeValues(values: readonly number[]): number[] {
+  return values.filter((value) => Number.isFinite(value) && value >= 0);
+}
+
+function headwayIrregularityRates(
+  headwaysMinutes: readonly number[],
+  scheduledHeadwayMinutes: number | null,
+  options: Partial<HeadwayIrregularityOptions> = {},
+): HeadwayIrregularityRates {
+  const thresholds = { ...DEFAULT_HEADWAY_IRREGULARITY_OPTIONS, ...options };
+  if (
+    scheduledHeadwayMinutes === null ||
+    !Number.isFinite(scheduledHeadwayMinutes) ||
+    scheduledHeadwayMinutes <= 0
+  ) {
+    return {
+      pairCount: 0,
+      bunchingPairCount: 0,
+      gapPairCount: 0,
+      bunchingShare: null,
+      gapShare: null,
+      ratios: [],
+    };
+  }
+
+  const ratios = finiteNonnegativeValues(headwaysMinutes).map(
+    (headway) => headway / scheduledHeadwayMinutes,
+  );
+  const pairCount = ratios.length;
+  if (pairCount === 0) {
+    return {
+      pairCount,
+      bunchingPairCount: 0,
+      gapPairCount: 0,
+      bunchingShare: null,
+      gapShare: null,
+      ratios,
+    };
+  }
+
+  const bunchingPairCount = ratios.filter((ratio) => ratio < thresholds.bunchingRatio).length;
+  const gapPairCount = ratios.filter((ratio) => ratio > thresholds.gapRatio).length;
+
+  return {
+    pairCount,
+    bunchingPairCount,
+    gapPairCount,
+    bunchingShare: bunchingPairCount / pairCount,
+    gapShare: gapPairCount / pairCount,
+    ratios,
+  };
+}
 
 export type ScheduleStopArrivalForStopDirectionHourEwt = {
   routeId: string;

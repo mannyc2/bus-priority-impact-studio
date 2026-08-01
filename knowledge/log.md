@@ -2,47 +2,43 @@
 
 Append-only chronological log. Use the prefix format `## [YYYY-MM-DD] type | title`.
 
-## [2026-08-01] engineering | Plan 110 deletes apps/web's unreachable component layer
+## [2026-08-01] engineering | Plan 112 purges the frozen receipt corpora (~1.63M tracked lines)
 
-Completed Plan 110. Removed apps/web's dead component/fixture/token layer: 59 files changed, 3,522
-lines deleted against 4 inserted, across the route-scorecards fixture/test corpse (superseded by
-`packages/db/test/route-scorecard.test.ts`); the May-era `src/dev/system-gallery.tsx` +
-`src/dev/examples/` demo tree and the five components it alone used (SegmentRow, TreatmentRow,
-LaneGlyph, DirIndicator, HourStrip); 23 unadopted shadcn/ui primitives (dropdown-menu, field, item,
-alert-dialog, dialog, pagination, breadcrumb, card, avatar, table, button-group, accordion,
-progress, tooltip, scroll-area, hover-card, radio-group, switch, checkbox, spinner, separator,
-label, tabs); the orphan InterventionOverlay, route/MetricColumns, and HourExposure chart-pair
-components, plus `studio/metric-model.ts` (its `ROUTE_METRICS`/`RouteMetric` die with it; `MetricTone`
-is now a local type in `reliability-summary.ts`, its one live consumer); seven dead exports inside
-otherwise-live modules (`route-derived.ts`'s `dossierSpeedSeries` and three route-history series
-helpers, `treatment-model.ts`'s `countTreatmentStates`/`legacyToTreatments`, `recent-routes.ts`'s
-`useRecentRoutes` hook, `page.tsx`'s `toneForMetric`, `maplibre-style.ts`'s `speedTier`,
-`section-registry.ts`'s `routeSectionNavigationTarget` with its test cases, and `router-events.ts`'s
-`NAVIGATION_RESOLVED_EVENT` with its now-pointless `onResolved` dispatch); and 35 fictional CSS
-custom properties in `global.css`'s plain `:root` block (outside `@theme`, so Tailwind generated no
-utilities from them regardless) — the full spacing scale, the radius and shadow scales down to one
-surviving value each, both layout tokens, and 14 of 16 semantic-alias colors.
+Completed Plan 112. Deleted seven clusters of frozen JSON/markdown receipts across `data/` and
+`docs/`, all preserved in git history: (1) the 15 `data/artifacts/detector-calibration-*/`
+directories, 183 files, 828,329 lines — the top-level `detector-calibration-register.json` (read by
+`packages/domain/test/studio-route-insights.test.ts`) was kept; (2) 26 of 28 files in
+`docs/research/artifacts/`, 497,054 lines — kept the SHA-256-pinned rc26 study-events cut and the
+rc24 route-fixture receipt, both still read by `tools/pipeline-v2` tests; (3) 69 of 72 files in
+`docs/research/reviews/` (rc19/rc25/rc26/rc27-member-grain/review-cut-5298f37a), 287,080 lines —
+kept `plan097/`, the gen-17 production-recovery attestations; (4) six unreferenced data receipts,
+18,896 lines; (5) four superseded authoring-era `docs/architecture/` specs, 1,332 lines (governing
+ADRs 0014/0015/0016 already carry Superseded/Retired markers); (6) six superseded
+`docs/research/*.md` handoffs, 1,141 lines; (7) `docs/screenshots/`, 14 PNGs (plan 022/025
+before/after evidence, both DONE). Also added a `.gitignore` negation for
+`data/artifacts/detector-calibration-register.json` beneath the `data/artifacts/*` blanket rule, so
+the surviving tracked file no longer drifts from what git tracks. An ignore-drift probe over the
+remaining 36 tracked `data/` paths found two pre-existing, plan-112-unrelated drifts left as-is per
+the plan's explicit "report, don't chase" instruction: `data/artifacts/detector-calibration-register.NOTE.md`
+and `data/artifacts/studio/v2/routes/route-capability-manifest.json` both match un-negated blanket
+ignore rules despite being tracked; both predate this plan.
 
-`CorridorMap.tsx` and `RouteGeoMap.tsx` were left untouched — both are live no-geometry/non-MapLibre
-fallbacks with design-doctrine allowlist entries. None of this code shipped in the production
-bundle; Rollup already tree-shook it, so the payoff is maintenance surface and typecheck/lint scope,
-not bundle size (budgets held at 144.6 KB / 145 KB entry gz and 412.6 KB / 420 KB total gz throughout,
-unchanged by this plan).
-
-Baseline had drifted from the plan's assumed `292d2bd0` to current `origin/main` (PR #115's trend-marker
-anchors, PRs #116-117's public-intervention episodes, PRs #118-120); every step-5 dead-export gate was
-re-run fresh per the reviewer's amendment rather than trusting the plan's prose, and all seven symbols
-still had zero live importers.
-
-Verification passed: `bun run check:types`; `bun run test:web` (446 pass, down from 447 — one
-`routeSectionNavigationTarget` test removed); `bun --filter @bp/web build`; `bun run
-check:architecture` (production-boundaries, design-doctrine, month-doctrine, claude-config all
-green — the design-doctrine allowlist for `CorridorMap.tsx`/`RouteGeoMap.tsx` stayed non-stale since
-neither file was touched). `bun run check:style` fails with 7 pre-existing errors, all in files this
-plan does not touch (`analytics-primer.html` lint findings, two fixable lints in
-`apps/web/src/routes/routes/index.tsx`, and five `docs/research/artifacts/*.json` oversize-file
-warnings); confirmed via `git diff origin/main --stat` that none of those files were touched by this
-plan's commits.
+Verification passed: `bun run test` (1050 unit + 448 web + 32 worker, 0 fail), `bun run check:types`,
+`bun run check:architecture`, `bun run check:knowledge`. `bun run check:style` (`biome check .`)
+stays red on both sides of this change, but for reasons entirely outside plan 112's scope: at the
+`origin/main` baseline it reports 7 errors / 39 warnings (1108 files checked); after this plan, 2
+errors / 24 warnings (1046 files checked). The prior Plan 108 log entry's "7 pre-existing errors —
+all 'file exceeds 1.0 MiB' warnings" characterization conflated two different biome diagnostics: the
+7 baseline *errors* are formatter diffs (5 inside files this plan deletes — one in
+`docs/research/artifacts/`, four in `docs/research/reviews/rc25/` — plus 2 pre-existing and
+unrelated, in `packages/db/migrations-drizzle/.../snapshot.json` and
+`tools/pipeline-v2/test/mta-wiki-route-identities.test.ts`); the oversized-file diagnostic is a
+separate *warning* class, and there were 13 of them in `docs/research/artifacts/` alone at baseline,
+not 7. This plan's cluster-2 deletion removes 12 of those 13; the 13th,
+`candidate-set-v3-80050ed598f3b2ab0d0a1e99.study-events.json` (1.1 MiB), is the SHA-256-pinned keep
+file and will keep tripping the size warning permanently — it is out of scope to shrink, move, or
+exclude. The 2 remaining errors after this plan are exactly the 2 pre-existing/unrelated ones above;
+`check:style`'s exit code will stay non-zero until those are fixed on their own, unrelated track.
 
 ## [2026-08-01] engineering | Plan 108 deletes pipeline-v2's completed-operation and no-ship code
 
@@ -9479,3 +9475,113 @@ highest-value data operation available; it is not a data operation at all.
 ## [2026-08-01] docs | Plan 107 truth sweep: stale pointers and reclaim-script footgun fixed
 
 Five drifted defects were closed before any further cleanup lands. `scripts/reclaim-raw-json.sh` carried an `rm -rf -- 'data/artifacts/docs'` line under a comment calling the tree fully orphaned; that line is gone, replaced with a comment explaining that `.gitignore` pins one file in that tree (`gap-roadmap-docs-2026-05-25/intervention-records-corpus-v3-reviewed-2026-05-27.json`) which `route-treatment-crosswalk.test.ts` and `export-intervention-corpus.ts` both read, so no `rm` line in the script targets a tracked path anymore. `README.md` swapped its dead `data/artifacts/analytics-detector-readiness/` link for the tracked `detector-calibration-register.json`, and its Tier 2 status runbook link (a system deleted by plan 024) for a sentence pointing at the separate `mta-wiki` repo consumed via versioned release bundles. `apps/web/public/llms.txt` dropped its two `/methods` and `/api/v1/studio/methods` links, both dead since plan 052, and `apps/web/public/sitemap.xml` gained the `/routes` entry it was missing. Three source comments — `packages/db/src/local/schema.ts`, `packages/db/src/local/repositories/corpus-context.ts`, and `packages/domain/src/findings/index.ts` — no longer point at the deleted `knowledge/wiki/analysis/finding_coverage_and_corpus_expansion.md`, keeping the rest of each comment where it still describes the code. `docs/decisions/0018-detector-calibration-readiness-loop.md`'s Status line now records the calibration-readiness program complete as of 2026-06-11 with all 21 detectors dispositioned, instead of a bare "Accepted" for a program whose producing package is gone.
+
+## [2026-08-01] implementation | Plan 109 deletes the dead detector/feature subtrees in packages/*
+
+Implemented Plan 109 on `advisor/109-packages-dead-code`, based on `main` at
+`90dd5282`. Steps 1–6 and 8–10 landed as scoped; step 7 was skipped. Net:
+77 files changed, 8,085 deletions, 90 insertions.
+
+Deleted: the Tier-2 intervention-records policy (`packages/analytics/src/interventions/intervention-records.ts`);
+the dead `@bp/domain/documents` barrel; three dead package-export stubs
+(`studio-api/server/testing`, `db/shared`, `db/local` tier2-intervention-staging);
+`field-provenance.ts` plus its `month-doctrine` harness pin; the v1 half of the
+intervention-evidence registry (`INTERVENTION_EVIDENCE_SPECS`,
+`INTERVENTION_ANALYSIS_DISPOSITIONS_V1`, `interventionEvidenceSpecFor`,
+`serializeInterventionRelevanceCoverageMatrix`) while keeping the live
+`TreatmentRelevance*` family; the entire pre-gen-7 detector primitive layer
+(`analytics/baselines/`, `analytics/core/`, `concentration.ts`,
+`evaluation/{scorecard,gold-set}.ts`) and 13 of 21 `analytics/features/*`
+modules plus their 9 self-referential tests; the dead detector half of the
+local findings repository (8 functions: `insertFindingCandidate`,
+`insertFindingEvidenceLinks`, `insertCoverageAudit`,
+`insertCoverageAuditIgnore`, `listCandidatesByRoute`,
+`listEvidenceForCandidate`, `replaceFindingsForMonth`, `replaceFindingRun`);
+the D1 route-timelines query module; and the unwired identity/auth/alerts
+surface (`d1/queries/{identity,identity-surfaces,studio-auth}.ts`,
+`domain/src/studio/identity/`) while leaving every `studioActor*`/identity/
+alert table in `schema.ts` and all migrations untouched, since production D1
+holds rows there.
+
+**Step 7 (delete `@bp/domain/findings`) was skipped, not forced.** The plan's
+own gate — `grep "@bp/domain/findings\|domain/src/findings"` — came back
+empty, but `packages/domain/test/studio-route-insights.test.ts:373` reaches
+the module through a relative `await import("../src/findings")` the gate's
+pattern can't see. That one test (`S4.1 serving readiness gating`) checks a
+real production invariant: the studio route-insight allowlist must be a
+subset of `KNOWN_DETECTOR_IDS`. This is exactly the plan's own STOP condition
+— "Step 7's gate shows live importers — skip the step and report (do not
+force)" — so `packages/domain/src/findings/index.ts` (920 LOC), its
+`package.json` export, and both test files stay. `@bp/domain/findings` is
+still deletable, but needs `studio-route-insights.test.ts` added to scope
+first (either replace its `KNOWN_DETECTOR_IDS` source or accept dropping that
+one safety check).
+
+Two judgment calls inside step 5, both forced by re-reading `spec.ts` before
+cutting per the plan's own warning that the two registry generations "share
+disposition helpers": `InterventionEvidenceBindingRoleSchema` and
+`InterventionEvidenceWindowSchema` are nominally in the deleted
+`InterventionEvidence*` family but are the literal types backing the live
+`TreatmentRelevanceScopeSemanticSchema.role` and
+`TreatmentRelevanceBindingSchema.window` fields, so both stayed. Likewise
+`validateInterventionEvidenceRegistry()` still validates the live
+`TREATMENT_RELEVANCE_SPECS_V1`/`INTERVENTION_RELEVANCE_DISPOSITIONS_V1`
+registries at module load, so only its two v1-specific validation loops were
+cut, not the function.
+
+Left `countContextEvents` (`packages/db/src/local/repositories/findings.ts`)
+in place though it has zero callers: it wasn't named in either the plan's
+delete-eight or keep-two lists, and it reads the same `local_context_event`
+table as the two kept functions. Flagging it here rather than deleting it
+unasked.
+
+`check:style` fails (8 errors) on this branch, but every flagged file
+(`analytics-primer.html`, `apps/web/src/routes/routes/index.tsx`,
+`biome.jsonc`, `docs/research/artifacts/*.json`) is disjoint from every file
+this plan touched — confirmed by diffing the full list of files this plan
+changed against the flagged paths. Pre-existing on `main`, not introduced
+here; the plan's own Done Criteria section does not gate on `check:style`.
+`check:types`, `check:architecture`, and the full `bun run test` (1,457 tests
+across three suites) all pass at 0 fail / exit 0.
+
+## [2026-08-01] engineering | Plan 110 deletes apps/web's unreachable component layer
+
+Completed Plan 110. Removed apps/web's dead component/fixture/token layer: 59 files changed, 3,522
+lines deleted against 4 inserted, across the route-scorecards fixture/test corpse (superseded by
+`packages/db/test/route-scorecard.test.ts`); the May-era `src/dev/system-gallery.tsx` +
+`src/dev/examples/` demo tree and the five components it alone used (SegmentRow, TreatmentRow,
+LaneGlyph, DirIndicator, HourStrip); 23 unadopted shadcn/ui primitives (dropdown-menu, field, item,
+alert-dialog, dialog, pagination, breadcrumb, card, avatar, table, button-group, accordion,
+progress, tooltip, scroll-area, hover-card, radio-group, switch, checkbox, spinner, separator,
+label, tabs); the orphan InterventionOverlay, route/MetricColumns, and HourExposure chart-pair
+components, plus `studio/metric-model.ts` (its `ROUTE_METRICS`/`RouteMetric` die with it; `MetricTone`
+is now a local type in `reliability-summary.ts`, its one live consumer); seven dead exports inside
+otherwise-live modules (`route-derived.ts`'s `dossierSpeedSeries` and three route-history series
+helpers, `treatment-model.ts`'s `countTreatmentStates`/`legacyToTreatments`, `recent-routes.ts`'s
+`useRecentRoutes` hook, `page.tsx`'s `toneForMetric`, `maplibre-style.ts`'s `speedTier`,
+`section-registry.ts`'s `routeSectionNavigationTarget` with its test cases, and `router-events.ts`'s
+`NAVIGATION_RESOLVED_EVENT` with its now-pointless `onResolved` dispatch); and 35 fictional CSS
+custom properties in `global.css`'s plain `:root` block (outside `@theme`, so Tailwind generated no
+utilities from them regardless) — the full spacing scale, the radius and shadow scales down to one
+surviving value each, both layout tokens, and 14 of 16 semantic-alias colors.
+
+`CorridorMap.tsx` and `RouteGeoMap.tsx` were left untouched — both are live no-geometry/non-MapLibre
+fallbacks with design-doctrine allowlist entries. None of this code shipped in the production
+bundle; Rollup already tree-shook it, so the payoff is maintenance surface and typecheck/lint scope,
+not bundle size (budgets held at 144.6 KB / 145 KB entry gz and 412.6 KB / 420 KB total gz throughout,
+unchanged by this plan).
+
+Baseline had drifted from the plan's assumed `292d2bd0` to current `origin/main` (PR #115's trend-marker
+anchors, PRs #116-117's public-intervention episodes, PRs #118-120); every step-5 dead-export gate was
+re-run fresh per the reviewer's amendment rather than trusting the plan's prose, and all seven symbols
+still had zero live importers.
+
+Verification passed: `bun run check:types`; `bun run test:web` (446 pass, down from 447 — one
+`routeSectionNavigationTarget` test removed); `bun --filter @bp/web build`; `bun run
+check:architecture` (production-boundaries, design-doctrine, month-doctrine, claude-config all
+green — the design-doctrine allowlist for `CorridorMap.tsx`/`RouteGeoMap.tsx` stayed non-stale since
+neither file was touched). `bun run check:style` fails with 7 pre-existing errors, all in files this
+plan does not touch (`analytics-primer.html` lint findings, two fixable lints in
+`apps/web/src/routes/routes/index.tsx`, and five `docs/research/artifacts/*.json` oversize-file
+warnings); confirmed via `git diff origin/main --stat` that none of those files were touched by this
+plan's commits.

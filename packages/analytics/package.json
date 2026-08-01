@@ -5,8 +5,6 @@
   "description": "Deterministic local transforms and metrics.",
   "exports": {
     "./artifacts": "./src/artifacts/index.ts",
-    "./baselines": "./src/baselines/index.ts",
-    "./core": "./src/core/index.ts",
     "./data-products": "./src/data-products/index.ts",
     "./evaluation": "./src/evaluation/index.ts",
     "./feature-history": "./src/feature-history/index.ts",

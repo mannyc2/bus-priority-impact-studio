@@ -2,13 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { DATA_PRODUCT_MANIFEST, DataProductManifestSchema } from "@bp/analytics/data-products";
 import { getFeatureContract, ROUTE_METRIC_HISTORY_FEATURE_GRAIN } from "@bp/analytics/features";
 import {
-  INTERVENTION_ANALYSIS_DISPOSITIONS_V1,
-  INTERVENTION_EVIDENCE_SPECS,
   INTERVENTION_RELEVANCE_COVERAGE_MATRIX_V1,
   INTERVENTION_RELEVANCE_DISPOSITIONS_V1,
-  InterventionEvidenceSpecSchema,
-  interventionEvidenceSpecFor,
-  serializeInterventionRelevanceCoverageMatrix,
   TREATMENT_RELEVANCE_SPECS_V1,
   TreatmentRelevanceDispositionSchema,
   TreatmentRelevanceSpecSchema,
@@ -103,7 +98,6 @@ const EXPECTED_UNLOCKS = {
     "Register stop-level dwell or boarding history, exact stop identities, and a dated operational occurrence.",
 } as const;
 
-const ACE_SPEC = required(INTERVENTION_EVIDENCE_SPECS[0], "ACE compatibility spec");
 const TARGET_ACE_SPEC = required(
   TREATMENT_RELEVANCE_SPECS_V1.find(
     (spec) => spec.treatmentKind === "automated_bus_lane_enforcement",
@@ -120,14 +114,10 @@ const BUSWAY_SPEC = required(
 );
 
 describe("intervention evidence registry", () => {
-  test("strictly decodes the legacy ACE projection, target specs, dispositions, and product manifest", () => {
+  test("strictly decodes the target specs, dispositions, and product manifest", () => {
     expect(lookupInputIsCanonicalKind).toBe(true);
     expect(matrixIsExhaustive).toBe(true);
-    expect(INTERVENTION_EVIDENCE_SPECS).toHaveLength(1);
     expect(TREATMENT_RELEVANCE_SPECS_V1).toHaveLength(3);
-    expect(() =>
-      Schema.decodeUnknownSync(InterventionEvidenceSpecSchema)(ACE_SPEC, StrictParseOptions),
-    ).not.toThrow();
     for (const spec of TREATMENT_RELEVANCE_SPECS_V1) {
       expect(() =>
         Schema.decodeUnknownSync(TreatmentRelevanceSpecSchema)(spec, StrictParseOptions),
@@ -150,40 +140,21 @@ describe("intervention evidence registry", () => {
     expect(() => validateInterventionEvidenceRegistry()).not.toThrow();
   });
 
-  test("keeps the Plan 090 ACE resolver behaviorally ACE-only", () => {
-    expect(interventionEvidenceSpecFor("automated_bus_lane_enforcement")).toEqual({
-      status: "supported",
-      analysisFamily: "automated_bus_lane_enforcement",
-      specId: "automated_bus_lane_enforcement_route_observations_v1",
-      spec: ACE_SPEC,
-    });
-    for (const kind of ["bus_lane", "busway", "route_redesign", "other_documented"] as const) {
-      expect(interventionEvidenceSpecFor(kind)).toEqual({
-        status: "unsupported_treatment_family",
-        analysisFamily: null,
-        reasonId: "not_reviewed_for_observation_v1",
-        spec: null,
-      });
-      expect(INTERVENTION_ANALYSIS_DISPOSITIONS_V1[kind].analysisFamily).toBeNull();
-    }
-  });
-
-  test("serializes an exact exhaustive coverage matrix sorted by treatment kind and spec ID", () => {
+  test("builds an exact exhaustive coverage matrix sorted by treatment kind and spec ID", () => {
     expect(Object.keys(INTERVENTION_RELEVANCE_DISPOSITIONS_V1).sort()).toEqual(
       [...STUDIO_INTERVENTION_TREATMENT_KINDS].sort(),
     );
     expect(INTERVENTION_RELEVANCE_COVERAGE_MATRIX_V1).toHaveLength(35);
-    const serialized = serializeInterventionRelevanceCoverageMatrix();
-    const rows = JSON.parse(serialized) as typeof INTERVENTION_RELEVANCE_COVERAGE_MATRIX_V1;
-    expect(serialized).toBe(JSON.stringify(rows, null, 2));
     expect(
-      rows.map((row) => [row.treatmentKind, row.status, row.specId ?? row.reasonId].join(":")),
+      INTERVENTION_RELEVANCE_COVERAGE_MATRIX_V1.map((row) =>
+        [row.treatmentKind, row.status, row.specId ?? row.reasonId].join(":"),
+      ),
     ).toEqual(
       Object.entries(EXPECTED_COVERAGE)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([kind, disposition]) => `${kind}:${disposition}`),
     );
-    for (const row of rows) {
+    for (const row of INTERVENTION_RELEVANCE_COVERAGE_MATRIX_V1) {
       if (row.status !== "blocked") continue;
       expect(row.unlockRequirement).toBe(
         EXPECTED_UNLOCKS[row.reasonId as keyof typeof EXPECTED_UNLOCKS],
