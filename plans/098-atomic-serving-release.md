@@ -56,6 +56,16 @@ metadata, retries only deployment-propagation failures, and deletes the
 temporary service through Cloudflare's service endpoint without broadening the
 credential. Production serving and the release pointer remain unchanged.
 
+The diagnostic follow-up (`ci-cd` run `30718511250`) preserved the terminal
+reason: the receipt did not bind the expected production baseline. It again
+stopped before migration or reader changes, uploaded the evidence, and this
+time removed the operator successfully. Comparison with Plan 097's original
+provisioning and release-closure attestations found a transcription error in
+the Plan 098 manifest pin: `6bc5cc638…` instead of the reviewed production
+manifest `6bc5cc028…`. The correction synchronizes the strict receipt check and
+activation download check to the latter and adds a repository guard tying both
+to the closure attestation; no check is removed or generalized.
+
 ## Outcome
 
 Make one explicit release pointer select every reviewed D1 projection and R2
