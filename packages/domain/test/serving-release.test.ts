@@ -57,6 +57,15 @@ describe("Plan 098 serving contracts", () => {
     expect(semantic.datasets[0]?.sourceSnapshotIds).toEqual(["snapshot-a", "snapshot-b"]);
   });
 
+  test("preserves exact plus-suffixed route identities in logical artifact IDs", () => {
+    const candidate = validCandidate();
+    first(candidate.artifacts).logicalId = "map/route-segments/b44+/2026-05/all-day.geojson";
+
+    const decoded = decodeStrict(ServingCandidateManifestV1Schema)(candidate);
+
+    expect(decoded.artifacts[0]?.logicalId).toBe("map/route-segments/b44+/2026-05/all-day.geojson");
+  });
+
   test("rejects duplicate logical IDs and non-hash-bearing physical keys", () => {
     const candidate = validCandidate();
     candidate.artifacts.push({ ...first(candidate.artifacts), key: "serving/not-addressed.json" });

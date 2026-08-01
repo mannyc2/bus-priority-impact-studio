@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "./shared.js";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
-const LOGICAL_ID_PATTERN = /^[a-z0-9](?:[a-z0-9._/-]*[a-z0-9])?$/;
+const LOGICAL_ID_PATTERN = /^[a-z0-9](?:[a-z0-9._+/-]*[a-z0-9])?$/;
 const PHYSICAL_KEY_PATTERN = /(?:^|\/)[a-f0-9]{64}(?:\.|\/)/;
 const DATASET_ID_PATTERN = /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/;
 
