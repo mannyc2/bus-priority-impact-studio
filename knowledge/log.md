@@ -9902,3 +9902,12 @@ the narrow production token correctly denied. The follow-up records the exact re
 attempt/status metadata, treats 409 as terminal rather than retryable, and removes the temporary
 service through Cloudflare's scoped Workers service endpoint. This improves evidence and cleanup;
 it does not loosen preflight checks or expand credential authority.
+
+Diagnostic run `30718511250` then captured the terminal reason: the pinned receipt did not bind the
+expected production baseline. It again stopped before migration/reader work, uploaded its evidence,
+and successfully removed the temporary operator through the scoped service endpoint. Plan 097's
+original provisioning and release-closure attestations record artifact manifest
+`6bc5cc028bfd20eadb7912b6022212847ba2f8087511450ac463f9e783300e70`; the Plan 098 operator and
+activation workflow had transcribed it as `6bc5cc638…`. The correction uses the reviewed value in
+both strict checks and adds a harness assertion that keeps them synchronized with the immutable
+closure record. Production remained unchanged by this diagnostic run.

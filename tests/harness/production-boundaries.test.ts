@@ -217,6 +217,24 @@ describe("production boundary harness", () => {
     expect(publicApi).toContain("PLAN097_RECOVERY_NAMESPACE");
   });
 
+  test("Plan 098 keeps the reviewed Plan 097 manifest pin synchronized", async () => {
+    const expectedManifestSha256 =
+      "6bc5cc028bfd20eadb7912b6022212847ba2f8087511450ac463f9e783300e70";
+    const operation = await Bun.file(
+      "apps/web/src/worker/operations/plan098-serving-release.ts",
+    ).text();
+    const activationWorkflow = await Bun.file(
+      ".github/workflows/plan098-production-activation.yml",
+    ).text();
+    const closureAttestation = await Bun.file(
+      "docs/research/reviews/plan097/release-closure-attestation.md",
+    ).text();
+
+    expect(operation).toContain(expectedManifestSha256);
+    expect(activationWorkflow).toContain(expectedManifestSha256);
+    expect(closureAttestation).toContain(expectedManifestSha256);
+  });
+
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
     const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();

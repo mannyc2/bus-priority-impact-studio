@@ -364,7 +364,7 @@ async function jsonAction(
       receipt.signature.publicKeySpkiSha256 !== PLAN097_PREFLIGHT_PUBLIC_KEY_SPKI_SHA256 ||
       receipt.candidate.releaseId !== PLAN097_BASELINE_RELEASE_ID ||
       receipt.candidate.manifestSha256 !==
-        "6bc5cc6380f39c78e50a87bbd71b54706eb9294b6322ef27f05d4e302767b449" ||
+        "6bc5cc028bfd20eadb7912b6022212847ba2f8087511450ac463f9e783300e70" ||
       receipt.resources.d1DatabaseName !== "bus-priority-serving" ||
       receipt.resources.d1DatabaseId !== "d9cd87e2-1f77-44eb-b712-e834b23497b0" ||
       receipt.resources.r2Bucket !== "bus-priority-artifacts"

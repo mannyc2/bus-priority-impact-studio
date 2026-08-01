@@ -49,7 +49,7 @@ jobs:
             bus-priority-artifacts/operations/plan097/releases/pub_20260725T164123260Z/artifact-manifest.json \
             --remote --file "$output_dir/plan097-artifact-manifest.json"
           test "$(sha256sum "$output_dir/plan097-artifact-manifest.json" | cut -d' ' -f1)" = \
-            "6bc5cc6380f39c78e50a87bbd71b54706eb9294b6322ef27f05d4e302767b449"
+            "6bc5cc028bfd20eadb7912b6022212847ba2f8087511450ac463f9e783300e70"
 
           table_args=()
           while IFS= read -r table; do
