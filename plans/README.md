@@ -127,7 +127,38 @@ claim bundle-size wins.
 
 ---
 
-# Generation 19 — reviewed resolved-transit public-pack cutover (2026-07-31): plan 106 (BLOCKED upstream) lives on the operator's unmerged branch with its full section; re-add here when that branch lands.
+# Generation 19 — reviewed resolved-transit public-pack cutover (refreshed 2026-08-01)
+
+Plan 106 was refreshed against `origin/main@5dd08062` after `mta-wiki` Plans
+053-056 completed and the final non-prerelease
+`resolved-pack-v1-production` GitHub Release was published. The exact release,
+archive, manifest, resource, and accepted-conformance hashes are now pinned in
+the plan. The producer gate is clear; implementation must start in a clean
+current-main worktree. Plan 098 remains a hard prerequisite for activation,
+not for building and reviewing the Tracker candidate.
+
+## Execution order & status (gen 19)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 106 | Cut the site over to the reviewed resolved-transit public pack | P0 | XL | final producer release (satisfied); local 098 for activation; Plan 057 pin/deploy | TODO (producer handoff verified; executable now on a clean current-main branch) |
+
+## Dependency and safety notes (gen 19)
+
+- Public producer input is the exact 11-resource
+  `resolved-pack-v1-production` public pack. The five pinned operator
+  Tracker-conformance files are build-only; no operator field may become
+  public.
+- The accepted target is exact: 222 episodes, 188 route artifacts, and 268
+  memberships — 157 producer episodes plus 65 Tracker ACE enrichments, with
+  131 mapped legacy episodes, eight exclusions, and 26 producer additions.
+- Final semantics include five unknown actions and 138 unknown extents. The
+  104 placements are 95 `last_confirmed_active` and nine `unknown`; the
+  confirmed-current footprint is empty, so the site may make no current-active
+  producer claim.
+- Producer publication and `LATEST` promotion are complete. Tracker pin and
+  deployment are owner-approved but technically STOP-blocked until Plans 098
+  and 106 complete. Plan 098 must cover every new logical key atomically.
 
 ---
 
