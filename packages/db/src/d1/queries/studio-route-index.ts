@@ -528,31 +528,53 @@ export type ExactRouteIdentityRelease = {
   tripTypeCount: number;
 };
 
+function selectExactRouteIdentityReleases(db: D1ServingDb) {
+  return db
+    .select({
+      releaseId: exactRouteIdentityRelease.releaseId,
+      publishedAt: exactRouteIdentityRelease.publishedAt,
+      coverageStart: exactRouteIdentityRelease.coverageStart,
+      coverageEnd: exactRouteIdentityRelease.coverageEnd,
+      sourceWikiRelease: exactRouteIdentityRelease.sourceWikiRelease,
+      sourceManifestSha256: exactRouteIdentityRelease.sourceManifestSha256,
+      sourceRouteIdentitySha256: exactRouteIdentityRelease.sourceRouteIdentitySha256,
+      sourceCurrentBusRoutesSha256: exactRouteIdentityRelease.sourceCurrentBusRoutesSha256,
+      sourceIndexSha256: exactRouteIdentityRelease.sourceIndexSha256,
+      catalogSnapshotSha256: exactRouteIdentityRelease.catalogSnapshotSha256,
+      projectionSha256: exactRouteIdentityRelease.projectionSha256,
+      exactRouteCount: exactRouteIdentityRelease.exactRouteCount,
+      routeTypeCount: exactRouteIdentityRelease.routeTypeCount,
+      tripTypeCount: exactRouteIdentityRelease.tripTypeCount,
+    })
+    .from(exactRouteIdentityRelease);
+}
+
 /** Exact route identity projection registered for one published serving release. */
 export async function findExactRouteIdentityRelease(
   db: D1ServingDb,
   releaseId: string,
 ): Promise<ExactRouteIdentityRelease | null> {
   try {
-    const rows = await db
-      .select({
-        releaseId: exactRouteIdentityRelease.releaseId,
-        publishedAt: exactRouteIdentityRelease.publishedAt,
-        coverageStart: exactRouteIdentityRelease.coverageStart,
-        coverageEnd: exactRouteIdentityRelease.coverageEnd,
-        sourceWikiRelease: exactRouteIdentityRelease.sourceWikiRelease,
-        sourceManifestSha256: exactRouteIdentityRelease.sourceManifestSha256,
-        sourceRouteIdentitySha256: exactRouteIdentityRelease.sourceRouteIdentitySha256,
-        sourceCurrentBusRoutesSha256: exactRouteIdentityRelease.sourceCurrentBusRoutesSha256,
-        sourceIndexSha256: exactRouteIdentityRelease.sourceIndexSha256,
-        catalogSnapshotSha256: exactRouteIdentityRelease.catalogSnapshotSha256,
-        projectionSha256: exactRouteIdentityRelease.projectionSha256,
-        exactRouteCount: exactRouteIdentityRelease.exactRouteCount,
-        routeTypeCount: exactRouteIdentityRelease.routeTypeCount,
-        tripTypeCount: exactRouteIdentityRelease.tripTypeCount,
-      })
-      .from(exactRouteIdentityRelease)
+    const rows = await selectExactRouteIdentityReleases(db)
       .where(eq(exactRouteIdentityRelease.releaseId, releaseId))
+      .limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTable(error, "exact_route_identity_release")) return null;
+    throw error;
+  }
+}
+
+/** Latest exact-identity registration within an already candidate-scoped database. */
+export async function findLatestExactRouteIdentityRelease(
+  db: D1ServingDb,
+): Promise<ExactRouteIdentityRelease | null> {
+  try {
+    const rows = await selectExactRouteIdentityReleases(db)
+      .orderBy(
+        desc(exactRouteIdentityRelease.publishedAt),
+        desc(exactRouteIdentityRelease.releaseId),
+      )
       .limit(1);
     return rows[0] ?? null;
   } catch (error) {
