@@ -9992,3 +9992,12 @@ is the reviewed Plan 106 producer pack, while
 `a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5` is the derived 3,191-object
 serving candidate selected by the atomic pointer. The drill and workflow now bind the exact
 3,002-object baseline and 3,191-object overlay candidate without conflating those identities.
+
+Activation run `30723133626` verified all 414 Candidate B artifact batches, made the candidate
+ready, and atomically switched generation 2 to the Plan 106 serving candidate. The Plan 106
+artifact was publicly byte-correct, but the map smoke failed closed: pointed response assembly
+still required the immutable source map manifest's Plan 097 release ID to equal the new activation
+event ID. Plan 098 deliberately separates those identities. The map reader now verifies the source
+manifest and nested route-facts identity against the candidate-scoped catalog first, then injects
+the pointed release envelope and release-qualified artifact paths into the public response. A
+generation-resume smoke is recorded before any subsequent rollback or reactivation mutation.

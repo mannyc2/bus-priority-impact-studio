@@ -297,6 +297,7 @@ async function main(): Promise<void> {
   };
 
   let pointer = await pointerStatus();
+  const startingGeneration = pointer.generation;
   if (pointer.generation === 0) {
     await stageCandidate({
       name: "a",
@@ -363,6 +364,9 @@ async function main(): Promise<void> {
   const candidateBStatus = await candidateStatus(manifestB.candidateId);
   const releaseB = candidateBStatus.releases[0];
   if (releaseB === undefined) throw new Error("Candidate B has no immutable release event.");
+  if (pointer.generation === 2 && startingGeneration === 2) {
+    await smoke("activate-b-resume", releaseB.releaseId, manifestB.candidateId);
+  }
   if (pointer.generation === 2) {
     await operatorJson({
       action: "activate",
@@ -380,6 +384,9 @@ async function main(): Promise<void> {
     });
     await smoke("rollback-a", stagePlan.baselineReleaseId, manifestA.candidateId);
     pointer = await pointerStatus();
+  }
+  if (pointer.generation === 3 && startingGeneration === 3) {
+    await smoke("rollback-a-resume", stagePlan.baselineReleaseId, manifestA.candidateId);
   }
   if (pointer.generation === 3) {
     await operatorJson({
