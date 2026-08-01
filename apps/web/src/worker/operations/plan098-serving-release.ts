@@ -19,10 +19,7 @@ import {
   ServingCandidateManifestV1Schema,
   ServingReleaseV1Schema,
 } from "@bp/domain/studio/serving-release";
-import {
-  capturePlan097D1CanonicalSchema,
-  verifyPlan097PreflightReceiptSignature,
-} from "./plan097-recovery.js";
+import { capturePlan097D1CanonicalSchema } from "./plan097-recovery.js";
 
 export const PLAN098_OPERATION_PATH = "/__operations/plan098";
 
@@ -30,8 +27,6 @@ export type Plan098OperatorEnv = {
   DB?: D1Database;
   ARTIFACTS?: R2Bucket;
   PLAN097_OPERATIONS?: R2Bucket;
-  PLAN097_PREFLIGHT_SIGNING_KEY_ID?: string;
-  PLAN097_PREFLIGHT_SIGNING_PUBLIC_KEY_SPKI_BASE64?: string;
   PLAN098_EXECUTION_TOKEN?: string;
   PLAN098_OPERATOR_ENABLED?: string;
 };
@@ -39,6 +34,12 @@ export type Plan098OperatorEnv = {
 const PLAN097_BASELINE_RELEASE_ID = "pub_20260725T164123260Z";
 const PLAN097_PREFLIGHT_RECEIPT_SHA256 =
   "f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6";
+// Plan 097 independently verified the Ed25519 signature before recording this exact receipt digest
+// and signer fingerprint. Its one-time signing material was intentionally retired at cleanup, so
+// Plan 098 re-establishes trust by requiring the immutable bytes and embedded signer identity.
+const PLAN097_PREFLIGHT_SIGNING_KEY_ID = "plan097-20260725-rc28";
+const PLAN097_PREFLIGHT_PUBLIC_KEY_SPKI_SHA256 =
+  "7b6bb824b4754df8686bfc10e4295a2e47d9ab4da34a92c29af1199842adb8c6";
 const PLAN097_PREFLIGHT_RECEIPT_KEY = `operations/plan097/preflight/${PLAN097_BASELINE_RELEASE_ID}/preflight.${PLAN097_PREFLIGHT_RECEIPT_SHA256}.json`;
 
 type CandidateArtifactRow = {
@@ -357,9 +358,10 @@ async function jsonAction(
     const receipt = decodeStrict(Plan097PreflightReceiptSchema)(
       JSON.parse(new TextDecoder().decode(bytes)),
     );
-    await verifyPlan097PreflightReceiptSignature(env, receipt);
     if (
       receipt.outcome !== "ready" ||
+      receipt.signature.keyId !== PLAN097_PREFLIGHT_SIGNING_KEY_ID ||
+      receipt.signature.publicKeySpkiSha256 !== PLAN097_PREFLIGHT_PUBLIC_KEY_SPKI_SHA256 ||
       receipt.candidate.releaseId !== PLAN097_BASELINE_RELEASE_ID ||
       receipt.candidate.manifestSha256 !==
         "6bc5cc6380f39c78e50a87bbd71b54706eb9294b6322ef27f05d4e302767b449" ||
