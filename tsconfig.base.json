@@ -59,6 +59,9 @@
       "@bp/domain/studio/public-intervention-episodes": [
         "./packages/domain/src/studio/public-intervention-episodes.ts"
       ],
+      "@bp/domain/studio/resolved-transit-public-pack": [
+        "./packages/domain/src/studio/resolved-transit-public-pack.ts"
+      ],
       "@bp/domain/studio/public-intervention-episode-audit": [
         "./packages/domain/src/studio/public-intervention-episode-audit.ts"
       ]

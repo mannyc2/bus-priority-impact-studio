@@ -109,6 +109,11 @@
       "bun": "./src/studio/public-intervention-episodes.ts",
       "import": "./src/studio/public-intervention-episodes.ts"
     },
+    "./studio/resolved-transit-public-pack": {
+      "types": "./src/studio/resolved-transit-public-pack.ts",
+      "bun": "./src/studio/resolved-transit-public-pack.ts",
+      "import": "./src/studio/resolved-transit-public-pack.ts"
+    },
     "./studio/release": {
       "types": "./src/studio/release.ts",
       "bun": "./src/studio/release.ts",
