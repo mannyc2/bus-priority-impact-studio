@@ -435,7 +435,6 @@ export const DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REFS: readonly string[] = [
   "local_corridor_route_member",
   "local_gtfs_rt_trip_update",
   "local_gtfs_rt_vehicle_position",
-  "local_parking_violation_match",
   "local_route_hotspot",
   "local_route_lion_link",
   "MTA Bus Time GTFS-RT vehicle positions",
