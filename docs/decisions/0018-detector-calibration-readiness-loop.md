@@ -4,7 +4,7 @@ Date: 2026-06-08
 
 ## Status
 
-Accepted.
+Accepted — program complete 2026-06-11; all 21 detectors dispositioned; calibration receipts preserved in git history (removed from the working tree by plan 112).
 
 ## Context
 
