@@ -1,10 +1,7 @@
 import {
   healthResponseJsonSchema,
-  hotspotListResponseJsonSchema,
   mapManifestResponseJsonSchema,
   releaseStatusResponseJsonSchema,
-  routeListResponseJsonSchema,
-  routeProfileResponseJsonSchema,
   routeScorecardJsonSchema,
 } from "@bp/domain/json-schema";
 import { studioOpenApiDocument } from "./contracts/openapi.js";
@@ -23,20 +20,8 @@ export function handleSchemaRoutes(url: URL): Response | null {
     return json(releaseStatusResponseJsonSchema);
   }
 
-  if (url.pathname === "/api/schema/route-list") {
-    return json(routeListResponseJsonSchema);
-  }
-
-  if (url.pathname === "/api/schema/route-profile") {
-    return json(routeProfileResponseJsonSchema);
-  }
-
   if (url.pathname === "/api/schema/map-manifest") {
     return json(mapManifestResponseJsonSchema);
-  }
-
-  if (url.pathname === "/api/schema/hotspots") {
-    return json(hotspotListResponseJsonSchema);
   }
 
   if (url.pathname === "/api/openapi.json") {

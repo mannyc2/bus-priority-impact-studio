@@ -1,16 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { serializeRouteScorecard, serializeRouteScorecardCitations } from "@bp/db/d1";
 import { decodeStrict } from "@bp/domain/decode";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
-import {
-  HealthResponseSchema,
-  HotspotListResponseSchema,
-  ReleaseStatusResponseSchema,
-  RouteListResponseSchema,
-  RouteProfileResponseSchema,
-  RouteScorecardSchema,
-} from "@bp/domain/routes";
+import { HealthResponseSchema, ReleaseStatusResponseSchema } from "@bp/domain/routes";
 import {
   STUDIO_ROUTE_EVIDENCE_INDEX_KEY,
   StudioRouteEvidenceBundleSchema,
@@ -841,24 +833,6 @@ function hourlyProfileArtifact() {
   } as const;
 }
 
-const scorecard = decodeStrict(RouteScorecardSchema)({
-  schemaVersion: 1,
-  routeId: "M1",
-  month: "2026-03",
-  routeScore: 16,
-  coverageStatus: "full",
-  averageSpeedMph: 6.7409,
-  hotspotCount: 10,
-  citations: [
-    {
-      sourceId: "mta_bus_route_segment_speeds",
-      title: "MTA Bus Route Segment Speeds",
-      url: "https://data.ny.gov/Transportation/MTA-Bus-Route-Segment-Speeds/kufs-yh3x",
-      verifiedAt: "2026-04-27T00:00:00.000Z",
-    },
-  ],
-});
-
 function createStudioProjectionEnv(
   input: { modelArtifact?: FakeR2Object; extraArtifacts?: Record<string, FakeR2Object> } = {},
 ): StudioApiEnv {
@@ -1468,21 +1442,7 @@ describe("Studio API facade", () => {
     expect(response.headers.get("X-Request-ID")).toBeString();
   });
 
-  it("serves a D1-backed route scorecard", async () => {
-    const db = new FakeDb({
-      route_scorecard_citation: serializeRouteScorecardCitations(scorecard),
-      route_scorecard: [serializeRouteScorecard(scorecard)],
-    });
-    const response = await fetchApi("/api/routes/m1/scorecard?asOfMonth=2026-03", {
-      DB: db as unknown as D1Database,
-    });
-
-    expect(response.status).toBe(200);
-    expect(decodeStrict(RouteScorecardSchema)(await response.json())).toEqual(scorecard);
-    expect(db.calls[0]?.bound).toEqual(expect.arrayContaining(["M1", "2026-03"]));
-  });
-
-  it("serves D1-backed v1 status, route cards, profile, and hotspots", async () => {
+  it("serves D1-backed v1 status", async () => {
     const db = new FakeDb({
       corridor_hotspot: [
         {
@@ -1715,12 +1675,7 @@ describe("Studio API facade", () => {
     });
     const env = { DB: db as unknown as D1Database };
 
-    const [status, routes, profile, hotspots] = await Promise.all([
-      fetchApi("/api/v1/status", env),
-      fetchApi("/api/v1/routes?limit=2", env),
-      fetchApi("/api/v1/routes/b46-sbs/profile", env),
-      fetchApi("/api/v1/hotspots?limit=1", env),
-    ]);
+    const status = await fetchApi("/api/v1/status", env);
     const recoveryStatus = await fetchApi("/api/v1/status", {
       ...env,
       PLAN097_RECOVERY_ENABLED: "true",
@@ -1748,30 +1703,6 @@ describe("Studio API facade", () => {
         }),
       }),
     );
-    const routesValue = decodeStrict(RouteListResponseSchema)(await routes.json());
-    const profileValue = decodeStrict(RouteProfileResponseSchema)(await profile.json());
-    const hotspotsValue = decodeStrict(HotspotListResponseSchema)(await hotspots.json());
-    expect(routesValue.routes).toHaveLength(2);
-    expect(profileValue).toEqual(
-      expect.objectContaining({
-        route: expect.objectContaining({ routeId: "B46-SBS" }),
-        artifacts: [expect.objectContaining({ key: "briefs/2026-03/b46-sbs.json" })],
-      }),
-    );
-    expect(hotspotsValue.hotspots[0]).toEqual(
-      expect.objectContaining({ corridorName: "Utica Avenue", routeId: "B46-SBS" }),
-    );
-    for (const response of [routesValue, profileValue, hotspotsValue]) {
-      expect({
-        releaseId: response.releaseId,
-        publishedAt: response.publishedAt,
-        coverage: response.coverage,
-      }).toEqual({
-        releaseId: statusValue.releaseId,
-        publishedAt: statusValue.publishedAt,
-        coverage: statusValue.coverage,
-      });
-    }
   });
 
   it("counts multi-run reliability once per public release route", async () => {

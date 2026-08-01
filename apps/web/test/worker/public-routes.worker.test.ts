@@ -3,12 +3,7 @@
 import { env, SELF } from "cloudflare:test";
 import { createHash } from "node:crypto";
 import { MapManifestResponseSchema } from "@bp/domain/maps";
-import {
-  ReleaseStatusResponseSchema,
-  RouteListResponseSchema,
-  RouteProfileResponseSchema,
-  RouteScorecardSchema,
-} from "@bp/domain/routes";
+import { ReleaseStatusResponseSchema } from "@bp/domain/routes";
 import { StudioRouteIndex3ResponseSchema } from "@bp/domain/studio/snapshots";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Env } from "../../src/worker/index.js";
@@ -471,58 +466,24 @@ describe("Worker public route API smoke", () => {
     expect(testEnv.TEST_D1_MIGRATIONS).toBeDefined();
   });
 
-  it("serves route status, list, profile, and scorecard from real D1 tables", async () => {
+  it("serves release status from real D1 tables", async () => {
     const status = decodeSchemaStrict(ReleaseStatusResponseSchema, await getJson("/api/v1/status"));
     expect(status.coverage.end).toBe("2026-03");
     expect(status.release.routeCount).toBe(2);
     expect(status.observedRealtimeEvidence.observedRouteCount).toBe(1);
-
-    const routes = decodeSchemaStrict(
-      RouteListResponseSchema,
-      await getJson("/api/v1/routes?limit=2"),
-    );
-    expect(routes.routes.map((route) => route.routeId)).toEqual(["M57", "M15-SBS"]);
-    expect(routes.routes[0]).toEqual(
-      expect.objectContaining({
-        routeId: "M57",
-        reliabilityStatus: "observed",
-        sampleCount: 42,
-      }),
-    );
-
-    const profile = decodeSchemaStrict(
-      RouteProfileResponseSchema,
-      await getJson("/api/v1/routes/m57/profile"),
-    );
-    expect(profile.route.routeId).toBe("M57");
-    expect(profile.peakRidership?.hourOfDay).toBe(17);
-    expect(profile.observedReliability?.observedBunchingShare).toBe(0.12);
-    expect(profile.artifacts).toEqual([
-      expect.objectContaining({
-        name: "brief",
-        key: "routes/2026-03/M57/brief.json",
-      }),
-    ]);
-
-    const scorecard = decodeSchemaStrict(
-      RouteScorecardSchema,
-      await getJson("/api/routes/m57/scorecard?asOfMonth=2026-03"),
-    );
-    expect(scorecard.routeId).toBe("M57");
-    expect(scorecard.citations[0]?.sourceId).toBe("fixture_mta_speed");
   });
 
   it("keeps public route reads public without a session or with a garbage session", async () => {
     for (const cookie of [null, "bp_session=garbage"] as const) {
-      const routeListResponse = await SELF.fetch(
-        new Request("https://example.test/api/v1/routes?limit=1", {
+      const statusResponse = await SELF.fetch(
+        new Request("https://example.test/api/v1/status", {
           headers: cookie === null ? {} : { Cookie: cookie },
         }),
       );
-      const routes = decodeSchemaStrict(RouteListResponseSchema, await routeListResponse.json());
+      const status = decodeSchemaStrict(ReleaseStatusResponseSchema, await statusResponse.json());
 
-      expect(routeListResponse.status).toBe(200);
-      expect(routes.routes).toHaveLength(1);
+      expect(statusResponse.status).toBe(200);
+      expect(status.coverage.end).toBe("2026-03");
 
       const studioRoutesResponse = await SELF.fetch(
         new Request("https://example.test/api/v1/studio/routes?schema=3", {
@@ -606,12 +567,12 @@ describe("Worker public route API smoke", () => {
   });
 
   it("reports missing API bindings as explicit 503 responses", async () => {
-    const routeResponse = await worker.fetch(
-      new Request("https://example.test/api/v1/routes"),
+    const statusResponse = await worker.fetch(
+      new Request("https://example.test/api/v1/status"),
       {} satisfies Env,
     );
-    expect(routeResponse.status).toBe(503);
-    expect(await routeResponse.json()).toEqual(
+    expect(statusResponse.status).toBe(503);
+    expect(await statusResponse.json()).toEqual(
       expect.objectContaining({
         error: expect.objectContaining({
           code: "SERVICE_UNAVAILABLE",

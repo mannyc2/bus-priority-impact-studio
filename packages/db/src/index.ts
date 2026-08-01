@@ -38,7 +38,6 @@ export {
   findRouteEquityContext,
   getRouteBatchStatus,
   getRouteBriefSummary,
-  getRouteScorecard,
   listBuildEligibleRoutes,
   listCorridorArtifacts,
   listCorridorSummaries,

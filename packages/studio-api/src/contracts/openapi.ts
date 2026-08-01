@@ -1,10 +1,7 @@
 import {
   healthResponseJsonSchema,
-  hotspotListResponseJsonSchema,
   mapManifestResponseJsonSchema,
   releaseStatusResponseJsonSchema,
-  routeListResponseJsonSchema,
-  routeProfileResponseJsonSchema,
   studioRouteDetailResponseJsonSchema,
   studioRouteEvidenceBundleJsonSchema,
   studioRouteHistoryResponseJsonSchema,
@@ -163,24 +160,6 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       parameters: [monthQueryParameter],
     }),
   },
-  "/api/v1/routes": {
-    get: getOperation({
-      operationId: "getRoutes",
-      summary: "List public route cards.",
-      tags: ["Public"],
-      responseSchema: routeListResponseJsonSchema,
-      parameters: [monthQueryParameter],
-    }),
-  },
-  "/api/v1/routes/{routeId}/profile": {
-    get: getOperation({
-      operationId: "getRouteProfile",
-      summary: "Return a public route profile.",
-      tags: ["Public"],
-      responseSchema: routeProfileResponseJsonSchema,
-      parameters: [routeIdParameter, monthQueryParameter],
-    }),
-  },
   "/api/v1/map/manifest": {
     get: getOperation({
       operationId: "getMapManifest",
@@ -197,15 +176,6 @@ const paths: Record<string, Partial<Record<HttpMethod, Operation>>> = {
       tags: ["Public"],
       responseSchema: { type: "object", additionalProperties: true },
       parameters: [artifactKeyParameter],
-    }),
-  },
-  "/api/v1/hotspots": {
-    get: getOperation({
-      operationId: "getHotspots",
-      summary: "Return public hotspot summaries.",
-      tags: ["Public"],
-      responseSchema: hotspotListResponseJsonSchema,
-      parameters: [monthQueryParameter],
     }),
   },
   "/api/v1/studio/routes": {

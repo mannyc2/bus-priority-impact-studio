@@ -1,11 +1,7 @@
 import { MapManifestResponseSchema } from "../maps/index.js";
 import {
   HealthResponseSchema,
-  HotspotListResponseSchema,
   ReleaseStatusResponseSchema,
-  RouteCompareResponseSchema,
-  RouteListResponseSchema,
-  RouteProfileResponseSchema,
   RouteScorecardSchema,
 } from "../routes/index.js";
 import { toProjectJsonSchema } from "../schema-registry.js";
@@ -40,11 +36,7 @@ export { toProjectJsonSchema } from "../schema-registry.js";
 export const routeScorecardJsonSchema = toProjectJsonSchema(RouteScorecardSchema);
 export const healthResponseJsonSchema = toProjectJsonSchema(HealthResponseSchema);
 export const releaseStatusResponseJsonSchema = toProjectJsonSchema(ReleaseStatusResponseSchema);
-export const routeListResponseJsonSchema = toProjectJsonSchema(RouteListResponseSchema);
-export const routeProfileResponseJsonSchema = toProjectJsonSchema(RouteProfileResponseSchema);
 export const mapManifestResponseJsonSchema = toProjectJsonSchema(MapManifestResponseSchema);
-export const hotspotListResponseJsonSchema = toProjectJsonSchema(HotspotListResponseSchema);
-export const routeCompareResponseJsonSchema = toProjectJsonSchema(RouteCompareResponseSchema);
 
 export const studioRoutesResponseJsonSchema = toProjectJsonSchema(StudioRoutesResponseSchema);
 export const studioSearchResponseJsonSchema = toProjectJsonSchema(StudioSearchResponseSchema);
