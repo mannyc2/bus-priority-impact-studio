@@ -5,21 +5,6 @@ import type {
 import type { StopDirectionHourEwtScheduleSelection } from "./stop-direction-hour-ewt-feature-rows";
 
 export {
-  auditContextEventRouteTouches,
-  type ContextEventRouteTouchAuditSummary,
-  type ContextEventRouteTouchKind,
-  materializeContextEventRouteTouches,
-  type SourceEventKindAudit,
-} from "./context-event-route-touches";
-export {
-  type BuildContextEventsLocalDb,
-  type BuildContextEventsResult,
-  buildAceViolationAggregateEvents,
-  contextEventId,
-  normalizeContextEventTime,
-  runBuildContextEvents,
-} from "./context-events";
-export {
   type DataProductCheckTemplateValues,
   evaluateDataProductArtifactGlobCheck,
   evaluateDataProductJsonOrFileArtifactCheck,
@@ -82,38 +67,6 @@ export {
   stableMatchEvidenceHash,
   streetCorridorKey,
 } from "./parking-location";
-export {
-  type BuildParkingViolationMatchesLocalDbResult,
-  buildParkingViolationMatchAuditArtifact,
-  buildParkingViolationStreetRouteIndex,
-  clearParkingViolationMatches,
-  countParkingViolationLocationGroups,
-  hydrateParkingViolationLionRawFields,
-  hydrateParkingViolationRawFields,
-  insertParkingViolationMatch,
-  listParkingViolationAddressGroups,
-  listParkingViolationCameraGroups,
-  listParkingViolationLionSegments,
-  loadParkingViolationRoutesForPhysicalIds,
-  type ParkingViolationCameraGeocodeOutcome,
-  type ParkingViolationCameraGeocodeRequest,
-  type ParkingViolationLionSegment,
-  type ParkingViolationMatchAuditArtifact,
-  type ParkingViolationMatchAuditSummary,
-  type ParkingViolationMatchGroup,
-  type ParkingViolationMatchInsert,
-  type ParkingViolationMatchKindSummary,
-  type ParkingViolationMatchRunCounts,
-  type ParkingViolationRouteCandidate,
-  parkingViolationCameraGeocodeRequest,
-  type RawLionParkingMatchHydrationRow,
-  type RawParkingViolationMatchHydrationRow,
-  refreshParkingViolationLocationKeys,
-  resolveParkingViolationCameraMatch,
-  resolveParkingViolationStreetCodeHouseMatch,
-  runBuildParkingViolationMatchesLocalDb,
-  summarizeParkingViolationMatches,
-} from "./parking-violation-matches";
 export {
   buildPlanRows,
   defaultRouteBuildPlanLimit,
