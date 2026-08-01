@@ -488,7 +488,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           "source_manifest:ace_routes",
           "mta_wiki_route_evidence_release",
         ],
-        downstreamConsumers: ["route_treatment_summary_artifact", "Studio intervention timelines"],
+        downstreamConsumers: ["Studio intervention timelines"],
         freshnessPolicy: { cadence: "manual" },
         checks: [
           {
@@ -837,7 +837,6 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         requiredInputs: ["mta-wiki v1 release", "Studio route catalog"],
         downstreamConsumers: [
           "local_intervention_events_release",
-          "route_treatment_summary_artifact",
           "Studio route evidence panels",
           "route timeline evidence",
         ],
@@ -1968,7 +1967,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           routes: "public_visible_routes",
           months: "latest_month",
         },
-        requiredInputs: ["route_treatment_summary_artifact", "map_route_segment_geojsons"],
+        requiredInputs: ["map_route_segment_geojsons"],
         downstreamConsumers: ["D1 serving export", "publish completeness check"],
         freshnessPolicy: { cadence: "latest_month" },
         checks: [
@@ -2146,7 +2145,7 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
           description: "Canonical Studio release payload for the latest publicly covered month.",
           months: "latest_month",
         },
-        requiredInputs: ["D1 serving export", "route-slices", "route_treatment_summary_artifact"],
+        requiredInputs: ["D1 serving export", "route-slices"],
         downstreamConsumers: ["public Studio app", "publish R2 artifacts"],
         freshnessPolicy: { cadence: "latest_month" },
         checks: [
