@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import type {
-  BuildContextEventsResult,
   BuildLionGeometryIndexResult,
   BuildObservedHeadwaysResult,
   BuildRouteLionLinkResult,
@@ -8,24 +7,12 @@ import type {
 import { Effect, Layer } from "effect";
 import {
   BuildLocalDbService,
-  runBuildContextEventsCommand,
   runBuildLionGeometryIndexCommand,
   runBuildObservedHeadwaysCommand,
   runBuildRouteLionLinkCommand,
 } from "../../src/effect/build-local-db.ts";
 import { BuildLocalDbCommandError } from "../../src/effect/errors.ts";
 import { runPipelineEffect } from "../../src/effect/runtime.ts";
-
-const contextEventsResult: BuildContextEventsResult = {
-  inserted311: 1,
-  insertedCollisions: 2,
-  insertedParking: 3,
-  insertedPermits: 4,
-  insertedTrafficVolumes: 5,
-  insertedTrafficSpeeds: 6,
-  insertedAceViolations: 7,
-  total: 28,
-};
 
 const observedHeadwaysResult: BuildObservedHeadwaysResult = {
   runId: "fixture-run",
@@ -47,7 +34,6 @@ const lionGeometryIndexResult: BuildLionGeometryIndexResult = {
 };
 
 const successLayer = Layer.succeed(BuildLocalDbService, {
-  buildContextEvents: () => Effect.succeed(contextEventsResult),
   buildObservedHeadways: () => Effect.succeed(observedHeadwaysResult),
   buildRouteLionLink: () => Effect.succeed(routeLionLinkResult),
   buildLionGeometryIndex: () => Effect.succeed(lionGeometryIndexResult),
@@ -55,10 +41,6 @@ const successLayer = Layer.succeed(BuildLocalDbService, {
 
 describe("build local DB Effect workflows", () => {
   test("run related build workflows through one injectable service layer", async () => {
-    await expect(runPipelineEffect(runBuildContextEventsCommand(), successLayer)).resolves.toEqual(
-      contextEventsResult,
-    );
-
     await expect(
       runPipelineEffect(
         runBuildObservedHeadwaysCommand({
@@ -90,7 +72,6 @@ describe("build local DB Effect workflows", () => {
 
   test("preserves typed build local DB command errors at the runtime boundary", async () => {
     const errorLayer = Layer.succeed(BuildLocalDbService, {
-      buildContextEvents: () => Effect.succeed(contextEventsResult),
       buildObservedHeadways: () => Effect.succeed(observedHeadwaysResult),
       buildRouteLionLink: () =>
         Effect.fail(

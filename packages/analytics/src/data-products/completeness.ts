@@ -430,7 +430,6 @@ export const DATA_PRODUCT_REQUIRED_INPUT_EXTERNAL_REFS: readonly string[] = [
   "current route shape snapshots",
   "document-discovery-normalized-candidates-canonical-v1",
   "LLM OCR runs",
-  "local_context_event",
   "local_corridor",
   "local_corridor_intervention_context",
   "local_corridor_route_member",

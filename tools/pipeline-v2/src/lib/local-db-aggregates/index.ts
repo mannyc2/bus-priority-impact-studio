@@ -5,21 +5,6 @@ import type {
 import type { StopDirectionHourEwtScheduleSelection } from "./stop-direction-hour-ewt-feature-rows";
 
 export {
-  auditContextEventRouteTouches,
-  type ContextEventRouteTouchAuditSummary,
-  type ContextEventRouteTouchKind,
-  materializeContextEventRouteTouches,
-  type SourceEventKindAudit,
-} from "./context-event-route-touches";
-export {
-  type BuildContextEventsLocalDb,
-  type BuildContextEventsResult,
-  buildAceViolationAggregateEvents,
-  contextEventId,
-  normalizeContextEventTime,
-  runBuildContextEvents,
-} from "./context-events";
-export {
   type DataProductCheckTemplateValues,
   evaluateDataProductArtifactGlobCheck,
   evaluateDataProductJsonOrFileArtifactCheck,

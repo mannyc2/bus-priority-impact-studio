@@ -822,35 +822,6 @@ export const DATA_PRODUCT_MANIFEST: DataProductManifest = decodeSchemaStrict(
         ],
       },
       {
-        id: "local_context_event_route_touches_history",
-        label: "Context event route-touch history",
-        kind: "local_table",
-        owner: "tools/pipeline-v2/build",
-        grain: "context event x route",
-        producerCommand: "build context-event-route-touches",
-        expectedUniverse: {
-          description: "Route-touch bridge rows derived from geocoded context events.",
-          routes: "route_catalog",
-          months: "history_window",
-        },
-        requiredInputs: [
-          "local_context_event",
-          "local_route_lion_link",
-          "local_parking_violation_match",
-        ],
-        downstreamConsumers: ["route context panels", "intervention caveats", "data notes"],
-        freshnessPolicy: { cadence: "historical_window" },
-        checks: [
-          {
-            id: "row_count",
-            label: "Rows in local_context_event_route_touch",
-            type: "table_row_count",
-            tableName: "local_context_event_route_touch",
-            minRows: 1,
-          },
-        ],
-      },
-      {
         id: "mta_wiki_route_evidence_release",
         label: "mta-wiki route evidence release",
         kind: "artifact_family",

@@ -61,16 +61,7 @@ export {
   listCensusTractEquityContext,
   replaceCensusTractEquityContext,
 } from "./repositories/equity.js";
-export type {
-  ListContextEventRouteTouchesArgs,
-  LocalContextEvent,
-  LocalContextEventRouteTouch,
-} from "./repositories/findings.js";
-export {
-  countContextEvents,
-  listContextEventRouteTouchesForWindow,
-  upsertContextEvents,
-} from "./repositories/findings.js";
+export { countContextEvents } from "./repositories/findings.js";
 export type { LocalGeocodeCacheRow } from "./repositories/geocode-cache.js";
 export {
   getGeocodeCacheRow,
