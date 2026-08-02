@@ -244,27 +244,36 @@ async function materializeCandidateObjects(input: {
 
 function datasetCoverage(
   freshness: Plan097FreshnessMatrix,
+  reviewedServing: { releaseId: string; coverage: { start: string | null; end: string } },
 ): ServingCandidateManifestV1["datasets"] {
-  return freshness.datasets.map((dataset) => {
-    const coverageEnd = dataset.selectedCompletePartition;
-    if (dataset.status !== "ready" || coverageEnd === null || dataset.evidence === null) {
-      throw new Error(`Freshness matrix dataset ${dataset.sourceId} is not ready.`);
-    }
-    return {
-      datasetId: dataset.sourceId,
-      grain: dataset.grain,
-      coverage: {
-        start: dataset.sourceId === "bus_segment_speeds_2025" ? "2023-04" : null,
-        end: coverageEnd,
-      },
-      sourceSnapshotIds: [
-        dataset.evidence.rowsSha256,
-        ...(dataset.evidence.sourceSnapshotSha256 === null
-          ? []
-          : [dataset.evidence.sourceSnapshotSha256]),
-      ],
-    };
-  });
+  return [
+    {
+      datasetId: "reviewed-serving",
+      grain: "month" as const,
+      coverage: reviewedServing.coverage,
+      sourceSnapshotIds: [reviewedServing.releaseId],
+    },
+    ...freshness.datasets.map((dataset) => {
+      const coverageEnd = dataset.selectedCompletePartition;
+      if (dataset.status !== "ready" || coverageEnd === null || dataset.evidence === null) {
+        throw new Error(`Freshness matrix dataset ${dataset.sourceId} is not ready.`);
+      }
+      return {
+        datasetId: dataset.sourceId,
+        grain: dataset.grain,
+        coverage: {
+          start: dataset.sourceId === "bus_segment_speeds_2025" ? "2023-04" : null,
+          end: coverageEnd,
+        },
+        sourceSnapshotIds: [
+          dataset.evidence.rowsSha256,
+          ...(dataset.evidence.sourceSnapshotSha256 === null
+            ? []
+            : [dataset.evidence.sourceSnapshotSha256]),
+        ],
+      };
+    }),
+  ];
 }
 
 async function main(): Promise<void> {
@@ -356,7 +365,7 @@ async function main(): Promise<void> {
   const artifactDescriptors = [...artifacts.values()].toSorted((left, right) =>
     left.logicalId.localeCompare(right.logicalId),
   );
-  const datasets = datasetCoverage(freshness);
+  const datasets = datasetCoverage(freshness, release);
   const semanticInputFingerprint = servingSha256(
     canonicalServingJson({
       datasets,
