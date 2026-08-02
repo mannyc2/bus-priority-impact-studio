@@ -10267,3 +10267,32 @@ release-qualified artifact URLs. Its first sandboxed run hit the expected
 localhost `EPERM`; the approved outside-sandbox run passed. The vestige sweep
 still requires the normal protected-main deployment and verified real receipts
 before Plan 101 or production can be called fully de-monthed.
+
+## [2026-08-02] operations | Plan 101 complete; production fully de-monthed
+
+PR #161 merged the verified vestige sweep as main commit
+`9b1daac04d9b3ed0da639730b43178dc65b4aaac`. Protected-main workflow run
+`30770846649` used the repository's authenticated Cloudflare boundary, passed
+all repository checks, applied the serving migration as a no-op, audited the
+active candidate-scoped D1 projection, and uploaded Worker version
+`bb4c0d92-7991-4384-a694-a068d497bf3b`. It staged that exact version at zero
+traffic, proved it by version override, promoted it, proved ordinary traffic,
+passed D1 and public endpoint smokes, skipped rollback, and removed the
+temporary operator.
+
+The downloaded deploy receipt bytes independently hash to
+`dcb7871239754e51e0d026f9b2383fdcdfb039bf24c365d2d62d336841964b3f`; the
+staged proof receipt hashes to
+`c9cab19f345ff9452790da66e537b526e8af146a0002bbbb91072d8dc4493179`; and
+the production-smoke receipt hashes to
+`2cab021ae9e29b2a01f95b5714d58a45917431a5574589d656a6543e8c136ce9`.
+The immutable GitHub artifact archive carrying the deploy receipts has digest
+`sha256:1333c4eea312ed7f641816331ea66d78f34360ecd151aa2b8db3ccebf2bddbe6`.
+
+A final independent public status read returned release
+`pub_20260802T215956764Z`: reliability 2015-01..2026-06, ridership
+2020-01..2026-07, and speed 2023-04..2026-06 with the real
+2026-04..2026-05 gap explicit. Generation 6 stayed active, so the deploy made
+no data-pointer mutation. Together with the generation-5 canonical publish and
+generation-6 zero-content-PUT no-op receipts, this closes Plan 101 and the
+Generation-17 tail as current, idempotent, and fully de-monthed.
