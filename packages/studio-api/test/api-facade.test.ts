@@ -3061,6 +3061,12 @@ describe("Studio API facade", () => {
               coverage: STUDIO_COVERAGE,
               sourceSnapshotIds: [],
             },
+            {
+              datasetId: "ace-violations",
+              grain: "month",
+              coverage: { start: null, end: "2026-07" },
+              sourceSnapshotIds: ["ace-2026-07"],
+            },
           ],
           artifacts: [],
         },

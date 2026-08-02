@@ -92,6 +92,12 @@ absence as mutable serving state.
 
 ## Production completion receipt (2026-08-02)
 
+The later 2026-08-02 dirty-operator-tree descope amendment was based on a
+stale, unfetched checkout and is moot: this plan and Plan 106 had already
+shipped through protected main. It is retained only in that tree's history;
+none of the production migration, staging, activation, rollback, or receipt
+work below may be replayed. Plans 099-101 reuse the proven machinery.
+
 Protected-main `ci-cd` run `30725835823` passed the complete reader deployment
 gate at merge commit `08c6706d36722ffc39491c9f6db875ee326b47ce`: repository
 verification, additive v2 migration verification, zero-traffic staging,

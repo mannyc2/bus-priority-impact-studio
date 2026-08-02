@@ -74,6 +74,22 @@ export async function servingRequestStillCurrent(
 export function pointedReleaseIdentity(env: StudioApiEnv): ReleaseIdentity | null {
   const context = env.SERVING_RELEASE_CONTEXT;
   if (context === undefined) return null;
+  const reviewedServing = context.candidate.datasets.find(
+    (dataset) => dataset.datasetId === "reviewed-serving",
+  );
+  if (
+    reviewedServing !== undefined &&
+    reviewedServing.grain === "month" &&
+    /^\d{4}-\d{2}$/.test(reviewedServing.coverage.end) &&
+    (reviewedServing.coverage.start === null ||
+      /^\d{4}-\d{2}$/.test(reviewedServing.coverage.start))
+  ) {
+    return decodeStrict(ReleaseIdentitySchema)({
+      releaseId: context.release.releaseId,
+      publishedAt: context.release.publishedAt,
+      coverage: reviewedServing.coverage,
+    });
+  }
   const monthDatasets = context.candidate.datasets.filter(
     (dataset) =>
       dataset.grain === "month" &&

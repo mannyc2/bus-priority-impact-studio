@@ -101,10 +101,6 @@ describe("analytics feature-history artifacts", () => {
         matchedSchedulePairCount: 2,
         unmatchedSchedulePairCount: 0,
       },
-      generatedAt: "2026-07-01T00:00:00.000Z",
-      dbPath: "data/local/pipeline.sqlite",
-      speedSpinePath: "data/artifacts/studio/v2/routes/b41/speed-spine.json",
-      artifactPath: "data/artifacts/studio/v2/routes/b41/speed-history.json",
     });
 
     expect(history.summary).toMatchObject({

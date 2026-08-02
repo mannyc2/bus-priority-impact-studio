@@ -565,10 +565,6 @@ export function buildRouteSpeedHistoryArtifact(input: {
   spine: RouteSpeedSpineArtifact;
   rows: readonly RouteSpeedHistorySourceRow[];
   expectedService?: RouteSpeedExpectedServiceContext | null | undefined;
-  generatedAt: string;
-  dbPath: string;
-  speedSpinePath: string;
-  artifactPath: string;
 }): RouteSpeedHistoryArtifact {
   const routeId = normalizeRouteId(input.routeId);
   const routeSlug = input.routeSlug ?? routeSpeedSpineRouteSlug(routeId);
@@ -743,18 +739,18 @@ export function buildRouteSpeedHistoryArtifact(input: {
   return {
     artifactKind: "studio_route_speed_history",
     schemaVersion: 1,
-    generatedAt: input.generatedAt,
+    generatedAt: input.spine.generatedAt,
     routeId,
     routeSlug,
     spineReadiness: classifyRouteSpeedSpineArtifact(input.spine).readiness,
     source: {
       table: "local_route_segment_speed",
-      dbPath: input.dbPath,
-      speedSpinePath: input.speedSpinePath,
+      dbPath: "local/pipeline.sqlite",
+      speedSpinePath: `studio/v2/routes/${routeSlug}/speed-spine.json`,
       startMonth: months[0] ?? input.spine.source.startMonth,
       endMonth:
         months[months.length - 1] ?? input.spine.source.endMonth ?? input.spine.source.startMonth,
-      artifactPath: input.artifactPath,
+      artifactPath: `studio/v2/routes/${routeSlug}/speed-history.json`,
       expectedService:
         input.expectedService === undefined || input.expectedService === null
           ? null

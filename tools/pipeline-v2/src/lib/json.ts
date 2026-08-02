@@ -1,3 +1,4 @@
+import { canonicalServingJson } from "@bp/domain/studio/serving-release";
 import { Result, type Schema } from "effect";
 import { runPipelineFileSystemBoundary } from "../effect/file-system.ts";
 import {
@@ -38,6 +39,20 @@ export async function writeJson(path: string, data: unknown): Promise<void> {
         operation: "writeJson",
         path,
         contents: `${JSON.stringify(data, null, 2)}\n`,
+      }),
+  });
+}
+
+export async function writeCanonicalJson(path: string, data: unknown): Promise<void> {
+  await runPipelineFileSystemBoundary({
+    command: COMMAND,
+    operation: "writeCanonicalJson",
+    run: (files) =>
+      files.writeText({
+        command: COMMAND,
+        operation: "writeCanonicalJson",
+        path,
+        contents: `${canonicalServingJson(data)}\n`,
       }),
   });
 }

@@ -1,33 +1,28 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { dirname, join, relative, sep } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import { isSafeArtifactKey } from "@bp/analytics/evaluation";
+import { decodeStrict } from "@bp/domain/decode";
 import {
-  isMapArtifactManifest,
-  isSafeArtifactKey,
-  mapArtifactSha256,
-} from "@bp/analytics/evaluation";
+  type ServingCandidateManifestV1,
+  ServingCandidateManifestV1Schema,
+} from "@bp/domain/studio/serving-release";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
-import { Glob } from "bun";
 import { Effect } from "effect";
 import { type CloudflareCostSummary, estimateR2StandardCost } from "../../lib/cloudflare-costs.ts";
 import { fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
-import { verifyMapArtifactManifest } from "../map/artifacts.ts";
-import { collectD1ArtifactKeys, collectManifestArtifactKeys } from "./publish-artifact-keys.ts";
 
-const DEFAULT_PREFIXES = ["map", "studio", "source-availability"] as const;
-const DEFAULT_MANIFEST_DIRS = ["map"] as const;
 const DEFAULT_CONCURRENCY = 16;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BACKOFF_MS_BASE = 5_000;
 
 export type S3Driver = {
   tracksRemoteCosts?: boolean;
-  stat(key: string): Promise<{ size: number; etag: string } | null>;
-  put(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  get(key: string): Promise<Uint8Array | null>;
+  putIfAbsent(key: string, body: Uint8Array, contentType: string): Promise<boolean>;
 };
 
 export type PublishR2Options = {
-  month: string;
   bucket: string;
   endpoint: string;
   accessKeyId: string;
@@ -35,23 +30,29 @@ export type PublishR2Options = {
   concurrency: number;
   maxAttempts: number;
   backoffMsBase: number;
-  prefixes: readonly string[];
-  manifestDirs: readonly string[];
-  d1SchemaPath: string;
-  d1SeedPath: string;
+  candidateManifestPath: string;
   artifactRoot: string;
   outputPath: string;
   dryRun: boolean;
-  force: boolean;
   driver?: S3Driver | undefined;
 };
 
-type UploadItem = { key: string; localPath: string };
+type UploadItem = ServingCandidateManifestV1["artifacts"][number] & { localPath: string };
 type ItemOutcome = "uploaded" | "skipped" | "failed" | "dry-run";
 
+type ArtifactFamilyReport = {
+  candidateCount: number;
+  candidateByteCount: number;
+  uploadedCount: number;
+  uploadedByteCount: number;
+  reusedCount: number;
+  reusedByteCount: number;
+};
+
 export type PublishR2Report = {
-  schemaVersion: 1;
-  month: string;
+  schemaVersion: 2;
+  candidateId: string;
+  candidateManifestPath: string;
   bucket: string;
   generatedAt: string;
   status: "pass" | "fail";
@@ -65,6 +66,7 @@ export type PublishR2Report = {
   skippedByteCount: number;
   dryRunByteCount: number;
   r2ClassBOperationCount: number;
+  families: Record<string, ArtifactFamilyReport>;
   cost: {
     actual: CloudflareCostSummary;
     projectedExecute: CloudflareCostSummary;
@@ -82,183 +84,42 @@ type Counters = {
   uploadedBytes: number;
   skippedBytes: number;
   dryRunBytes: number;
-  headOperations: number;
+  getOperations: number;
 };
 
-function contentTypeFor(key: string): string {
-  if (key.endsWith(".json")) return "application/json";
-  if (key.endsWith(".geojson")) return "application/geo+json";
-  if (key.endsWith(".pbf")) return "application/x-protobuf";
-  if (key.endsWith(".pmtiles")) return "application/vnd.pmtiles";
-  if (key.endsWith(".csv")) return "text/csv";
-  if (key.endsWith(".txt") || key.endsWith(".md")) return "text/plain; charset=utf-8";
-  if (key.endsWith(".png")) return "image/png";
-  if (key.endsWith(".svg")) return "image/svg+xml";
-  return "application/octet-stream";
+function sha256(body: Uint8Array): string {
+  return createHash("sha256").update(body).digest("hex");
 }
 
-function md5Hex(body: Uint8Array): string {
-  return createHash("md5").update(body).digest("hex");
+function artifactFamily(logicalId: string): string {
+  return logicalId.split("/", 1)[0] || "other";
 }
 
-function normalizeEtag(etag: string): string {
-  return etag.replace(/^"|"$/g, "").toLowerCase();
-}
-
-function contentAddressedSha256(key: string): string | null {
-  const filename = key.split("/").at(-1) ?? "";
-  const match = /^.+\.([a-f0-9]{64})\.[^.]+$/.exec(filename);
-  return match?.[1] ?? null;
-}
-
-async function collectPrefixKeys(
-  artifactRoot: string,
-  prefixes: readonly string[],
-): Promise<string[]> {
-  const keys = new Set<string>();
-  for (const prefix of prefixes) {
-    const root = join(artifactRoot, prefix);
-    try {
-      await stat(root);
-    } catch {
-      continue;
-    }
-    const glob = new Glob("**/*");
-    for await (const rel of glob.scan({ cwd: root, onlyFiles: true, dot: false })) {
-      keys.add(`${prefix}/${rel.split(sep).join("/")}`);
-    }
-  }
-  return [...keys];
-}
-
-async function collectCandidates(
-  options: PublishR2Options,
-  finalMapManifestKey: string | null,
-): Promise<UploadItem[]> {
-  const governedManifestDirs =
-    finalMapManifestKey === null
-      ? options.manifestDirs
-      : [...new Set([...options.manifestDirs, "map"])];
-  const unconstrainedPrefixes =
-    finalMapManifestKey === null
-      ? options.prefixes
-      : options.prefixes.filter(
-          (prefix) =>
-            !governedManifestDirs.some(
-              (manifestDir) => prefix === manifestDir || prefix.startsWith(`${manifestDir}/`),
-            ),
-        );
-  for (const scope of [...governedManifestDirs, ...unconstrainedPrefixes]) {
-    if (!isSafeArtifactKey(scope)) {
-      throw new Error(`Artifact scope ${JSON.stringify(scope)} is not a safe artifact-root path.`);
-    }
-  }
-  const [manifestKeys, d1Keys, prefixKeys] = await Promise.all([
-    collectManifestArtifactKeys({
-      artifactRoot: options.artifactRoot,
-      manifestDirs: governedManifestDirs,
-      month: options.month,
-    }),
-    collectD1ArtifactKeys({
-      month: options.month,
-      schemaPath: options.d1SchemaPath,
-      seedPath: options.d1SeedPath,
-    }),
-    collectPrefixKeys(options.artifactRoot, unconstrainedPrefixes),
-  ]);
-  const declaredManifestKeys = new Set(manifestKeys.keys);
-  const d1CandidateKeys =
-    finalMapManifestKey === null
-      ? d1Keys.keys
-      : d1Keys.keys.filter(
-          (key) =>
-            !governedManifestDirs.some(
-              (manifestDir) => key === manifestDir || key.startsWith(`${manifestDir}/`),
-            ) || declaredManifestKeys.has(key),
-        );
-  const merged = new Set<string>([
-    ...manifestKeys.keys,
-    ...d1CandidateKeys,
-    ...prefixKeys,
-    ...(finalMapManifestKey === null ? [] : [finalMapManifestKey]),
-  ]);
-  for (const key of merged) {
-    if (!isSafeArtifactKey(key)) {
-      throw new Error(`Artifact key ${JSON.stringify(key)} is not a safe artifact-root path.`);
-    }
-  }
-  return [...merged].sort().map((key) => ({ key, localPath: join(options.artifactRoot, key) }));
-}
-
-async function assertPublishableMapManifest(options: PublishR2Options): Promise<string | null> {
-  const includesMapScope =
-    options.manifestDirs.includes("map") ||
-    options.prefixes.some((prefix) => prefix === "map" || prefix.startsWith("map/"));
-  if (!includesMapScope) return null;
-  const path = join(options.artifactRoot, "map", options.month, "manifest.json");
-  const file = Bun.file(path);
-  if (!(await file.exists())) {
-    throw new Error(`Map manifest ${path} is required for publication.`);
-  }
-  const manifestBytes = new Uint8Array(await file.arrayBuffer());
-  let manifest: unknown;
+async function readCandidateManifest(path: string): Promise<ServingCandidateManifestV1> {
+  let raw: unknown;
   try {
-    manifest = JSON.parse(new TextDecoder().decode(manifestBytes));
-  } catch {
-    throw new Error(`Map manifest ${path} is invalid JSON.`);
+    raw = JSON.parse(await Bun.file(path).text());
+  } catch (error) {
+    throw new Error(`Candidate manifest ${path} is not valid JSON: ${(error as Error).message}`);
   }
-  if (!isMapArtifactManifest(manifest)) {
-    throw new Error(`Map manifest ${path} does not satisfy the v2 release contract.`);
-  }
-  const failures: string[] = [];
-  if (manifest.releaseProfile !== "full") failures.push("releaseProfile must be full");
-  if (manifest.buildStatus !== "pass") failures.push("buildStatus must be pass");
-  if (manifest.verificationStatus !== "pass") failures.push("verificationStatus must be pass");
-  if (manifest.status !== "pass") failures.push("status must be pass");
-  if (manifest.issueCount !== 0) failures.push("issueCount must be zero");
-  if (manifest.coverage.end !== options.month)
-    failures.push(`coverage.end must equal ${options.month}`);
-  if (manifest.routeFacts.status !== "available") failures.push("routeFacts must be available");
-  const expectedRouteIds = manifest.routeUniverse.expectedRouteIds;
-  if (!Array.isArray(expectedRouteIds)) {
-    failures.push("routeUniverse.expectedRouteIds must be declared");
-  } else {
-    const verification = await verifyMapArtifactManifest({
-      artifactRoot: options.artifactRoot,
-      month: options.month,
-      expectedRouteIds,
-      expectedProfile: "full",
-    });
-    if (verification.status !== "pass") {
-      failures.push(
-        `local map verification failed: ${verification.issues
-          .slice(0, 3)
-          .map((issue) => issue.code)
-          .join(", ")}`,
-      );
-    }
-  }
-  if (failures.length > 0) {
-    throw new Error(`Map manifest is not publishable: ${failures.join("; ")}.`);
-  }
+  return decodeStrict(ServingCandidateManifestV1Schema)(raw);
+}
 
-  const manifestSha256 = mapArtifactSha256(manifestBytes);
-  const finalManifestKey = `map/${options.month}/manifest.${manifestSha256}.json`;
-  const finalManifestPath = join(options.artifactRoot, finalManifestKey);
-  const finalManifestFile = Bun.file(finalManifestPath);
-  if (!(await finalManifestFile.exists())) {
-    throw new Error(`Final content-addressed map manifest ${finalManifestPath} is missing.`);
-  }
-  const finalBytes = new Uint8Array(await finalManifestFile.arrayBuffer());
-  if (
-    finalBytes.byteLength !== manifestBytes.byteLength ||
-    mapArtifactSha256(finalBytes) !== manifestSha256
-  ) {
-    throw new Error(
-      `Final content-addressed map manifest ${finalManifestPath} does not match ${path}.`,
-    );
-  }
-  return finalManifestKey;
+async function collectCandidates(options: PublishR2Options): Promise<{
+  manifest: ServingCandidateManifestV1;
+  items: UploadItem[];
+}> {
+  const manifest = await readCandidateManifest(options.candidateManifestPath);
+  const items = manifest.artifacts.map((artifact) => {
+    if (!isSafeArtifactKey(artifact.key)) {
+      throw new Error(`Candidate artifact key ${JSON.stringify(artifact.key)} is unsafe.`);
+    }
+    return { ...artifact, localPath: join(options.artifactRoot, artifact.key) };
+  });
+  return {
+    manifest,
+    items: items.toSorted((left, right) => left.logicalId.localeCompare(right.logicalId)),
+  };
 }
 
 function makeBunDriver(options: PublishR2Options): S3Driver {
@@ -268,8 +129,8 @@ function makeBunDriver(options: PublishR2Options): S3Driver {
     throw new Error("Bun.S3Client is required to publish; run with `bun run` not `node`.");
   }
   type S3FileLike = {
-    stat(): Promise<{ size: number; etag?: string } | undefined>;
-    write(data: Uint8Array, opts?: { type?: string }): Promise<number>;
+    arrayBuffer(): Promise<ArrayBuffer>;
+    presign(opts: { method: "PUT"; expiresIn: number; type: string }): string;
   };
   type S3ClientLike = { file(key: string): S3FileLike };
   const client = new bunRuntime.S3Client({
@@ -281,20 +142,35 @@ function makeBunDriver(options: PublishR2Options): S3Driver {
   }) as S3ClientLike;
   return {
     tracksRemoteCosts: true,
-    async stat(key) {
+    async get(key) {
       try {
-        const meta = await client.file(key).stat();
-        if (!meta) return null;
-        return { size: meta.size, etag: typeof meta.etag === "string" ? meta.etag : "" };
-      } catch (err) {
-        const status = (err as { status?: number; code?: string })?.status;
-        const code = (err as { status?: number; code?: string })?.code;
+        return new Uint8Array(await client.file(key).arrayBuffer());
+      } catch (error) {
+        const status = (error as { status?: number; code?: string })?.status;
+        const code = (error as { status?: number; code?: string })?.code;
         if (status === 404 || code === "NoSuchKey" || code === "ENOENT") return null;
-        throw err;
+        throw error;
       }
     },
-    async put(key, body, contentType) {
-      await client.file(key).write(body, { type: contentType });
+    async putIfAbsent(key, body, contentType) {
+      const url = client.file(key).presign({
+        method: "PUT",
+        expiresIn: 300,
+        type: contentType,
+      });
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": contentType,
+          "If-None-Match": "*",
+        },
+        body: new Blob([Uint8Array.from(body)]),
+      });
+      if (response.status === 412) return false;
+      if (!response.ok) {
+        throw new Error(`conditional R2 PUT failed with HTTP ${response.status}`);
+      }
+      return true;
     },
   };
 }
@@ -302,10 +178,10 @@ function makeBunDriver(options: PublishR2Options): S3Driver {
 function makeNoopDriver(): S3Driver {
   return {
     tracksRemoteCosts: false,
-    async stat() {
+    async get() {
       return null;
     },
-    async put() {
+    async putIfAbsent() {
       throw new Error("noop driver cannot put; this is a dry-run-only stub");
     },
   };
@@ -315,78 +191,89 @@ async function uploadOne(
   item: UploadItem,
   options: PublishR2Options,
   driver: S3Driver,
-): Promise<{ outcome: ItemOutcome; error?: string; byteLength: number; headOperations: number }> {
+): Promise<{ outcome: ItemOutcome; error?: string; byteLength: number; getOperations: number }> {
   let body: Uint8Array;
   try {
     body = await readFile(item.localPath);
-  } catch (err) {
+  } catch (error) {
     return {
       outcome: "failed",
-      error: `local read failed: ${(err as Error).message}`,
+      error: `local read failed: ${(error as Error).message}`,
       byteLength: 0,
-      headOperations: 0,
+      getOperations: 0,
+    };
+  }
+  const localSha256 = sha256(body);
+  if (body.byteLength !== item.bytes || localSha256 !== item.sha256) {
+    return {
+      outcome: "failed",
+      error:
+        `candidate manifest mismatch: expected ${item.bytes} bytes/${item.sha256}, ` +
+        `got ${body.byteLength} bytes/${localSha256}`,
+      byteLength: body.byteLength,
+      getOperations: 0,
     };
   }
 
-  const filenameSha256 = contentAddressedSha256(item.key);
-  if (filenameSha256 !== null) {
-    const actualSha256 = createHash("sha256").update(body).digest("hex");
-    if (actualSha256 !== filenameSha256) {
-      return {
-        outcome: "failed",
-        error: `content-addressed filename hash mismatch: expected ${filenameSha256}, got ${actualSha256}`,
-        byteLength: body.byteLength,
-        headOperations: 0,
-      };
-    }
+  const getOperations = driver.tracksRemoteCosts === false ? 0 : 1;
+  let remote: Uint8Array | null;
+  try {
+    remote = await driver.get(item.key);
+  } catch (error) {
+    return {
+      outcome: "failed",
+      error: `remote GET failed: ${(error as Error).message}`,
+      byteLength: body.byteLength,
+      getOperations,
+    };
   }
-
-  const statHeadOperations = !options.force && driver.tracksRemoteCosts !== false ? 1 : 0;
-  if (!options.force) {
-    let remote: Awaited<ReturnType<S3Driver["stat"]>>;
-    try {
-      remote = await driver.stat(item.key);
-    } catch (err) {
+  if (remote !== null) {
+    const remoteSha256 = sha256(remote);
+    if (remote.byteLength !== item.bytes || remoteSha256 !== item.sha256) {
       return {
         outcome: "failed",
-        error: `head failed: ${(err as Error).message}`,
+        error:
+          `immutable object corruption: expected ${item.bytes} bytes/${item.sha256}, ` +
+          `got ${remote.byteLength} bytes/${remoteSha256}`,
         byteLength: body.byteLength,
-        headOperations: statHeadOperations,
+        getOperations,
       };
     }
-    if (remote && remote.size === body.byteLength) {
-      const remoteEtag = normalizeEtag(remote.etag);
-      const localMd5 = md5Hex(body);
-      if (remoteEtag.length === 0 || remoteEtag === localMd5) {
-        return {
-          outcome: "skipped",
-          byteLength: body.byteLength,
-          headOperations: statHeadOperations,
-        };
-      }
-    }
+    return { outcome: "skipped", byteLength: body.byteLength, getOperations };
   }
 
   if (options.dryRun) {
-    return { outcome: "dry-run", byteLength: body.byteLength, headOperations: statHeadOperations };
+    return { outcome: "dry-run", byteLength: body.byteLength, getOperations };
   }
 
-  const contentType = contentTypeFor(item.key);
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= options.maxAttempts; attempt += 1) {
     try {
-      await driver.put(item.key, body, contentType);
+      const created = await driver.putIfAbsent(item.key, body, item.mediaType);
+      const stored = await driver.get(item.key);
+      const verifiedGetOperations = getOperations + (driver.tracksRemoteCosts === false ? 0 : 1);
+      if (stored === null || stored.byteLength !== item.bytes || sha256(stored) !== item.sha256) {
+        return {
+          outcome: "failed",
+          error: created
+            ? "uploaded artifact failed read-after-write SHA-256 verification"
+            : "immutable object won a conditional-upload race with corrupt bytes",
+          byteLength: body.byteLength,
+          getOperations: verifiedGetOperations,
+        };
+      }
       return {
-        outcome: "uploaded",
+        outcome: created ? "uploaded" : "skipped",
         byteLength: body.byteLength,
-        headOperations: statHeadOperations,
+        getOperations: verifiedGetOperations,
       };
-    } catch (err) {
-      lastError = err as Error;
+    } catch (error) {
+      lastError = error as Error;
       if (attempt === options.maxAttempts) break;
       const backoffMs = attempt * options.backoffMsBase;
       console.error(
-        `publish-r2: retrying ${item.key} in ${backoffMs}ms (attempt ${attempt}/${options.maxAttempts}, ${lastError.message})`,
+        `publish-r2: retrying ${item.key} in ${backoffMs}ms ` +
+          `(attempt ${attempt}/${options.maxAttempts}, ${lastError.message})`,
       );
       await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
@@ -395,18 +282,17 @@ async function uploadOne(
     outcome: "failed",
     error: lastError?.message ?? "unknown",
     byteLength: body.byteLength,
-    headOperations: statHeadOperations,
+    getOperations,
   };
 }
 
 export async function runPublishR2Artifacts(options: PublishR2Options): Promise<PublishR2Report> {
-  const finalMapManifestKey = await assertPublishableMapManifest(options);
+  const { manifest, items } = await collectCandidates(options);
   const driver =
     options.driver ??
     (options.dryRun && (options.accessKeyId.length === 0 || options.secretAccessKey.length === 0)
       ? makeNoopDriver()
       : makeBunDriver(options));
-  const candidates = await collectCandidates(options, finalMapManifestKey);
   const counters: Counters = {
     uploaded: 0,
     skipped: 0,
@@ -416,35 +302,43 @@ export async function runPublishR2Artifacts(options: PublishR2Options): Promise<
     uploadedBytes: 0,
     skippedBytes: 0,
     dryRunBytes: 0,
-    headOperations: 0,
+    getOperations: 0,
   };
   const failed: Array<{ key: string; error: string }> = [];
-
-  console.error(
-    `publish-r2 ${options.month}: ${candidates.length} candidate key${candidates.length === 1 ? "" : "s"} (concurrency=${options.concurrency}${options.dryRun ? ", dry-run" : ""}${options.force ? ", force" : ""})`,
-  );
-
+  const families = new Map<string, ArtifactFamilyReport>();
   let cursor = 0;
-  let lastLoggedAt = Date.now();
 
   const worker = async (): Promise<void> => {
     while (true) {
-      const index = cursor;
+      const item = items[cursor];
       cursor += 1;
-      if (index >= candidates.length) return;
-      const item = candidates[index];
       if (item === undefined) return;
       const result = await uploadOne(item, options, driver);
       counters.candidateBytes += result.byteLength;
-      counters.headOperations += result.headOperations;
+      counters.getOperations += result.getOperations;
+      const family = artifactFamily(item.logicalId);
+      const familyReport = families.get(family) ?? {
+        candidateCount: 0,
+        candidateByteCount: 0,
+        uploadedCount: 0,
+        uploadedByteCount: 0,
+        reusedCount: 0,
+        reusedByteCount: 0,
+      };
+      familyReport.candidateCount += 1;
+      familyReport.candidateByteCount += result.byteLength;
       switch (result.outcome) {
         case "uploaded":
           counters.uploaded += 1;
           counters.uploadedBytes += result.byteLength;
+          familyReport.uploadedCount += 1;
+          familyReport.uploadedByteCount += result.byteLength;
           break;
         case "skipped":
           counters.skipped += 1;
           counters.skippedBytes += result.byteLength;
+          familyReport.reusedCount += 1;
+          familyReport.reusedByteCount += result.byteLength;
           break;
         case "dry-run":
           counters.dryRun += 1;
@@ -453,21 +347,13 @@ export async function runPublishR2Artifacts(options: PublishR2Options): Promise<
         case "failed":
           counters.failed += 1;
           failed.push({ key: item.key, error: result.error ?? "unknown" });
-          console.error(`publish-r2: FAILED ${item.key}: ${result.error ?? "unknown"}`);
           break;
       }
-      const done = counters.uploaded + counters.skipped + counters.failed + counters.dryRun;
-      const now = Date.now();
-      if (done === candidates.length || now - lastLoggedAt > 5_000) {
-        lastLoggedAt = now;
-        console.error(
-          `publish-r2: ${done}/${candidates.length} (uploaded=${counters.uploaded} skipped=${counters.skipped} failed=${counters.failed}${counters.dryRun > 0 ? ` dry-run=${counters.dryRun}` : ""})`,
-        );
-      }
+      families.set(family, familyReport);
     }
   };
 
-  const workerCount = Math.min(options.concurrency, Math.max(candidates.length, 1));
+  const workerCount = Math.min(options.concurrency, Math.max(items.length, 1));
   await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
   const uploadedGb = counters.uploadedBytes / 1024 ** 3;
@@ -475,33 +361,27 @@ export async function runPublishR2Artifacts(options: PublishR2Options): Promise<
   const actualCost = estimateR2StandardCost(
     {
       classAOperations: options.dryRun ? 0 : counters.uploaded,
-      classBOperations: counters.headOperations,
+      classBOperations: counters.getOperations,
       storageGbMonth: options.dryRun ? 0 : uploadedGb,
     },
-    [
-      "R2 release publishing uses Standard storage.",
-      "Idempotency checks use HEAD requests, which are R2 Class B operations when remote credentials are used.",
-    ],
+    ["Verified reuse performs a full GET and SHA-256 comparison for every existing object."],
   );
   const projectedExecuteCost = estimateR2StandardCost(
     {
       classAOperations: options.dryRun ? counters.dryRun : counters.uploaded,
-      classBOperations: counters.headOperations,
+      classBOperations: counters.getOperations,
       storageGbMonth: options.dryRun ? dryRunGb : uploadedGb,
     },
-    [
-      "Projected execute cost treats each would-upload object as new Standard storage for one GB-month, so replacement uploads are intentionally conservative.",
-      "R2 egress is free; this estimate excludes any non-Cloudflare source-side costs.",
-    ],
+    ["Only objects absent from R2 are eligible for a content PUT."],
   );
-
   const report: PublishR2Report = {
-    schemaVersion: 1,
-    month: options.month,
+    schemaVersion: 2,
+    candidateId: manifest.candidateId,
+    candidateManifestPath: options.candidateManifestPath,
     bucket: options.bucket,
     generatedAt: new Date().toISOString(),
     status: counters.failed === 0 ? "pass" : "fail",
-    candidateCount: candidates.length,
+    candidateCount: items.length,
     uploadedCount: counters.uploaded,
     skippedCount: counters.skipped,
     failedCount: counters.failed,
@@ -510,24 +390,17 @@ export async function runPublishR2Artifacts(options: PublishR2Options): Promise<
     uploadedByteCount: counters.uploadedBytes,
     skippedByteCount: counters.skippedBytes,
     dryRunByteCount: counters.dryRunBytes,
-    r2ClassBOperationCount: counters.headOperations,
+    r2ClassBOperationCount: counters.getOperations,
+    families: Object.fromEntries(
+      [...families.entries()].toSorted(([a], [b]) => a.localeCompare(b)),
+    ),
     cost: { actual: actualCost, projectedExecute: projectedExecuteCost },
-    failed: failed.slice().sort((a, b) => a.key.localeCompare(b.key)),
+    failed: failed.toSorted((left, right) => left.key.localeCompare(right.key)),
     outputPath: options.outputPath,
   };
 
   await mkdir(dirname(options.outputPath), { recursive: true });
   await writeFile(options.outputPath, `${JSON.stringify(report, null, 2)}\n`);
-
-  if (report.status !== "pass") {
-    console.error(
-      `publish-r2 ${options.month}: FAIL (${report.failedCount} of ${report.candidateCount} failed). Report: ${relative(process.cwd(), report.outputPath)}`,
-    );
-  } else {
-    console.error(
-      `publish-r2 ${options.month}: PASS (uploaded=${report.uploadedCount} skipped=${report.skippedCount}${report.dryRunCount > 0 ? ` dry-run=${report.dryRunCount}` : ""}, projectedExecuteOverageFromZero=$${report.cost.projectedExecute.estimatedOverageUsdFromZero.toFixed(2)}). Report: ${relative(process.cwd(), report.outputPath)}`,
-    );
-  }
   return report;
 }
 
@@ -537,24 +410,20 @@ export async function runPublishR2ArtifactsCommand(
   const report = await runPublishR2Artifacts(options);
   if (report.status === "fail") {
     throw new Error(
-      `R2 artifact publication failed for ${report.failedCount} of ${report.candidateCount} candidates; see ${report.outputPath}.`,
+      `R2 artifact publication failed for ${report.failedCount} of ${report.candidateCount} ` +
+        `candidate objects; see ${report.outputPath}.`,
     );
   }
   return report;
 }
 
-const monthPattern = /^\d{4}-\d{2}$/;
-
 export default defineCommand({
   path: ["publish", "r2-artifacts"],
-  summary:
-    "Idempotently upload release artifacts to R2 via the S3-compatible API (HEAD-then-PUT, parallel, resumable).",
+  summary: "Upload only immutable objects declared by a serving candidate manifest.",
   input: {
     options: Schema.Struct({
-      month: Schema.String.check(
-        Schema.isPattern(monthPattern, { message: "must be YYYY-MM" }),
-      ).annotate({
-        description: "Covered-month partition, YYYY-MM",
+      candidateManifest: Schema.String.check(Schema.isMinLength(1)).annotate({
+        description: "Strict Plan 098 serving candidate manifest",
       }),
       bucket: Schema.String.check(Schema.isMinLength(1)).annotate({
         description: "R2 bucket name",
@@ -566,40 +435,27 @@ export default defineCommand({
         .number()
         .check(Schema.isInt())
         .check(Schema.isGreaterThan(0))
-        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_CONCURRENCY)))
-        .annotate({ description: "Parallel uploads" }),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_CONCURRENCY))),
       maxAttempts: arg
         .number()
         .check(Schema.isInt())
         .check(Schema.isGreaterThan(0))
-        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_MAX_ATTEMPTS)))
-        .annotate({ description: "Retry attempts per object" }),
+        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(DEFAULT_MAX_ATTEMPTS))),
       artifactRoot: Schema.optionalKey(Schema.String).annotate({
-        description: "Override artifact root directory",
-      }),
-      exportRoot: Schema.optionalKey(Schema.String).annotate({
-        description: "Override D1 export root directory (defaults to data/exports/d1)",
-      }),
-      schema: Schema.optionalKey(Schema.String).annotate({
-        description: "Override D1 schema.sql path",
-      }),
-      seed: Schema.optionalKey(Schema.String).annotate({
-        description: "Override D1 seed.sql path",
+        description: "Root containing the manifest-declared physical keys",
       }),
       output: Schema.optionalKey(Schema.String).annotate({ description: "Override report path" }),
       dryRun: arg
         .boolean()
         .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
-        .annotate({ description: "Skip PUTs, report would-uploads" }),
-      force: arg
-        .boolean()
-        .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
-        .annotate({ description: "Skip HEAD probe and re-upload every candidate" }),
+        .annotate({
+          description: "Verify existing objects and report absent objects without PUTs",
+        }),
     }),
   },
   output: Schema.Struct({
-    schemaVersion: Schema.Literal(1),
-    month: Schema.String,
+    schemaVersion: Schema.Literal(2),
+    candidateId: Schema.String,
     bucket: Schema.String,
     status: Schema.Literals(["pass", "fail"]),
     candidateCount: Schema.Number,
@@ -621,25 +477,19 @@ export default defineCommand({
         throw new Error("Missing R2 endpoint (pass --endpoint or set R2_ENDPOINT).");
       }
       if (accessKeyId.length === 0 || secretAccessKey.length === 0) {
-        throw new Error(
-          "R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY must be set in the environment.",
-        );
+        throw new Error("R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY must be set.");
       }
     }
     const artifactRoot =
       input.options.artifactRoot === undefined
         ? fromRepoRoot("data/artifacts")
         : fromCliPath(input.options.artifactRoot);
-    const exportRoot =
-      input.options.exportRoot === undefined
-        ? fromRepoRoot("data/exports/d1")
-        : fromCliPath(input.options.exportRoot);
+    const candidateManifestPath = fromCliPath(input.options.candidateManifest);
     const outputPath =
       input.options.output === undefined
-        ? join(artifactRoot, "audits", `publish-r2-${input.options.month}.json`)
+        ? join(artifactRoot, "audits", "publish-r2-candidate.json")
         : fromCliPath(input.options.output);
-    return runPublishR2ArtifactsCommand({
-      month: input.options.month,
+    const report = await runPublishR2ArtifactsCommand({
       bucket: input.options.bucket,
       endpoint,
       accessKeyId,
@@ -647,20 +497,16 @@ export default defineCommand({
       concurrency: input.options.concurrency,
       maxAttempts: input.options.maxAttempts,
       backoffMsBase: DEFAULT_BACKOFF_MS_BASE,
-      prefixes: DEFAULT_PREFIXES,
-      manifestDirs: DEFAULT_MANIFEST_DIRS,
-      d1SchemaPath:
-        input.options.schema === undefined
-          ? join(exportRoot, input.options.month, "schema.sql")
-          : fromCliPath(input.options.schema),
-      d1SeedPath:
-        input.options.seed === undefined
-          ? join(exportRoot, input.options.month, "seed.sql")
-          : fromCliPath(input.options.seed),
+      candidateManifestPath,
       artifactRoot,
       outputPath,
       dryRun: input.options.dryRun,
-      force: input.options.force,
     });
+    console.error(
+      `publish-r2 ${report.candidateId}: ${report.status.toUpperCase()} ` +
+        `(uploaded=${report.uploadedCount} reused=${report.skippedCount} ` +
+        `dry-run=${report.dryRunCount}). Report: ${relative(process.cwd(), outputPath)}`,
+    );
+    return report;
   },
 });

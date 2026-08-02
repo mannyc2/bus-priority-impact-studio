@@ -24,6 +24,7 @@ import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
+import { exactServingRouteIdsFromD1 } from "../../lib/exact-serving-route-ids.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import {
   defaultArtifactRootPath,
@@ -73,6 +74,7 @@ export type MapReleaseDependencies = {
   routeBrief: typeof runRouteBriefModel;
   speedSpines: typeof runRouteSpeedSpines;
   exportD1: typeof runExportD1Seed;
+  exactRouteIds: typeof exactServingRouteIdsFromD1;
   readD1Inputs: typeof readLocalD1Inputs;
   verifyD1: typeof runVerifyD1Export;
   context: typeof runMapContext;
@@ -86,6 +88,7 @@ const defaultDependencies: MapReleaseDependencies = {
   routeBrief: runRouteBriefModel,
   speedSpines: runRouteSpeedSpines,
   exportD1: runExportD1Seed,
+  exactRouteIds: exactServingRouteIdsFromD1,
   readD1Inputs: readLocalD1Inputs,
   verifyD1: runVerifyD1Export,
   context: runMapContext,
@@ -264,6 +267,15 @@ export async function runMapRelease(
       "D1 export did not emit the candidate exact-route identity registration and receipt.",
     );
   }
+  // Plan 095 deliberately leaves catalog-only routes in the compatibility
+  // catalog while withholding exact trip types. Full Studio/map artifacts
+  // must use only the exact admitted projection and must never synthesize the
+  // unresolved routes into schema-v3 presentation rows.
+  const exactServingRouteIds = await dependencies.exactRouteIds({
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
+    expectedCount: preliminaryD1.exactRouteIdentity.exactRouteCount,
+  });
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,
@@ -280,6 +292,7 @@ export async function runMapRelease(
     stopSnapshotPath,
     localDbPath: inputs.local.path,
     profile: "full",
+    routeIds: exactServingRouteIds,
     ...(inputs.routeSliceRawRoot === undefined
       ? {}
       : { routeSliceRawRoot: inputs.routeSliceRawRoot }),
@@ -326,6 +339,7 @@ export async function runMapRelease(
     contextPath: context.artifactPath,
     contextSourcePath: context.sourcePath,
     routeFactsPath: studio.mapRouteFactsPath,
+    routeIds: exactServingRouteIds,
   });
   const audit = await dependencies.audit({
     artifactRoot,
