@@ -315,7 +315,10 @@ describe("production boundary harness", () => {
     expect(workflow).toContain("group: serving-production-publication");
     expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
     expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
-    expect(workflow).toContain("= \"$GITHUB_SHA\"");
+    expect(workflow).toContain("ref: ${{ inputs.candidate_repo_sha }}");
+    expect(workflow).toContain('= "$CANDIDATE_REPO_SHA"');
+    expect(workflow).toContain("for attempt in $(seq 1 60)");
+    expect(workflow).toContain("for attempt in 1 2 3 4 5");
     expect(classify).toBeGreaterThan(0);
     expect(migrate).toBeGreaterThan(classify);
     expect(blobs).toBeGreaterThan(migrate);
