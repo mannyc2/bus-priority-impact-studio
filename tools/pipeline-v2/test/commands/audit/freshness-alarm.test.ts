@@ -146,4 +146,35 @@ describe("scheduled freshness alarm", () => {
     expect(report.rows[0]?.attentionReasons).toEqual(["upstream_probe_unavailable"]);
     expect(await Bun.file(join(root, "report.json")).text()).not.toContain("credential-shaped");
   });
+
+  test("bounds concurrent advisory probes and reports a timeout as unavailable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-freshness-alarm-timeout-"));
+    roots.push(root);
+    const started: string[] = [];
+    const report = await runFreshnessAlarm({
+      artifactRoot: join(root, "artifacts"),
+      outputPath: join(root, "report.json"),
+      issueBodyPath: join(root, "issue.md"),
+      checkedAt: "2026-08-02T17:00:00.000Z",
+      descriptors: [descriptor("slow_source"), descriptor("current_source")],
+      probeTimeoutMs: 10,
+      upstreamLatestResolver: (source) => {
+        started.push(source.sourceId);
+        return source.sourceId === "slow_source"
+          ? new Promise<string>(() => undefined)
+          : "2026-06";
+      },
+      releaseResolver: async () => release,
+    });
+
+    expect(started).toEqual(["slow_source", "current_source"]);
+    expect(report.rows.find((row) => row.datasetId === "slow_source")?.attentionReasons).toEqual([
+      "upstream_probe_unavailable",
+    ]);
+    expect(report.rows.find((row) => row.datasetId === "current_source")).toMatchObject({
+      assessment: "assessed",
+      publishLagPeriods: 0,
+      attentionReasons: [],
+    });
+  });
 });
