@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { decodeStrict } from "@bp/domain/decode";
 import {
+  canonicalServingJson,
   type ServingCandidateManifestV1,
   ServingCandidateManifestV1Schema,
 } from "@bp/domain/studio/serving-release";
@@ -142,9 +143,10 @@ async function main(): Promise<void> {
   };
 
   const recordReceipt = async (operationId: string, receiptKind: string, receipt: unknown) => {
+    const receiptSha256 = sha256(`${canonicalServingJson(receipt)}\n`);
     const result = await operatorJson({
       action: "record-receipt",
-      operationId,
+      operationId: `${operationId}-${receiptSha256.slice(0, 16)}`,
       receiptKind,
       createdAt: now(),
       receipt,
