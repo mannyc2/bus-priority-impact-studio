@@ -42,6 +42,7 @@ type Args = {
   mapRegistration: string;
   finalMapManifestKey: string;
   baselineManifest: string;
+  baselineArtifactRoot: string;
   plan106ArtifactMap: string;
   plan106ArtifactRoot: string;
   freshnessMatrix: string;
@@ -77,6 +78,7 @@ function parseArgs(argv: readonly string[]): Args {
     mapRegistration: required("--map-registration"),
     finalMapManifestKey: required("--final-map-manifest-key"),
     baselineManifest: required("--baseline-manifest"),
+    baselineArtifactRoot: required("--baseline-artifact-root"),
     plan106ArtifactMap: required("--plan106-artifact-map"),
     plan106ArtifactRoot: required("--plan106-artifact-root"),
     freshnessMatrix: required("--freshness-matrix"),
@@ -127,9 +129,9 @@ function interventionKey(key: string): boolean {
 
 async function activeDescriptors(input: {
   baselineManifestPath: string;
+  baselineArtifactRoot: string;
   plan106ArtifactMapPath: string;
   plan106ArtifactRoot: string;
-  artifactRoot: string;
 }): Promise<{
   descriptors: Map<string, ServingCandidateArtifactDescriptor>;
   sourcePaths: Map<string, string>;
@@ -165,7 +167,10 @@ async function activeDescriptors(input: {
       ),
   );
   const sourcePaths = new Map(
-    [...descriptors.keys()].map((logicalId) => [logicalId, join(input.artifactRoot, logicalId)]),
+    [...descriptors.keys()].map((logicalId) => [
+      logicalId,
+      join(input.baselineArtifactRoot, logicalId),
+    ]),
   );
   let overlayCount = 0;
   for (const entry of map.entries) {
@@ -295,9 +300,9 @@ async function main(): Promise<void> {
   });
   const active = await activeDescriptors({
     baselineManifestPath: args.baselineManifest,
+    baselineArtifactRoot: args.baselineArtifactRoot,
     plan106ArtifactMapPath: args.plan106ArtifactMap,
     plan106ArtifactRoot: args.plan106ArtifactRoot,
-    artifactRoot: args.artifactRoot,
   });
   const artifacts = new Map(active.descriptors);
   const sourcePaths = new Map(active.sourcePaths);
