@@ -10016,3 +10016,10 @@ identity to the historical exact-identity source receipt, so the workflow again 
 back and left the generation-2 pointer unchanged. The smoke now treats that historical receipt as
 the source/coverage anchor and separately requires status plus schema-3 routes to publish the same
 active pointed release envelope.
+
+Main deployment run `30724332171` passed the complete staged and ordinary-traffic production gate.
+Plan 098 drill run `30724519097` then stopped during its generation-2 resume smoke, before any
+pointer mutation, because the smoke expected the Plan 106 candidate ID at the document root while
+the strict public pack carries it under `candidate.candidateId`. The public bytes independently
+verified candidate `b647f0f1…`, 222 episodes, 188 route artifacts, and 268 route memberships. The
+drill now reads the candidate ID from that canonical envelope.

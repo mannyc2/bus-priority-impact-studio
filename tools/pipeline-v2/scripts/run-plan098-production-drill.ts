@@ -262,9 +262,12 @@ async function main(): Promise<void> {
         }
       }
       if (path.includes("public-episodes") && expectedCandidateId === manifestB.candidateId) {
-        const parsed = JSON.parse(body) as { candidateId?: string; episodes?: unknown[] };
+        const parsed = JSON.parse(body) as {
+          candidate?: { candidateId?: string };
+          episodes?: unknown[];
+        };
         if (
-          parsed.candidateId !==
+          parsed.candidate?.candidateId !==
             "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef" ||
           parsed.episodes?.length !== 222
         ) {
