@@ -10164,3 +10164,65 @@ public smoke. Rollback was not invoked. Downloaded deploy and smoke receipt
 SHA-256 values are
 `cc524bacd1ddffa58324d48770b8de53aa6589536babad800124bace0eacb376` and
 `49fa29944a4c741571457a8e5686d09435e463ba96eed23de6b359c12960c35d`.
+
+## [2026-08-02] operations | Plan 099 full history and honest coverage activated
+
+Plan 099 is complete. The authorized live backfill captured 79 monthly
+ridership partitions from 2020-01 through 2026-07 (33,663 rows) and 138
+wait/reliability partitions from 2015-01 through 2026-06 (168,723 rows). The
+exact rerun skipped all 217 hash-verified partitions and reproduced summary
+SHA-256
+`73c7807ed9077550618fc6811157d88464eed439da783f9ff4cc6cb171607d00`.
+No partition was accepted from a partial file, a zero-row response, or a
+guessed history bound. PRs #157 and #158 landed the logical-dataset registry,
+resumable receipt-backed adapters, gap-aware candidate/status/route/UI
+contracts, D1 history projection, and strict pointed-release compatibility.
+
+The reviewed candidate contains 4,247 artifacts and 78,361 candidate-scoped
+D1 rows. Its identity is
+`67ae1b14fd57687ecb4c640b40bde7d8267b0f5ff13aad030d40fa5491dcd3d5`,
+manifest SHA-256 is
+`4de1cd01f9d0715cfcd23a0532e8b932bbf61c04b0d4ae67f7ea995b9e41de6e`,
+and deterministic archive SHA-256 is
+`df279ca311b3eae86ecd12ef9045486030307b11047a4528b18886de559b7200`.
+The pre-activation size receipt accepted a 41,112-byte largest route-history
+payload and a 7.352 ms local spot check, well below the chunking reopen
+threshold.
+
+Publication attempt `30768435167` stopped at closed-candidate verification
+after a non-JSON operator 500; activation and rollback were both skipped and
+generation 5 remained active. A later attempt `30768841833` was invalidated
+before activation when the concurrent post-PR CI deploy replaced the shared
+temporary operator token and then removed the service. PR #159 pinned
+execution to the approval receipt's reviewed repository SHA, added an
+authenticated readiness gate, and made the activation-free verification
+phase safely retryable. Neither failed attempt is a production-completion
+receipt.
+
+Uncontended protected workflow run `30768988711` then verified the complete
+closed candidate, activated generation 6, passed eight public smokes, uploaded
+evidence, skipped rollback, and removed the operator. Production is release
+`pub_20260802T215956764Z`. Durable candidate-verified, activated, and completion
+receipt SHA-256 values are respectively
+`7eb6e8c1a61fc3507c5a80c74a4303c590aa544484a2c78d1d2e67359153b678`,
+`c0c6aebe575e664fe18828625577687e4136c4104cf7e4b9ee8bc4d3b6ad987f`,
+and `95eadb116e4ee9ca85d3a76f14abdfb9530623fafbb42af59b0d70a782c49617`.
+Downloaded state bytes independently hash to
+`6687059ccda59fdaf42c51ce2271a3dccc80cb8bf982cfd0b45556011e4cfa7c`.
+Independent public reads confirmed route reliability 2015-01..2026-06,
+ridership 2020-01..2026-07, and speed 2023-04..2026-06 with the real
+2026-04..2026-05 gap explicit; the temporary operator returned 404.
+
+Canonical semantic no-op run `30769204796` left generation 6 and the active
+release unchanged and recorded durable completion receipt SHA-256
+`87a5eb1f2130cc6041e5bc26d94d5479759053675e56a43cd576deb288d351a9`.
+Post-publish freshness run `30769269308` consumed candidate-dataset coverage,
+updated the single marker-owned issue #154, and uploaded report SHA-256
+`6986fd5988f5ad8b97354f69cec49549d933a9fee7d4d34ba9eacfa22ba250b7`.
+Ridership reported zero lag through 2026-07; unavailable upstream probes for
+speed/reliability remain explicit advisory attention, not guessed freshness.
+
+Fresh-main verification passed pipeline-v2 553/553, domain 146/146, Worker
+35/35, knowledge validation, and scoped typechecks for pipeline-v2, domain,
+DB, Studio API, and web. The Workerd suite's first sandboxed invocation could
+not bind localhost (`EPERM`); its required outside-sandbox rerun passed.
