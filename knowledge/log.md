@@ -10031,3 +10031,8 @@ staging. Activation and rollback now bind the registered candidate manifest retu
 the completion receipt records both fresh-build and registered identities. The nonauthoritative
 prepared intent left by the rejected update is terminally marked failed before a uniquely named
 registered-manifest retry.
+
+Plan 098 retry `30725315468` terminally marked that rejected intent failed and passed its
+generation-2 resume smoke, then stopped before rollback because the durable smoke receipt reused a
+fixed operation ID with new evidence bytes. Operational receipt IDs now include the canonical
+receipt hash, preserving repeat proofs append-only without weakening collision detection.
