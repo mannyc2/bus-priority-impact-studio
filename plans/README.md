@@ -134,15 +134,15 @@ Plan 106 was refreshed against `origin/main@5dd08062` after `mta-wiki` Plans
 `resolved-pack-v1-production` GitHub Release was published. The exact release,
 archive, manifest, resource, and accepted-conformance hashes are pinned in the
 plan. The strict v2 importer, projection, readers, and deterministic unpublished
-candidate are complete. Plan 098's local implementation and rollback proof are
-complete; its protected production activation remains the hard prerequisite
-for the completed Tracker candidate handoff.
+candidate are complete. Plan 098's protected production activation and
+rollback proof are complete; Candidate B is active at serving generation 4
+and the Tracker cutover is deployed.
 
 ## Execution order & status (gen 19)
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 106 | Cut the site over to the reviewed resolved-transit public pack | P0 | XL | final producer release (satisfied); local 098 for activation; Plan 057 pin/deploy | DONE (candidate `b647f0f1…`; activation handed to 098) |
+| 106 | Cut the site over to the reviewed resolved-transit public pack | P0 | XL | final producer release; 098 activation; Plan 057 authorization (all satisfied) | DONE (candidate `b647f0f1…`; generation-4 production deployment verified) |
 
 ## Dependency and safety notes (gen 19)
 
@@ -157,10 +157,9 @@ for the completed Tracker candidate handoff.
   104 placements are 95 `last_confirmed_active` and nine `unknown`; the
   confirmed-current footprint is empty, so the site may make no current-active
   producer claim.
-- Producer publication and `LATEST` promotion are complete. Plan 106 is
-  complete. Tracker pin and deployment are owner-approved but technically
-  STOP-blocked until Plan 098's protected activation covers every new logical
-  key atomically.
+- Producer publication and `LATEST` promotion are complete. Plan 106, the
+  Tracker pin, and deployment are complete through Plan 098's protected
+  generation-4 activation and rollback proof.
 
 ---
 
@@ -197,20 +196,21 @@ in as each treatment kind becomes measurable.
 
 ## Notes (gen 18)
 
-- **Standing prerequisite for plan 098** (not itself a plan here): the Plan
+- **Resolved Plan 098 prerequisite** (not itself a plan here): the Plan
   091 inventory and Plan 090 observation-bundle artifacts were never
   exported/published, so reading them returned HTTP 500 — indistinguishable
   from absent, since `PLAN097_RECOVERY_ENABLED` routes every artifact read
   through the active release's recovery manifest, and an absent key throws
   `logical_entry_missing`. Uploading to the logical key changes nothing
-  until Plan 098's pointer is active; until then `/interventions`'s Kind
-  filter stays disabled, Overview shows no markers, route history has no
-  typed inventory — none of 102-105 is blocked, every one degrades
-  honestly. **Serving any new artifact key is blocked on plan 098.**
+  without candidate registration. Plan 098's pointer is now active at
+  generation 4, so later reviewed candidates can stage new keys atomically;
+  unregistered Plan 090/091 keys remain honestly absent rather than silently
+  bypassing the release manifest.
 - The citywide evidence endpoint was down (HTTP 503, Cloudflare 1102 — a
   Worker resource limit, not missing data); fixed in code by PR #114
   (mta-wiki plan 106), which moved the reduction into the pipeline, but
-  serving the new precomputed artifact is still gated on plan 098 above.
+  the new precomputed artifact was gated on Plan 098 and is now served by the
+  generation-4 Plan 106 candidate.
 - Numbering: mta-wiki's tracker plan for member-grain outcome certification
   takes the next free number after this generation (106+); don't renumber
   102-105.
@@ -247,16 +247,16 @@ it via selective serving-data recovery rather than replacing the database;
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE (2026-07-26; production serves `pub_20260725T164123260Z`, 375 exact routes; no rollback invoked) |
-| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | IN PROGRESS (local proof passed; protected activation pending) |
+| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | DONE (2026-08-02; Candidate B active at generation 4 after production rollback drill) |
 | 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
 | 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
 | 101 | Deterministic incremental publication and final de-month cleanup | P2 | L-XL | 098-100 active + rollback drill | TODO |
 
 ## Notes (gen 17)
 
-- No later artifact-contract cutover is allowed until Plan 098 has activated
-  and completed its A→B→A→B rollback drill. [097's STOP-receipt branch was
-  moot: it completed cleanly 2026-07-26.]
+- Plan 098 activated and completed its production A→B→A→B rollback drill on
+  2026-08-02. [097's STOP-receipt branch was moot: it completed cleanly
+  2026-07-26.]
 - Plan 098 separates content-derived candidate identity from activation-time
   release identity, versions only generated D1 data, and preserves auth/
   user/current-signal rows. One request resolves one release/candidate.

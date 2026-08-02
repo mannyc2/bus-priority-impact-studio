@@ -14,11 +14,11 @@
 > `resolved-pack-v1-production`. This plan pins its exact tag, archive,
 > manifest, public-resource, and conformance-ledger hashes below.
 >
-> **Activation dependency**: Plan 098 in this repository must be `DONE` before
-> any new logical artifact key can be activated. External publication and the
-> producer `LATEST` promotion are complete. The Plan 057 Tracker pin and
-> deployment are approved but technically STOP-blocked until Plans 098 and 106
-> clear; this implementation plan performs neither operation.
+> **Activation completion (2026-08-02)**: Plan 098 is `DONE`. Its protected
+> production drill activated the complete candidate, proved rollback to the
+> prior release, reactivated the candidate at generation 4, and retained the
+> durable cross-surface receipts. External publication, producer `LATEST`, the
+> Tracker pin, and deployment are complete.
 >
 > **Target-branch preflight**:
 >
@@ -35,15 +35,15 @@
 ## Status
 
 - **State**: DONE — strict import, v2 candidate projection, both site readers,
-  serving allowlist, deterministic candidate, and Plan 098 handoff complete;
-  activation remains blocked on Plan 098
+  serving allowlist, deterministic candidate, Plan 098 activation/rollback,
+  Tracker pin, and production deployment complete
 - **Priority**: P0
 - **Effort**: XL
 - **Risk**: HIGH (public identity, wording, release activation, and two user
   surfaces change together)
 - **Depends on**: final `resolved-pack-v1-production` release and Plan 056
-  acceptance receipt (SATISFIED); local Plan 098 for activation only (HARD);
-  Plan 057 Tracker pin/deploy after both downstream plans complete (HARD)
+  acceptance receipt (SATISFIED); Plan 098 production activation (SATISFIED);
+  Plan 057 Tracker pin/deploy authorization (SATISFIED)
 - **Category**: architecture / correctness
 - **Planned at**: `origin/main@5dd08062`, refreshed 2026-08-01
 
@@ -225,7 +225,7 @@ them, re-run identity matching, or derive a new target count.
 | Release identity and resource hashes | strict pack manifest + local atomic release manifest | Both must be pinned and verified |
 | Build-only Tracker disposition | accepted Plan 056 operator ledger | Consume locally; never serialize operator fields publicly |
 | Producer publication and `LATEST` | final Plan 057 release | Already complete; verify exact pins rather than republish |
-| Tracker pin and deployment | owner-gated Plan 057 + local Plan 098 | Approved but technically blocked; never implicit in a build command |
+| Tracker pin and deployment | owner-gated Plan 057 + local Plan 098 | Completed by the protected Plan 098 workflow after both prerequisites cleared |
 
 ## Target data flow
 
@@ -810,9 +810,40 @@ and `tools/pipeline-v2/test/mta-wiki-route-identities.test.ts`); Plan 106 does
 not modify either file, and the later gates were run independently.
 
 No stable logical key, `LATEST`, Tracker pin, publication state, or deployment
-was changed. The artifact map is the closed Plan 098 input: one
+was changed during the original Plan 106 implementation. The artifact map was
+the closed Plan 098 input: one
 `bp.studio.public_intervention_episodes.v2` logical key and 188
 `bp.studio.route_intervention_history.v2` route keys, each with physical key,
 content hash, media type, schema id, and exact route-key expansion. Plan 098
-must stage and activate that entire set atomically before the already approved
-Plan 057 Tracker pin and deployment proceed.
+subsequently staged and activated that entire set atomically before completing
+the already approved Plan 057 Tracker pin and deployment.
+
+## Production activation receipt (2026-08-02)
+
+The Plan 106 handoff was consumed without drift by protected-main activation
+run `30725967026`. Candidate B
+`a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5`
+contains the exact Plan 106 candidate
+`b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`
+and is active at serving generation 4 under release
+`pub_20260801T232501631Z`. The active candidate has 3,191 immutable artifacts;
+its registered manifest SHA-256 is
+`59d4c030d6006adb51b1cf5c88151cc254cffdb27d1b160af06f8b775cd25428`.
+
+The workflow proved Candidate A did not expose the Plan 106-only logical key,
+proved Candidate B served the exact candidate after activation, rolled back to
+A without changing the protected current-signal fingerprints, and reactivated
+B. An independent live fetch followed the release-qualified redirect and
+verified candidate `b647f0f1…`, 222 episodes, and 268 episode-route
+memberships; the unchanged global artifact SHA-256 is
+`605270b477210f289f95f1dccc0e4e257a9c8575d683ecb29f4c3cd76b23120b`.
+The previously verified artifact map accounts for the 188 exact route
+artifacts.
+
+The append-only Plan 098 completion receipt SHA-256 is
+`bf23e62fd96d3cd27e81e70d72b7189f56feac2f3c5d7b1c446165001fb62b95`;
+the independently downloaded completion file SHA-256 is
+`ddc8f9dbb8e436d964bbe2f53eba45942bc75986e21f5b8c30f44d16313dc76b`.
+The protected reader deployment is Worker version
+`dbefcacd-14d5-462d-91a3-d8c62f4e62b7` at 100% traffic. Plan 106 and its
+owner-approved Tracker pin/deployment are therefore fully complete.

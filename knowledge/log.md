@@ -10042,3 +10042,17 @@ correctly observed the Candidate B-only Plan 106 logical artifact as absent, but
 read helper still treated that 404 as transient and eventually failed. Public smoke reads now
 accept an explicit expected-status set: rollback records the 404 as no-leakage evidence, while
 Candidate B activation and reactivation still require the exact 222-episode artifact.
+
+Plan 098 completed in production on 2026-08-02. Protected-main deployment run `30725835823`
+passed the additive migration, zero-traffic exact-version proof, promotion, ordinary-traffic proof,
+D1 audit, and public smoke at Candidate A generation 3. Activation run `30725967026` then recorded
+the expected Plan 106 artifact absence under A, reactivated Candidate B, preserved the protected
+current-signal fingerprints, and left production pointed at generation 4 Candidate
+`a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5` with 3,191 artifacts.
+The active release is `pub_20260801T232501631Z`; registered manifest SHA-256 is
+`59d4c030d6006adb51b1cf5c88151cc254cffdb27d1b160af06f8b775cd25428` and the durable completion
+receipt SHA-256 is `bf23e62fd96d3cd27e81e70d72b7189f56feac2f3c5d7b1c446165001fb62b95`.
+The temporary operator was deleted. Independent public verification resolved the exact Plan 106
+candidate `b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`, 222 episodes, 188
+route artifacts through its closed map, and 268 episode-route memberships. Plans 098 and 106, the
+owner-approved Tracker pin, and the production deployment are complete.
