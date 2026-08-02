@@ -56,6 +56,7 @@ describe("protected serving publication ordering", () => {
     expect(workflow).toContain("environment:\n      name: production");
     expect(workflow).toContain("group: serving-production-publication");
     expect(workflow).toContain("secrets.CLOUDFLARE_API_TOKEN");
+    expect(workflow).toContain("= \"$GITHUB_SHA\"");
     expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
     expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
     expect(workflow).not.toMatch(/uses: [^\n]+@(v|main|master)\b/u);

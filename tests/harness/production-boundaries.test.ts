@@ -315,6 +315,7 @@ describe("production boundary harness", () => {
     expect(workflow).toContain("group: serving-production-publication");
     expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
     expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
+    expect(workflow).toContain("= \"$GITHUB_SHA\"");
     expect(classify).toBeGreaterThan(0);
     expect(migrate).toBeGreaterThan(classify);
     expect(blobs).toBeGreaterThan(migrate);

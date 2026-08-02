@@ -134,6 +134,7 @@ jobs:
             "$CANDIDATE_ASSET"
           test "$(jq -r '.candidate.releaseTag' "$output_dir/$PREPARATION_ASSET")" = \
             "$CANDIDATE_RELEASE_TAG"
+          test "$(jq -r '.repoSha' "$output_dir/$PREPARATION_ASSET")" = "$GITHUB_SHA"
           test "$(jq -r '.expected.releaseId' "$output_dir/$PREPARATION_ASSET")" = \
             "$EXPECTED_RELEASE"
           test "$(jq -r '.expected.candidateId' "$output_dir/$PREPARATION_ASSET")" = \
