@@ -345,6 +345,9 @@ describe("production boundary harness", () => {
     expect(workflow).toContain(
       "identity.projection_sha256 = candidate.exact_identity_projection_sha256",
     );
+    expect(workflow).toContain("FROM route_catalog_v2 WHERE candidate_id =");
+    expect(workflow).toContain("FROM exact_route_identity_release_v2 WHERE candidate_id =");
+    expect(workflow).not.toContain("FROM route_catalog ORDER BY route_id");
     expect(workflow).not.toContain(
       "SELECT batch.generated_at AS 'publishedAt', (SELECT MIN(month) FROM route_month_trend",
     );
