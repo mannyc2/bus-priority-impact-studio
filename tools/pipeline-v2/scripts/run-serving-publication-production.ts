@@ -546,6 +546,41 @@ if (action === "verify") {
 
 if (action === "finalize") {
   if (state.phase === "complete") process.exit(0);
+  const existingCompletion = await call<
+    | null
+    | (DurableReceipt & {
+        receipt: {
+          operationId: string;
+          preparationSha256: string;
+          candidateId: string;
+          outcome: "no_op" | "published";
+        };
+      })
+  >({ action: "read-receipt", operationId: state.operationId, receiptKind: "completion" });
+  if (existingCompletion !== null) {
+    if (
+      existingCompletion.receipt.operationId !== state.operationId ||
+      existingCompletion.receipt.preparationSha256 !== state.preparationSha256 ||
+      existingCompletion.receipt.candidateId !== state.candidateId ||
+      existingCompletion.receipt.outcome !== (state.outcome === "no_op" ? "no_op" : "published")
+    ) {
+      throw new Error("Durable completion receipt drifted from this publication.");
+    }
+    state = {
+      ...state,
+      phase: "complete",
+      updatedAt: new Date().toISOString(),
+      durableReceipts: [
+        ...state.durableReceipts.filter((item) => item.receiptKind !== "completion"),
+        existingCompletion,
+      ],
+    };
+    await writeState(statePath, state);
+    console.log(
+      canonicalServingJson({ outcome: "completion-adopted", durable: existingCompletion }),
+    );
+    process.exit(0);
+  }
   if (state.outcome === "no_op") {
     const pointer = await call<PointerStatus>({ action: "status" });
     if (canonicalServingJson(pointer) !== canonicalServingJson(state.pointerBefore)) {
@@ -738,6 +773,39 @@ if (action === "rollback") {
     pointer.release?.releaseId === receipt.expected.releaseId
   ) {
     console.log(canonicalServingJson({ outcome: "rollback-not-required", pointer }));
+    process.exit(0);
+  }
+  if (
+    pointer.generation === receipt.expected.generation + 2 &&
+    pointer.candidateId === receipt.expected.candidateId &&
+    pointer.release?.releaseId === receipt.expected.releaseId
+  ) {
+    const existingRollback = await call<
+      | null
+      | (DurableReceipt & {
+          receipt: { operationId: string; failedCandidateId: string; after: PointerStatus };
+        })
+    >({ action: "read-receipt", operationId: state.operationId, receiptKind: "rollback" });
+    if (
+      existingRollback === null ||
+      existingRollback.receipt.operationId !== state.operationId ||
+      existingRollback.receipt.failedCandidateId !== receipt.candidate.candidateId ||
+      canonicalServingJson(existingRollback.receipt.after) !== canonicalServingJson(pointer)
+    ) {
+      throw new Error("Committed rollback is missing its exact durable receipt.");
+    }
+    state = {
+      ...state,
+      phase: "rolled_back",
+      outcome: "rolled_back",
+      updatedAt: new Date().toISOString(),
+      durableReceipts: [
+        ...state.durableReceipts.filter((item) => item.receiptKind !== "rollback"),
+        existingRollback,
+      ],
+    };
+    await writeState(statePath, state);
+    console.log(canonicalServingJson({ outcome: "rollback-adopted", durable: existingRollback }));
     process.exit(0);
   }
   if (

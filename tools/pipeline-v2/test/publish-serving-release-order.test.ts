@@ -76,5 +76,7 @@ describe("protected serving publication ordering", () => {
     expect(script).toContain("releaseWriteCount: 0");
     expect(script).toContain("pointerWriteCount: 0");
     expect(script).toContain('action: "read-receipt"');
+    expect(script).toContain('outcome: "completion-adopted"');
+    expect(script).toContain('outcome: "rollback-adopted"');
   });
 });
