@@ -266,20 +266,24 @@ async function main(): Promise<void> {
 
   const smoke = async (phase: string, expectedReleaseId: string, expectedCandidateId: string) => {
     const paths = [
-      "/api/v1/status",
-      "/api/v1/map/manifest",
-      "/api/v1/studio/routes?schema=3",
-      "/api/v1/studio/routes/b44",
-      "/api/v1/studio/routes/b44-sbs",
-      "/api/v1/studio/routes/b44-sbs/history",
-      "/api/v1/artifacts/studio/v2/interventions/public-episodes-v2.json",
+      { path: "/api/v1/status", expectedStatus: 200 },
+      { path: "/api/v1/map/manifest", expectedStatus: 200 },
+      { path: "/api/v1/studio/routes?schema=3", expectedStatus: 200 },
+      { path: "/api/v1/studio/routes/b44", expectedStatus: 200 },
+      { path: "/api/v1/studio/routes/b44-sbs", expectedStatus: 200 },
+      { path: "/api/v1/studio/routes/b44-sbs/history", expectedStatus: 200 },
+      {
+        path: "/api/v1/artifacts/studio/v2/interventions/public-episodes-v2.json",
+        expectedStatus: expectedCandidateId === manifestB.candidateId ? 200 : 404,
+      },
     ];
     const evidence = [];
-    for (const path of paths) {
+    for (const { path, expectedStatus } of paths) {
       const separator = path.includes("?") ? "&" : "?";
       const { response, body } = await fetchPlan098PublicRead({
         url: `${args.baseUrl}${path}${separator}plan098=${crypto.randomUUID()}`,
         label: `${phase} smoke ${path}`,
+        expectedStatuses: [expectedStatus],
       });
       if (path === "/api/v1/status" || path === "/api/v1/map/manifest") {
         const parsed = JSON.parse(body) as { releaseId?: string };
@@ -303,6 +307,7 @@ async function main(): Promise<void> {
       evidence.push({
         path,
         status: response.status,
+        expectedStatus,
         bodySha256: sha256(body),
         cacheControl: response.headers.get("Cache-Control"),
         workerVersionId: response.headers.get("X-BP-Worker-Version"),

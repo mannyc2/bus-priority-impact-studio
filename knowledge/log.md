@@ -10036,3 +10036,9 @@ Plan 098 retry `30725315468` terminally marked that rejected intent failed and p
 generation-2 resume smoke, then stopped before rollback because the durable smoke receipt reused a
 fixed operation ID with new evidence bytes. Operational receipt IDs now include the canonical
 receipt hash, preserving repeat proofs append-only without weakening collision detection.
+
+Plan 098 retry `30725590560` then committed rollback to Candidate A at generation 3. Its smoke
+correctly observed the Candidate B-only Plan 106 logical artifact as absent, but the generic public
+read helper still treated that 404 as transient and eventually failed. Public smoke reads now
+accept an explicit expected-status set: rollback records the 404 as no-leakage evidence, while
+Candidate B activation and reactivation still require the exact 222-episode artifact.

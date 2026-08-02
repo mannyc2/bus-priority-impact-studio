@@ -98,4 +98,26 @@ describe("Plan 098 production operator client", () => {
     expect(JSON.parse(result.body)).toEqual({ releaseId: "pub_20260725T164123260Z" });
     expect(sleeps).toEqual([25]);
   });
+
+  test("records an explicitly expected rollback absence without retrying", async () => {
+    let attempts = 0;
+    const result = await fetchPlan098PublicRead({
+      url: "https://public.example.test/api/v1/artifacts/plan106.json",
+      label: "rollback-a Plan 106 absence",
+      expectedStatuses: [404],
+      fetch: async () => {
+        attempts += 1;
+        return Response.json(
+          { error: { code: "NOT_FOUND", message: "Artifact was not found." } },
+          { status: 404 },
+        );
+      },
+      sleep: async () => {
+        throw new Error("expected 404 must not retry");
+      },
+    });
+
+    expect(result.response.status).toBe(404);
+    expect(attempts).toBe(1);
+  });
 });
