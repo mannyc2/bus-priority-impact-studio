@@ -121,6 +121,7 @@ export async function fetchPlan098PublicRead(input: {
   sleep?: (milliseconds: number) => Promise<void>;
   attempts?: number;
   retryDelayMilliseconds?: number;
+  expectedStatuses?: readonly number[];
 }): Promise<{ response: Response; body: string }> {
   const fetchOperation = input.fetch ?? fetch;
   const sleep =
@@ -133,6 +134,15 @@ export async function fetchPlan098PublicRead(input: {
   const retryDelayMilliseconds = input.retryDelayMilliseconds ?? 2_000;
   if (!Number.isInteger(maximumAttempts) || maximumAttempts < 1) {
     throw new Error("Plan 098 public read attempts must be a positive integer.");
+  }
+  if (
+    input.expectedStatuses !== undefined &&
+    (input.expectedStatuses.length === 0 ||
+      input.expectedStatuses.some(
+        (status) => !Number.isInteger(status) || status < 100 || status > 599,
+      ))
+  ) {
+    throw new Error("Plan 098 public read expected statuses must be valid HTTP status codes.");
   }
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     let response: Response;
@@ -148,7 +158,11 @@ export async function fetchPlan098PublicRead(input: {
       );
     }
     const body = await response.text();
-    if (response.ok) return { response, body };
+    const accepted =
+      input.expectedStatuses === undefined
+        ? response.ok
+        : input.expectedStatuses.includes(response.status);
+    if (accepted) return { response, body };
     if ((response.status === 404 || response.status >= 500) && attempt < maximumAttempts) {
       await sleep(retryDelayMilliseconds);
       continue;
