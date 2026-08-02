@@ -10,7 +10,6 @@ import {
   DEFAULT_ROUTE_SPEED_HISTORY_READINESS,
   parseRouteSpeedHistoryReadinessList,
   ROUTE_SPEED_SPINE_DEFAULT_START_MONTH,
-  type RouteSpeedHistoryArtifact,
   type RouteSpeedHistoryBatchRoute,
   type RouteSpeedSpineReadiness,
 } from "@bp/analytics/feature-history";
@@ -18,7 +17,7 @@ import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { loadCompleteRouteSpeedScheduleMonths } from "@bp/pipeline-v2/local-db-aggregates";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { readJsonArtifact, readJsonIfExists, writeJson } from "../../lib/json.ts";
+import { readJsonArtifact, writeJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 import { runRouteSpeedHistory } from "./route-speed-history.ts";
@@ -70,21 +69,6 @@ function parseRouteList(value: string | undefined): string[] {
 
 function absoluteArtifactPath(path: string): string {
   return isAbsolute(path) ? path : fromCliPath(path);
-}
-
-async function readExistingHistorySummary(
-  path: string,
-  routeSlug: string,
-): Promise<RouteSpeedHistoryArtifact | null> {
-  let existing: RouteSpeedHistoryArtifact | null;
-  try {
-    existing = await readJsonIfExists<RouteSpeedHistoryArtifact>(path);
-  } catch {
-    return null;
-  }
-  if (existing?.artifactKind !== "studio_route_speed_history") return null;
-  if (existing.routeSlug !== routeSlug) return null;
-  return existing;
 }
 
 export async function runRouteSpeedHistories(input: {
@@ -175,28 +159,6 @@ export async function runRouteSpeedHistories(input: {
       continue;
     }
 
-    if (input.force !== true) {
-      const existing = await readExistingHistorySummary(historyPath, route.routeSlug);
-      if (existing !== null) {
-        routes.push({
-          routeId,
-          routeSlug: route.routeSlug,
-          readiness: route.readiness,
-          status: "skipped_existing",
-          reasons: ["valid_existing_artifact"],
-          spinePath: repoDisplayPath(spinePath),
-          artifactPath: repoDisplayPath(historyPath),
-          monthCount: existing.summary.monthCount,
-          segmentCount: existing.summary.segmentCount,
-          cellCount: existing.summary.cellCount,
-          availableCellCount: existing.summary.availableCellCount,
-          missingCellCount: existing.summary.missingCellCount,
-          unmappedRawKeyCount: existing.summary.unmappedRawKeyCount,
-        });
-        continue;
-      }
-    }
-
     try {
       const result = await runRouteSpeedHistory({
         local: input.local,
@@ -205,7 +167,6 @@ export async function runRouteSpeedHistories(input: {
         spine: spinePath,
         output: historyPath,
         completeScheduleMonths,
-        generatedAt,
       });
       routes.push({
         routeId,

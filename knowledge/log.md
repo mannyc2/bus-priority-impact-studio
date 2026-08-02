@@ -10056,3 +10056,38 @@ The temporary operator was deleted. Independent public verification resolved the
 candidate `b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef`, 222 episodes, 188
 route artifacts through its closed map, and 268 episode-route memberships. Plans 098 and 106, the
 owner-approved Tracker pin, and the production deployment are complete.
+
+## [2026-08-02] engineering | Generation-17 tail reconciled; Plan 101 steps 1-2 locally complete
+
+Execution restarted from fetched `origin/main@e0c00aaf` in the separate
+`/tmp/bp-gen17-tail` worktree on branch
+`codex/101-deterministic-demonth`; the dirty
+`ops/gen18-artifact-publication` tree was read only. This corrected the
+stale-tree premise: Plans 098 and 106 were already complete in production, so
+their migrations and A→B→A→B drill must not be replayed. The 2026-08-02
+kernel descopes were ported only for unbuilt Plans 099-101. Plan 100 is amended
+to generalize the proven protected-main approval, zero-traffic Worker proof,
+CAS activation/rollback, and content-addressed receipt machinery instead of
+introducing an independent CLI-only activation path.
+
+Plan 101 steps 1-2 now use canonical recursively key-sorted UTF-8 JSON bytes
+with one trailing newline; set-like candidate arrays and D1 row-count keys are
+sorted before both semantic identity and final manifest serialization. Route
+speed-history bodies exclude command clocks and local paths, retain the source
+spine timestamp as semantic evidence, and rebuild instead of trusting an
+arbitrary decodable file. `publish r2-artifacts` is closed to the strict
+candidate manifest, verifies every local body against its declared bytes and
+SHA-256, GET/hash-verifies an existing remote object before reuse, uses R2's
+atomic `If-None-Match: *` conditional PutObject for an absent key, verifies
+the committed winner, and blocks same-size or race-winner corruption without
+overwrite. Reports separate uploaded/reused counts and bytes by artifact family.
+
+Local evidence: focused determinism/uploader/history suites 25/25; analytics
+51/51; pipeline-v2 535/535; domain suite green; scoped analytics, domain,
+pipeline-v2, and web typechecks green; Worker harness 35/35; architecture 44/44; and
+`git diff --check` clean. The repository-wide style command remains red only
+on pre-existing out-of-scope findings and a Biome schema/version mismatch;
+changed-file formatting was repaired separately. No Cloudflare mutation was
+performed and no new production receipt exists. Production remains generation
+4 on release `pub_20260801T232501631Z` pending the separately approved
+June/July catch-up including gen-18 artifacts.

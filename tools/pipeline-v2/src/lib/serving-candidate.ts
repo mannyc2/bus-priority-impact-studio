@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   canonicalServingCandidateSemanticJson,
-  canonicalServingJson,
+  canonicalServingJsonBytes,
   type ServingCandidateManifestV1,
   ServingCandidateManifestV1Schema,
 } from "@bp/domain/studio/serving-release";
@@ -97,8 +97,26 @@ export function buildServingCandidateFromDescriptors(
   const artifacts = [...input.artifacts].toSorted((left, right) =>
     left.logicalId.localeCompare(right.logicalId),
   );
+  const builderVersions = [...input.builderVersions].toSorted((left, right) =>
+    `${left.name}\u0000${left.version}`.localeCompare(`${right.name}\u0000${right.version}`),
+  );
+  const datasets = [...input.datasets]
+    .map((dataset) => ({
+      ...dataset,
+      sourceSnapshotIds: [...dataset.sourceSnapshotIds].toSorted(),
+    }))
+    .toSorted((left, right) => left.datasetId.localeCompare(right.datasetId));
+  const d1 = {
+    ...input.d1,
+    rowCounts: Object.fromEntries(
+      Object.entries(input.d1.rowCounts).toSorted(([left], [right]) => left.localeCompare(right)),
+    ),
+  };
   const provisional = decodeStrict(ServingCandidateManifestV1Schema)({
     ...input,
+    builderVersions,
+    datasets,
+    d1,
     candidateId: "0".repeat(64),
     artifacts,
   });
@@ -107,7 +125,7 @@ export function buildServingCandidateFromDescriptors(
     ...provisional,
     candidateId,
   });
-  const manifestBytes = new TextEncoder().encode(`${canonicalServingJson(manifest)}\n`);
+  const manifestBytes = canonicalServingJsonBytes(manifest);
   const manifestSha256 = servingSha256(manifestBytes);
   return {
     manifest,

@@ -155,12 +155,16 @@ async function registerCandidate(
   const existing = await env.ARTIFACTS.get(manifestKey);
   if (existing === null) {
     await env.ARTIFACTS.put(manifestKey, manifestBytes, {
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: "application/json" },
       customMetadata: { sha256: manifestSha256 },
     });
-  } else if (
-    existing.size !== manifestBytes.byteLength ||
-    (await sha256(new Uint8Array(await existing.arrayBuffer()))) !== manifestSha256
+  }
+  const storedManifest = await env.ARTIFACTS.get(manifestKey);
+  if (
+    storedManifest === null ||
+    storedManifest.size !== manifestBytes.byteLength ||
+    (await sha256(new Uint8Array(await storedManifest.arrayBuffer()))) !== manifestSha256
   ) {
     throw new Error("Candidate manifest key collides with different bytes.");
   }
@@ -277,6 +281,7 @@ async function uploadArtifact(
     }
   } else {
     await env.ARTIFACTS.put(artifact.key, body, {
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: artifact.mediaType },
       customMetadata: { sha256: artifact.sha256 },
     });
@@ -310,12 +315,16 @@ async function recordReceipt(
   const existing = await env.ARTIFACTS.get(key);
   if (existing === null) {
     await env.ARTIFACTS.put(key, bytes, {
+      onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: "application/json" },
       customMetadata: { sha256: digest },
     });
-  } else if (
-    existing.size !== bytes.byteLength ||
-    (await sha256(new Uint8Array(await existing.arrayBuffer()))) !== digest
+  }
+  const storedReceipt = await env.ARTIFACTS.get(key);
+  if (
+    storedReceipt === null ||
+    storedReceipt.size !== bytes.byteLength ||
+    (await sha256(new Uint8Array(await storedReceipt.arrayBuffer()))) !== digest
   ) {
     throw new Error("Receipt key collides with different bytes.");
   }

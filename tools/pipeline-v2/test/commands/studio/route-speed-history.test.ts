@@ -135,10 +135,6 @@ describe("studio route speed history", () => {
         matchedSchedulePairCount: 2,
         unmatchedSchedulePairCount: 0,
       },
-      generatedAt: "2026-06-06T00:00:00.000Z",
-      dbPath: "data/local/pipeline.sqlite",
-      speedSpinePath: "data/artifacts/studio/v2/routes/b41/speed-spine.json",
-      artifactPath: "data/artifacts/studio/v2/routes/b41/speed-history.json",
     });
 
     expect(artifact.summary).toMatchObject({
@@ -183,10 +179,6 @@ describe("studio route speed history", () => {
       routeId: "B41",
       spine: spine(),
       rows: [row({ month: "2026-01", daypart: "am_peak", average_speed_mph: 8 })],
-      generatedAt: "2026-06-06T00:00:00.000Z",
-      dbPath: "data/local/pipeline.sqlite",
-      speedSpinePath: "data/artifacts/studio/v2/routes/b41/speed-spine.json",
-      artifactPath: "data/artifacts/studio/v2/routes/b41/speed-history.json",
     });
 
     expect(artifact.summary).toMatchObject({

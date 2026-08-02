@@ -20,7 +20,7 @@ import {
 } from "@bp/pipeline-v2/local-db-aggregates";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
-import { readJsonArtifact, writeJson } from "../../lib/json.ts";
+import { readJsonArtifact, writeCanonicalJson } from "../../lib/json.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import { defaultArtifactRootPath, fromCliPath, repoRoot } from "../../lib/paths.ts";
 
@@ -50,7 +50,6 @@ export async function runRouteSpeedHistory(input: {
   spine?: string | undefined;
   output?: string | undefined;
   completeScheduleMonths?: ReadonlySet<string> | undefined;
-  generatedAt?: string | undefined;
 }): Promise<{
   routeId: string;
   routeSlug: string;
@@ -106,14 +105,10 @@ export async function runRouteSpeedHistory(input: {
     spine,
     rows,
     expectedService,
-    generatedAt: input.generatedAt ?? new Date().toISOString(),
-    dbPath: repoDisplayPath(input.local.path),
-    speedSpinePath: repoDisplayPath(spinePath),
-    artifactPath: repoDisplayPath(outputPath),
   });
 
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeJson(outputPath, artifact);
+  await writeCanonicalJson(outputPath, artifact);
 
   return {
     routeId,

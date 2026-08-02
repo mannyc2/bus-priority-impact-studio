@@ -395,6 +395,7 @@ export type {
 export {
   canonicalServingCandidateSemanticJson,
   canonicalServingJson,
+  canonicalServingJsonBytes,
   ServingCandidateArtifactSchema,
   ServingCandidateIdSchema,
   ServingCandidateManifestV1Schema,

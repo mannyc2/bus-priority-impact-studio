@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { canonicalServingJsonBytes } from "@bp/domain/studio/serving-release";
 import { buildServingCandidate } from "../../src/lib/serving-candidate.ts";
 
 const hash = (character: string) => character.repeat(64);
@@ -55,6 +56,62 @@ describe("Plan 098 serving candidate builder", () => {
     };
     expect(buildServingCandidate(changed).manifest.candidateId).not.toBe(
       buildServingCandidate(input()).manifest.candidateId,
+    );
+  });
+
+  test("is byte-identical across set enumeration and JSON property order", () => {
+    const base = input();
+    const first = buildServingCandidate({
+      ...base,
+      builderVersions: [
+        { name: "route-history", version: "2" },
+        { name: "map", version: "3" },
+      ],
+      artifacts: [
+        {
+          logicalId: "route/m1/history",
+          body: canonicalServingJsonBytes({ routeId: "M1", summary: { count: 2, valid: true } }),
+          mediaType: "application/json",
+          schemaId: "bp.route-history.v2",
+        },
+        {
+          logicalId: "map/network",
+          body: canonicalServingJsonBytes({ type: "FeatureCollection", features: [] }),
+          mediaType: "application/geo+json",
+          schemaId: "bp.map.v3",
+          extension: "geojson",
+        },
+      ],
+    });
+    const second = buildServingCandidate({
+      ...base,
+      builderVersions: [
+        { name: "map", version: "3" },
+        { name: "route-history", version: "2" },
+      ],
+      artifacts: [
+        {
+          logicalId: "map/network",
+          body: canonicalServingJsonBytes({ features: [], type: "FeatureCollection" }),
+          mediaType: "application/geo+json",
+          schemaId: "bp.map.v3",
+          extension: "geojson",
+        },
+        {
+          logicalId: "route/m1/history",
+          body: canonicalServingJsonBytes({ summary: { valid: true, count: 2 }, routeId: "M1" }),
+          mediaType: "application/json",
+          schemaId: "bp.route-history.v2",
+        },
+      ],
+    });
+
+    expect(second.manifestBytes).toEqual(first.manifestBytes);
+    expect(second.objects.map((object) => object.key)).toEqual(
+      first.objects.map((object) => object.key),
+    );
+    expect(second.objects.map((object) => object.body)).toEqual(
+      first.objects.map((object) => object.body),
     );
   });
 });

@@ -174,6 +174,11 @@ export function canonicalServingJson(value: unknown): string {
     .join(",")}}`;
 }
 
+/** Canonical UTF-8 JSON bytes for immutable serving artifacts. */
+export function canonicalServingJsonBytes(value: unknown): Uint8Array {
+  return new TextEncoder().encode(`${canonicalServingJson(value)}\n`);
+}
+
 export function servingCandidateSemanticPayload(
   candidate: ServingCandidateManifestV1,
 ): ServingCandidateSemanticPayloadV1 {

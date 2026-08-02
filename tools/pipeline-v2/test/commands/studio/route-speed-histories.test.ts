@@ -150,7 +150,7 @@ describe("studio route speed histories manifest", () => {
     expect(source).toContain("buildRouteSpeedHistoryBatchManifest");
   });
 
-  test("builds eligible route artifacts from the spine manifest and resumes by skipping existing output", async () => {
+  test("rebuilds eligible route artifacts to identical bytes across different command clocks", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "route-speed-histories-"));
     const sqlite = new Database(":memory:");
     try {
@@ -183,6 +183,7 @@ describe("studio route speed histories manifest", () => {
       });
       const historyPath = routeSpeedHistoryArtifactPath({ artifactRoot, routeSlug: "b41" });
       const history = (await Bun.file(historyPath).json()) as RouteSpeedHistoryArtifact;
+      const firstBytes = new Uint8Array(await Bun.file(historyPath).arrayBuffer());
       expect(history.spineReadiness).toBe("series_ready");
       expect(history.summary).toMatchObject({
         cellCount: 4,
@@ -202,11 +203,12 @@ describe("studio route speed histories manifest", () => {
 
       expect(second).toMatchObject({
         routeCount: 1,
-        writtenRouteCount: 0,
-        skippedExistingRouteCount: 1,
+        writtenRouteCount: 1,
+        skippedExistingRouteCount: 0,
         failedRouteCount: 0,
         artifactReadyRouteCount: 1,
       });
+      expect(new Uint8Array(await Bun.file(historyPath).arrayBuffer())).toEqual(firstBytes);
       const manifest = await Bun.file(
         routeSpeedHistoryManifestPath({ artifactRoot, startMonth, endMonth }),
       ).json();
@@ -214,7 +216,7 @@ describe("studio route speed histories manifest", () => {
         expect.objectContaining({
           routeId: "B41",
           routeSlug: "b41",
-          status: "skipped_existing",
+          status: "written",
         }),
       );
 
@@ -234,6 +236,7 @@ describe("studio route speed histories manifest", () => {
         failedRouteCount: 0,
         artifactReadyRouteCount: 1,
       });
+      expect(new Uint8Array(await Bun.file(historyPath).arrayBuffer())).toEqual(firstBytes);
     } finally {
       sqlite.close();
       rmSync(tmp, { recursive: true, force: true });

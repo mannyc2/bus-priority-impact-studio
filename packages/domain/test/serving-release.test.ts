@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { decodeStrict } from "@bp/domain/decode";
 import {
+  canonicalServingJsonBytes,
   ServingCandidateManifestV1Schema,
   servingCandidateSemanticPayload,
 } from "@bp/domain/studio/serving-release";
@@ -48,6 +49,14 @@ function first<T>(values: T[]): T {
 }
 
 describe("Plan 098 serving contracts", () => {
+  test("canonical serving bytes sort object keys and end in exactly one newline", () => {
+    const left = canonicalServingJsonBytes({ z: 1, nested: { b: true, a: "x" } });
+    const right = canonicalServingJsonBytes({ nested: { a: "x", b: true }, z: 1 });
+
+    expect(left).toEqual(right);
+    expect(new TextDecoder().decode(left)).toBe('{"nested":{"a":"x","b":true},"z":1}\n');
+  });
+
   test("strictly decodes a candidate and excludes provenance from semantic identity", () => {
     const candidate = decodeStrict(ServingCandidateManifestV1Schema)(validCandidate());
     const semantic = servingCandidateSemanticPayload(candidate);

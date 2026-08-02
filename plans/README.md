@@ -233,6 +233,26 @@ Cloudflare cost, build time, upload bytes, and latency together; require
 zero-downtime staging and one-pointer rollback; keep publication reviewed
 rather than automatic; make a semantic no-change run a non-release.
 
+Revised operator decisions (2026-08-02, binding; supersede the 2026-07-22
+set where they conflict): retain de-month release identity, full trustworthy
+per-dataset history without a global intersection, reviewed publication,
+semantic no-change as a non-release, zero-traffic staging, and one-CAS-pointer
+activation/rollback. Daily detection and the seven-day deadline are an
+advisory habit backed by one scheduled issue, not a binding SLO. For unbuilt
+work, drop the separate preview environment, hash-chained receipts,
+operator-time accounting, fenced GC/tombstones, route-history chunking,
+repo-wide decode inventory, and dependency-DAG cache. Full local rebuild plus
+verified SHA-256 upload skip is the dedup mechanism.
+
+Fresh-`origin/main` reconciliation on 2026-08-02 established that Plan 098
+and Plan 106 had already completed in production before the dirty-tree
+descope was written. The attempted Plan 098 amendment is moot and its remote
+work must never be replayed. The protected-main approval, zero-traffic Worker
+proof, CAS activation/rollback, and content-addressed durable receipts that
+098 shipped remain binding proven machinery; Plan 100 generalizes them
+instead of replacing them with CLI-only activation. Plans 099-101 use their
+2026-08-02 kernels, amended for this drift.
+
 Bounded bootstrap exception (production had no pointer yet): Plan 097 did
 the same-schema catch-up with one proven atomic D1 activation batch and one
 proven selective restore batch — no public contract change, no overwriting
@@ -247,10 +267,10 @@ it via selective serving-data recovery rather than replacing the database;
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE (2026-07-26; production serves `pub_20260725T164123260Z`, 375 exact routes; no rollback invoked) |
-| 098 | Atomic serving releases with immutable artifacts | P1 | XL | 097 production completion or signed atomic-limit STOP handoff | DONE (2026-08-02; Candidate B active at generation 4 after production rollback drill) |
-| 099 | Full dataset history and a one-period freshness SLO | P1 | XL | 098 | TODO |
-| 100 | Resumable publication control plane and drift alarms | P1 | L | 098 active; 099 built candidate + `activation_ready` receipt | TODO |
-| 101 | Deterministic incremental publication and final de-month cleanup | P2 | L-XL | 098-100 active + rollback drill | TODO |
+| 098 | Atomic serving releases with immutable artifacts | P0 | XL | 097 | DONE (2026-08-02; Candidate B active at generation 4 after production rollback drill) |
+| 099 | Full dataset history and honest per-dataset coverage (kernel) | P2 | M-L | backfill: none; serving ships through normal publication | TODO |
+| 100 | One publish state machine and scheduled freshness alarm (kernel) | P1 | S-M | publisher: 098; alarm: advisory ledger | TODO |
+| 101 | Deterministic artifacts, verified skip, de-month vestige sweep (kernel) | P1 steps 1-2; P2 rest | M | steps 1-2: none; sweep: 098 active and 099/100 complete | IN PROGRESS (steps 1-2 locally verified; catch-up remote proof and steps 3-5 pending) |
 
 ## Notes (gen 17)
 
@@ -260,14 +280,15 @@ it via selective serving-data recovery rather than replacing the database;
 - Plan 098 separates content-derived candidate identity from activation-time
   release identity, versions only generated D1 data, and preserves auth/
   user/current-signal rows. One request resolves one release/candidate.
-- Plan 099 owns dataset-specific full history and SLO semantics; Plan 100
-  owns the daily scheduled GitHub issue and reviewed remote state machine
-  (detects drift, never publishes). 099 hands its built candidate to 100;
-  their first successful activation jointly completes both plans'
-  production criteria, avoiding a dependency cycle.
-- Plan 101 removes compatibility only after a live pointer activation and
-  rollback drill; history chunking may be rejected if Cloudflare cost or
-  latency outweighs upload/build savings.
+- First remaining activation: June/July catch-up including the pending gen-18
+  artifacts, using Plan 101 steps 1-2 and the existing pointer machinery.
+- Plan 100 follows, although its scheduled advisory alarm may land earlier.
+  Plan 099 then backfills full trustworthy history and honest per-dataset
+  coverage and ships through a normal publish. Plan 101's vestige sweep is last.
+- Plan 099 freshness is advisory. Plan 100's schedule detects drift and
+  maintains one issue but has no serving credentials and never publishes.
+- Plan 101 keeps monolithic route histories unless Plan 099 makes a payload
+  impractical; no dependency-DAG cache or fenced automatic GC is required.
 - Months remain legal observation/source-partition values under ADR-0022 —
   the ratchet targets selectors/defaults/config/release paths, not the word
   `month` or monthly data.
