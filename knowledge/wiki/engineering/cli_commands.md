@@ -292,7 +292,7 @@ bun run check:bus-observatory-gtfs-rt -- --year 2026 --month 3
 bun run import:bus-observatory-gtfs-rt -- --run-id bus-observatory-2026-03 --year 2026 --month 3 --canonical-csv data/working/bus-observatory/2026-03/vehicle-positions.csv
 bun run import:bus-observatory-headway-samples -- --run-id bus-observatory-2026-03 --year 2026 --month 3 --snapshots-csv data/working/bus-observatory/2026-03/raw-provenance/snapshots-30s.csv --headway-samples-csv data/working/bus-observatory/2026-03/raw-provenance/headway-samples.csv
 bun run import:bus-observatory-reliability-summary -- --run-id bus-observatory-2026-03 --year 2026 --month 3 --summary-csv data/working/bus-observatory/2026-03/route-observed-reliability-summary.csv
-bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2 bus-priority-artifacts
+bun --filter @bp/pipeline-v2 cli -- publish serving-release --candidate-root <candidate-root> --repo-sha <reviewed-main-sha> --workerd-parity --output <publication-preparation.json>
 bun --filter @bp/pipeline export:artifacts -- --route M1 --month 2026-01
 bun --filter @bp/pipeline export:r2 -- --route M1 --month 2026-01
 ```
@@ -312,13 +312,13 @@ Expected outputs:
 - Bus Observatory recovered GTFS-RT local import from a canonical CSV exported from Parquet. The importer writes `local_gtfs_rt_collection_run`, `local_gtfs_rt_feed_snapshot`, `local_gtfs_rt_parsed_snapshot`, and `local_gtfs_rt_vehicle_position` rows for a `third_party_recovered` run id, then the existing `build:observed-headways`, `route-observed-reliability`, and `gtfs-rt:preflight` commands become the promotion gate.
 - Bus Observatory recovered headway-sample import from DuckDB-derived CSVs. This is the strict March 2026 recovered path: compact 30-second snapshot buckets provide collection/feed/parsed/vehicle-position evidence, while derived headway samples back route reliability summaries and `gtfs-rt:preflight`.
 - Bus Observatory recovered reliability summary import from a precomputed route summary CSV. This is the current practical March 2026 recovered-data load path: it fills every current catalog route, skips archive routes outside the catalog, writes reliability source-status rows, and then requires `brief-artifacts`, `route-batch-audit`, `export:d1`, and `verify:d1` to refresh the serving release.
-- one-shot serving release publication through `publish:serving-release`; its required `--month`
-  selects the already-built export partition whose `coverage.end` must match, then it applies D1
-  SQL, uploads release artifacts to R2, and registers the verified map release last; it dry-runs
-  unless `--execute` is passed
+- a deterministic serving-release preparation packet keyed by candidate ID; the protected
+  `publication.yml` workflow verifies exact hashes, stages candidate-scoped D1 and R2 content,
+  activates last, and writes a durable completion receipt
 - R2-to-pipeline mirror commands through `pull:gtfs-rt-r2-run`; it fetches Worker-written GTFS-RT manifests and raw protobuf objects from R2, dry-running unless `--execute` is passed
 - artifact keys and hashes
-- dry-run or executed R2 upload through `publish:serving-release` after local artifact contracts are stable and real Cloudflare resource names are configured
+- verified candidate-manifest upload through the protected publication workflow after local
+  artifact contracts and the preparation receipt are reviewed
 - dry-run or executed GTFS-RT R2 mirror through `pull:gtfs-rt-r2-run` after a deployed Worker writes manifests
 
 ## Wiki/search commands
@@ -343,7 +343,9 @@ Do not use `pytest`, `ruff`, or Python scripts in the MVP.
 
 ## Caveats
 
-- `sources:list`, `sources:probe`, `collect:gtfs-rt`, `pull:gtfs-rt-r2-run`, `import:gtfs-rt-r2-manifests`, `import:bus-observatory-gtfs-rt`, `import:bus-observatory-headway-samples`, `import:bus-observatory-reliability-summary`, `ingest:gtfs-rt-snapshots`, `gtfs-rt:preflight`, `gtfs-rt:run-status`, `build:observed-headways`, `route-observed-reliability`, `ingest:ace-routes`, `ingest:ace-violations`, `ingest:bus-lanes`, `ingest:equity-context`, `ingest:route-catalog`, `ingest:route-coverage`, `ingest:route-trends`, `backfill:route-ridership-trends`, `ingest:route-slice`, `ingest:route-schedules`, `build:hotspots`, `build:ridership-profile`, `build:speed-profile`, `build:interventions`, `build:bus-lanes`, `build:schedules`, `build:route-brief`, `build:artifacts`, `build:routes`, `build:network`, `compare:routes`, `route-readiness`, `route-build-plan`, `route-reliability-baseline`, `route-intervention-evaluation`, `corridor-model`, `build:context-event-route-touches`, `evaluation-artifacts`, `map-artifacts`, `brief-artifacts`, `route-equity-context`, `route-batch-audit`, `export:d1`, and `verify:d1` are implemented. `build:planned-routes` remains as a compatibility alias; remote D1/R2 publish is handled by dry-run-by-default `publish:serving-release` and still needs real Cloudflare resources before `--execute`.
+- The listed source, build, export, and verification commands are implemented.
+  `build:planned-routes` remains a compatibility alias. Remote D1/R2 publication is owned by the
+  protected `publication.yml` workflow and requires a reviewed preparation packet.
 - Keep command implementations thin; put reusable logic in `packages/*`.
 
 ## Sources

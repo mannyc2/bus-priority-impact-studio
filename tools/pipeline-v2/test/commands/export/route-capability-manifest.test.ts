@@ -7,7 +7,6 @@ import { RouteCapabilityManifestSchema } from "@bp/domain/studio";
 import { ReleaseIdentitySchema, releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   buildAndWriteRouteCapabilityManifest,
-  readDetectorReadinessRouteSummaries,
   toRouteCapabilityInputRows,
 } from "../../../src/commands/export/route-capability-manifest.ts";
 
@@ -75,96 +74,6 @@ describe("toRouteCapabilityInputRows", () => {
     expect(row?.speedHistory).toBeNull();
     expect(row?.detector.present).toBe(false);
     expect(row?.sourceStatus).toEqual({ reliability: "absent", ridership: "absent" });
-  });
-});
-
-describe("readDetectorReadinessRouteSummaries", () => {
-  test("accepts an equal detector month without adding a compatibility caveat", async () => {
-    const manifestPath = join(tmp, "readiness.json");
-    await Bun.write(
-      manifestPath,
-      JSON.stringify({
-        artifactKind: "detector_readiness_serving_manifest",
-        schemaVersion: 1,
-        releaseMonth: "2026-03",
-        routes: [
-          {
-            routeId: "M15+",
-            counts: {
-              public_finding_candidate: 3,
-              route_context: 2,
-              review_queue: 1,
-              suppressed: 0,
-            },
-            byDetector: {
-              headway_reliability_ewt: { public_finding_candidate: 1, route_context: 1 },
-              treatment_scope_gap: { public_finding_candidate: 2, route_context: 1 },
-            },
-            sourceMonths: [{ month: "2026-02" }, { month: "2026-03" }, { month: "2026-03" }],
-            caveats: ["geometry approximate"],
-          },
-        ],
-      }),
-    );
-
-    const summaries = await readDetectorReadinessRouteSummaries({ manifestPath, month: "2026-03" });
-    const summary = summaries.get("M15+");
-    expect(summary?.findingCandidateCount).toBe(3);
-    expect(summary?.reliabilityFindingCount).toBe(1);
-    expect(summary?.reliabilityContextCount).toBe(1);
-    expect(summary?.months).toEqual(["2026-02", "2026-03"]);
-    expect(summary?.caveats).toEqual(["geometry approximate"]);
-  });
-
-  test("accepts an older detector month with a compatibility caveat", async () => {
-    const manifestPath = join(tmp, "readiness-older-month.json");
-    await Bun.write(
-      manifestPath,
-      JSON.stringify({
-        releaseMonth: "2026-02",
-        routes: [
-          {
-            routeId: "M15+",
-            counts: {
-              public_finding_candidate: 0,
-              route_context: 0,
-              review_queue: 0,
-              suppressed: 0,
-            },
-            caveats: ["geometry approximate"],
-          },
-        ],
-      }),
-    );
-
-    const summaries = await readDetectorReadinessRouteSummaries({
-      manifestPath,
-      month: "2026-03",
-    });
-    expect(summaries.get("M15+")?.caveats).toEqual([
-      "geometry approximate",
-      "Detector readiness data is from 2026-02; release coverage ends 2026-03.",
-    ]);
-  });
-
-  test("returns an empty map when no manifest path is given", async () => {
-    expect((await readDetectorReadinessRouteSummaries({ month: "2026-03" })).size).toBe(0);
-  });
-
-  test("rejects a detector month later than the export month", async () => {
-    const manifestPath = join(tmp, "readiness-newer-month.json");
-    await Bun.write(
-      manifestPath,
-      JSON.stringify({
-        artifactKind: "detector_readiness_serving_manifest",
-        schemaVersion: 1,
-        releaseMonth: "2026-04",
-        routes: [],
-      }),
-    );
-    await expect(
-      readDetectorReadinessRouteSummaries({ manifestPath, month: "2026-03" }),
-    ).rejects.toThrow("is later than export month");
   });
 });
 

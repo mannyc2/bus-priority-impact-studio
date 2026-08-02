@@ -32,8 +32,6 @@
     "crons": ["* * * * *"]
   },
   "vars": {
-    "BASELINE_MONTH": "2026-03",
-    "LAST_BUILT_SPEED_MONTH": "2026-03",
     "GTFS_RT_SAMPLES_PER_CRON": "2",
     "GTFS_RT_SAMPLE_SECONDS": "30"
   },

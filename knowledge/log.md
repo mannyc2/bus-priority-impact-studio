@@ -10226,3 +10226,44 @@ Fresh-main verification passed pipeline-v2 553/553, domain 146/146, Worker
 35/35, knowledge validation, and scoped typechecks for pipeline-v2, domain,
 DB, Studio API, and web. The Workerd suite's first sandboxed invocation could
 not bind localhost (`EPERM`); its required outside-sandbox rerun passed.
+
+## [2026-08-02] operations | Plan 101 de-month sweep implementation verified; deploy pending
+
+Plan 101 steps 1-2 are production-proved. Generation-5 catch-up run
+`30762362255` proved canonical
+candidate bytes and SHA-256-verified upload reuse over 4,247 artifacts; durable
+completion receipt SHA-256 is
+`ead154febc6148e043e1c1c3612e59761e438645a283bfa7c39e1466d819ec2b`.
+Generation-6 semantic no-op run `30769204796` then performed zero content PUTs,
+left release `pub_20260802T215956764Z` at generation 6, and recorded durable
+completion receipt SHA-256
+`87a5eb1f2130cc6041e5bc26d94d5479759053675e56a43cd576deb288d351a9`.
+
+The final vestige sweep deleted the retired month-selected shell publisher and
+package script, removed `BASELINE_MONTH`, `LAST_BUILT_SPEED_MONTH`, and the
+public pointer feature flag from runtime/example/test configuration, and made
+an active pointed candidate mandatory at the public request boundary. It
+deleted the zero-use route-timeline projection reader and the superseded
+detector-readiness D1 compatibility decoder; public detector readiness remains
+candidate-addressed through the active manifest already parity-proved in
+generations 5 and 6. `readLocalD1Inputs` no longer recursively searches frozen
+files and only consumes an explicitly supplied route-evidence index. Both
+permanent month-doctrine allowlist entries and their dual-decoder fixtures are
+gone.
+
+The shrink-only doctrine now scans publication scripts, every Wrangler JSONC,
+and workflow YAML, rejecting serving-release `--month`, retired variables, and
+silent fixed release defaults while preserving source-partition `--month`, ISO
+month schemas, monthly series, and partition directories. D1 export and verify
+no longer default silently to 2026/03. Active operational docs now point only
+to candidate preparation plus protected `publication.yml` activation.
+
+Implementation verification passed analytics 51/51, domain 146/146,
+pipeline-v2 542/542, Studio API 96/96, Worker 35/35,
+architecture/doctrine and knowledge checks, and scoped typechecks for
+pipeline-v2, Studio API, and web. The Worker harness now applies the active v2
+serving migrations and exercises a real pointed candidate with immutable,
+release-qualified artifact URLs. Its first sandboxed run hit the expected
+localhost `EPERM`; the approved outside-sandbox run passed. The vestige sweep
+still requires the normal protected-main deployment and verified real receipts
+before Plan 101 or production can be called fully de-monthed.

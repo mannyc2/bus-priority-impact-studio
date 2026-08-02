@@ -335,7 +335,7 @@ describe("production boundary harness", () => {
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
     const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();
-    const legacyPublisher = await Bun.file("scripts/publish-serving-release.sh").text();
+    const legacyPublisher = Bun.file("scripts/publish-serving-release.sh");
     const recoveryCli = await Bun.file("tools/pipeline-v2/src/commands/publish/recovery.ts").text();
     const operationHandler = await Bun.file(
       "apps/web/src/worker/operations/plan097-recovery.ts",
@@ -343,7 +343,9 @@ describe("production boundary harness", () => {
     const workerFiles = await readFiles("apps/web/src/worker");
 
     expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
-    expect(workflow).toContain("JOIN serving_release AS release ON release.release_id = active.release_id");
+    expect(workflow).toContain(
+      "JOIN serving_release AS release ON release.release_id = active.release_id",
+    );
     expect(workflow).toContain("dataset.dataset_id = 'reviewed-serving'");
     expect(workflow).toContain(
       "identity.projection_sha256 = candidate.exact_identity_projection_sha256",
@@ -363,8 +365,7 @@ describe("production boundary harness", () => {
     );
     expect(productionWrangler).not.toContain("PLAN097_RECOVERY_OPERATION_ENABLED");
     expect(productionWrangler).not.toContain("PLAN097_OPERATIONS");
-    expect(legacyPublisher).toContain("This month-selected publisher is retired");
-    expect(legacyPublisher).toContain("protected `publication.yml` workflow");
+    expect(await legacyPublisher.exists()).toBe(false);
     expect(recoveryCli).not.toContain("wrangler");
     expect(recoveryCli).not.toContain("d1 execute");
     expect(operationHandler.match(/\.batch\(/g) ?? []).toHaveLength(1);

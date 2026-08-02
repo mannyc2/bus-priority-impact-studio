@@ -10,16 +10,15 @@ export type ServingDecodePolicyId =
   | "browser_artifact_hash"
   | "browser_artifact_json"
   | "browser_artifact_schema"
-  | "legacy_pointer_absent"
+  | "active_pointer_required"
   | "optional_contract_absence";
 
 export const SERVING_DECODE_POLICY_INVENTORY = [
   {
-    id: "legacy_pointer_absent",
+    id: "active_pointer_required",
     layer: "worker_request_boundary",
-    disposition: "absence_allowed",
-    rationale:
-      "The additive rollout contract permits legacy resolution only while the pointer is null.",
+    disposition: "corrupt_fail_closed",
+    rationale: "Public serving requires a fully resolved active candidate pointer.",
   },
   {
     id: "optional_contract_absence",

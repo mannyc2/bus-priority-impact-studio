@@ -57,7 +57,6 @@
     "build": "bun --filter '@bp/*' build",
     "deploy": "bun --filter @bp/web deploy",
     "pipeline": "bun --filter @bp/pipeline-v2 cli --",
-    "publish:serving-release": "scripts/publish-serving-release.sh",
     "seed:local-studio-r2": "sh scripts/seed-local-studio-r2.sh",
     "seed:local-detector-r2": "sh scripts/seed-local-studio-r2.sh bus-priority-artifacts apps/web/wrangler.jsonc data/artifacts/studio/v2/detectors/route-detector-readiness-manifest.json",
     "seed:local-capability-r2": "sh scripts/seed-local-studio-r2.sh bus-priority-artifacts apps/web/wrangler.jsonc data/artifacts/studio/v2/routes/route-capability-manifest.json",

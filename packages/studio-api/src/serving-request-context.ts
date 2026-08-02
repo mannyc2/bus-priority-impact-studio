@@ -1,54 +1,28 @@
 import {
   createCandidateScopedD1Database,
   isServingReleaseContextCurrent,
+  type PointedServingReleaseContext,
   resolveActiveServingRelease,
-  type ServingReleaseContext,
 } from "@bp/db/d1";
 import { decodeStrict } from "@bp/domain/decode";
 import type { ReleaseIdentity } from "@bp/domain/studio/shared";
 import { ReleaseIdentitySchema } from "@bp/domain/studio/shared";
 import type { StudioApiEnv } from "./env.js";
-
-function errorMessage(error: unknown): string {
-  if (!(error instanceof Error)) return String(error);
-  return `${error.message} ${error.cause === undefined ? "" : errorMessage(error.cause)}`;
-}
-
-function isMissingPointerMigration(error: unknown): boolean {
-  const message = errorMessage(error);
-  return message.includes("no such table") && message.includes("serving_active_release");
-}
+import { ServingDataCorruptionError } from "./serving-decode-policy.js";
 
 export type PreparedServingRequest = {
-  context: ServingReleaseContext | null;
+  context: PointedServingReleaseContext | null;
   env: StudioApiEnv;
 };
 
-export async function prepareServingRequest(
-  env: StudioApiEnv,
-  requestId: string,
-): Promise<PreparedServingRequest> {
+export async function prepareServingRequest(env: StudioApiEnv): Promise<PreparedServingRequest> {
   if (env.DB === undefined) return { context: null, env };
-  if (env.SERVING_POINTER_ENABLED?.trim().toLowerCase() !== "true") {
-    return { context: { kind: "legacy", generation: 0 }, env };
-  }
-  let context: ServingReleaseContext;
-  try {
-    context = await resolveActiveServingRelease(env.DB);
-  } catch (error) {
-    if (!isMissingPointerMigration(error)) throw error;
-    console.info("Serving pointer migration is absent; using bounded legacy resolver.", {
-      code: "serving_pointer_pre_expand",
-      requestId,
-    });
-    return { context: { kind: "legacy", generation: 0 }, env };
-  }
+  const context = await resolveActiveServingRelease(env.DB);
   if (context.kind === "legacy") {
-    console.info("Serving pointer is null; using bounded legacy resolver.", {
-      code: "serving_pointer_null_bootstrap",
-      requestId,
-    });
-    return { context, env };
+    throw new ServingDataCorruptionError(
+      "active_pointer_required",
+      "Active serving pointer is required.",
+    );
   }
   return {
     context,

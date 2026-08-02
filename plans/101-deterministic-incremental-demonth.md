@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State**: IN PROGRESS — steps 1-2 are proved by the generation-5 production
-  catch-up; steps 3-5 remain last after Plans 100 and 099
+- **State**: IN PROGRESS — steps 1-2 proved by the generation-5 production
+  catch-up; steps 3-5 are locally verified and await the protected-main deploy
 - **Priority**: P1 for steps 1-2 (land with or before Plan 098's stage B so
   the first pointer-published candidate is byte-deterministic); P2 for the
   rest
@@ -36,23 +36,25 @@ rebuild performs zero content PUTs; and the final month-as-release-identity
 vestiges are gone. Month remains legal as source grain, observation
 coordinate, and partition directory (ADR-0022).
 
-## Re-verified anchors (fetched `origin/main@e0c00aaf`, 2026-08-02)
+## Re-verified anchors (fetched `origin/main@6e335ab6`, 2026-08-02)
 
-- `tools/pipeline-v2/src/commands/studio/route-speed-histories.ts:100-206`
-  stamped the batch clock into each route payload and reused any decodable
-  existing artifact. Step 1 now rebuilds canonical route bodies while keeping
-  the command clock only in the batch receipt.
+- `tools/pipeline-v2/src/commands/studio/route-speed-histories.ts:100-205`
+  now keeps the command clock in the batch manifest and unconditionally invokes
+  canonical route-body construction; the former decodable-file reuse branch is
+  absent.
 - `tools/pipeline-v2/src/commands/publish/r2-artifacts.ts` still implemented
   the pre-pointer recursive, month-selected uploader on main. Step 2 replaces
   it with strict candidate-manifest enumeration and GET/SHA-256 equality;
   ETag and size are not reuse evidence.
 - Stable-key helpers live in `packages/analytics/src/artifacts/index.ts` and
   `packages/domain/src/studio/route-dossier.ts`.
-- `tests/harness/month-doctrine.test.ts:500-525` scans TypeScript roots plus
-  one Wrangler file; `tests/harness/month-doctrine-allowlist.ts:33-47` retains
-  two permanent frozen-artifact exceptions reached through
-  `export/d1-inputs.ts:418-561` implicit discovery and
-  `packages/domain/src/studio/snapshots.ts` / `route-insights.ts`.
+- Before the final sweep, `tests/harness/month-doctrine.test.ts:521-537`
+  scanned only production TypeScript plus one Wrangler config, and the
+  allowlist retained two permanent frozen-artifact exceptions. The final state
+  scans publication scripts, every Wrangler config, and workflows; the
+  allowlist is empty. `export/d1-inputs.ts:350-458` accepts only an explicit
+  route-evidence candidate artifact reference and has no recursive frozen-file
+  discovery or legacy detector/timeline decoder.
 
 Plan 098 was already complete when this reconciliation began, so the dirty
 tree's instruction to fold steps 1-2 into its stage B is historical, not a
@@ -151,16 +153,16 @@ grammar over historical plans/ADRs or ordinary prose.
 
 ## Acceptance criteria
 
-- [ ] Two-clock/two-order builds of the publishable set are byte-identical;
+- [x] Two-clock/two-order builds of the publishable set are byte-identical;
       source timestamps/provenance are preserved in payloads.
-- [ ] Upload skip requires verified SHA-256 equality; the unsafe branch is
+- [x] Upload skip requires verified SHA-256 equality; the unsafe branch is
       deleted and regression-tested; no-change publishes zero content bytes.
-- [ ] A changed partition uploads only its affected blobs, evidenced by
+- [x] A changed partition uploads only its affected blobs, evidenced by
       manifest hash diff.
-- [ ] Publication selectors/config/paths are candidate/release based;
+- [x] Publication selectors/config/paths are candidate/release based;
       legitimate source-month grain remains supported and tested; the shell
       script, legacy resolver, and both frozen allowlist entries are gone.
-- [ ] The ratchet covers the operational surfaces that previously held
+- [x] The ratchet covers the operational surfaces that previously held
       vestiges without scanning historical prose.
 
 ## Verification
@@ -176,6 +178,32 @@ bun run check:architecture
 
 Run the determinism test twice from a pinned fixture candidate and attach
 both receipts.
+
+## Implementation record (2026-08-02)
+
+Steps 1-2 were production-proved by generation-5 catch-up run `30762362255`:
+4,247 canonical artifacts were verified through the candidate manifest and
+the durable completion receipt SHA-256 was
+`ead154febc6148e043e1c1c3612e59761e438645a283bfa7c39e1466d819ec2b`.
+The later generation-6 semantic no-op run `30769204796` performed zero content
+PUTs and left the pointer unchanged; its durable completion receipt SHA-256 is
+`87a5eb1f2130cc6041e5bc26d94d5479759053675e56a43cd576deb288d351a9`.
+
+The final sweep deletes the month-selected shell publisher and its package
+entry, removes retired Wrangler variables and the pointer feature flag,
+requires the public request boundary to resolve a pointed candidate, removes
+both frozen D1-input decoder paths and their tests/allowlist entries, and
+extends the doctrine ratchet to publication scripts, Wrangler examples/tests,
+and workflow YAML. The Worker harness now applies the v2 serving migrations
+and exercises a real pointed candidate with release-qualified immutable
+artifact URLs; no test-only legacy resolver remains.
+
+Verification passed analytics 51/51, domain 146/146, pipeline-v2 542/542,
+Studio API 96/96, Worker 35/35, architecture/doctrine and knowledge checks,
+and scoped typechecks for pipeline-v2, Studio API, and web. The first Worker
+invocation was blocked by the sandbox's localhost bind policy; the approved
+outside-sandbox rerun passed. Plan 101 remains in progress until this sweep is
+deployed through protected main and the real deployment receipts are verified.
 
 ## STOP conditions
 

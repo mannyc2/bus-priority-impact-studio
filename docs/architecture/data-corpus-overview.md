@@ -246,7 +246,9 @@ Commands under `tools/pipeline-v2/src/commands/findings/`: deterministic detecto
 
 #### Stage F — Brief composition and serving promotion
 
-Commands under `tools/pipeline-v2/src/commands/brief/` and `publish/`: assemble per-route brief artifacts from the route-month tables + promoted findings + map artifacts, then `publish:serving-release` writes the D1 row set and R2 objects.
+Commands under `tools/pipeline-v2/src/commands/brief/` and `publish/` assemble per-route brief
+artifacts from route-month tables, promoted findings, and map artifacts. A reviewed candidate
+manifest then drives the protected publication workflow for D1 and R2.
 
 This is the final projection step into Tier 3. The publish command name is historical; it should be
 read as **promote a reviewed serving projection**, not "ship one monthly dataset as the product."
@@ -350,12 +352,8 @@ ADR-0022 names releases as publication events and separates their identity from 
 |---|---|
 | **Published Release** | The reviewed D1/R2 projection identified by `releaseId` and `publishedAt`, with per-dataset coverage windows. |
 | **Current Signal** | The latest available monthly signal stitched in as an appendix; may use self-collected evidence ahead of public publication. |
-| **Pending Publication** | Candidate next release prepared locally, not yet promoted. Promoted by running `publish:serving-release --execute`. |
-| **Observed Release** | The release a user is actually seeing. The current production projection was published from March 2026 performance data with `third_party_recovered` provenance and a May 2026 self-collected appendix. |
-
-> **Month-keyed mechanics scheduled for removal (2026-07-12):** the live API still exposes
-> `baselineMonth` and month-keyed release/completeness values. ADR-0022 and plans 085-087 replace
-> those mechanics with publication identity, coverage windows, and upstream-relative freshness.
+| **Pending Publication** | Candidate next release prepared locally, not yet promoted. Promoted by the protected publication workflow after exact packet review. |
+| **Observed Release** | The release a user is actually seeing, identified by publication ID and honest per-dataset coverage. |
 
 > **Caveat on "Current Signal" cadence.** The May 2026 appendix is currently sourced from a single 24-hour GTFS-RT capture (`gtfs-rt-v1-20260517T103607Z-24h`), not a continuously rolling current month. The production Worker cron (`apps/web/wrangler.jsonc` `crons: ["* * * * *", "17 10 * * *"]`) is configured to write GTFS-RT to R2, but the local mirror under `data/raw/r2-mirror/` is pulled on demand and may be stale relative to what's in R2. Treat "Current Signal" as a recent operational sample, not a live feed, until a longer-rolling appendix replaces it.
 

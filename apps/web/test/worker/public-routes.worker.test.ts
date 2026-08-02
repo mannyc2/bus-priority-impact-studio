@@ -21,6 +21,8 @@ type PublicRouteTestEnv = Env & {
 
 const testEnv = env as unknown as PublicRouteTestEnv;
 const sha256 = "a".repeat(64);
+const candidateId = "b".repeat(64);
+const candidateManifestSha256 = "c".repeat(64);
 
 const fixtureTables = [
   "exact_route_identity_release",
@@ -45,7 +47,10 @@ const fixtureTables = [
 const mapReleaseId = "pub_20260719T123456789Z";
 const mapPublishedAt = "2026-07-19T12:34:56.789Z";
 const mapCoverage = { start: "2023-04", end: "2026-03" } as const;
-const mapArtifactKey = "map/2026-03/routes/M57.segments.geojson";
+const mapArtifactBody = '{"type":"FeatureCollection","features":[]}';
+const mapArtifactSha256 = createHash("sha256").update(mapArtifactBody).digest("hex");
+const mapArtifactKey = "map/2026-03/routes/m57.segments.geojson";
+const mapArtifactPhysicalKey = `map/objects/${mapArtifactSha256}/M57.segments.geojson`;
 const mapManifestBody = JSON.stringify({
   schemaVersion: 2,
   artifactKind: "map_artifact_manifest",
@@ -90,7 +95,7 @@ const mapManifestBody = JSON.stringify({
       contentType: "application/geo+json",
       byteLength: 128,
       gzipByteLength: 96,
-      sha256,
+      sha256: mapArtifactSha256,
       featureCount: 2,
       coordinateCount: 8,
       routeId: "M57",
@@ -98,7 +103,20 @@ const mapManifestBody = JSON.stringify({
   ],
 });
 const mapManifestSha256 = createHash("sha256").update(mapManifestBody).digest("hex");
-const mapManifestKey = `map/2026-03/manifest.${mapManifestSha256}.json`;
+const mapManifestKey = "map/2026-03/manifest.json";
+const mapManifestPhysicalKey = `map/objects/${mapManifestSha256}/manifest.json`;
+const capabilityManifestKey = "studio/v2/routes/route-capability-manifest.json";
+const capabilityManifestBody = JSON.stringify({
+  artifactKind: "route_capability_manifest",
+  schemaVersion: 2,
+  generatedAt: mapPublishedAt,
+  releaseId: mapReleaseId,
+  publishedAt: mapPublishedAt,
+  coverage: { start: null, end: mapCoverage.end },
+  routes: [],
+});
+const capabilityManifestSha256 = createHash("sha256").update(capabilityManifestBody).digest("hex");
+const capabilityManifestPhysicalKey = `studio/objects/${capabilityManifestSha256}/route-capability-manifest.json`;
 
 function requireDb(): D1Database {
   expect(testEnv.DB).toBeDefined();
@@ -430,19 +448,140 @@ async function seedD1Fixture(): Promise<void> {
     verification_status: "fail",
     route_count: 1,
   });
+
+  await seedPointedServingFixture(db);
+}
+
+async function seedPointedServingFixture(db: D1Database): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO serving_candidate(
+        candidate_id, state, schema_version, semantic_input_fingerprint, source_commit,
+        canonical_manifest_key, canonical_manifest_sha256, projection_schema, projection_sha256,
+        exact_identity_projection_sha256, exact_identity_route_count, expected_dataset_count,
+        expected_artifact_count, expected_d1_table_count, created_at
+      ) VALUES (?, 'staging', 1, ?, ?, ?, ?, ?, ?, ?, 4, 1, 3, 0, ?)`,
+    )
+    .bind(
+      candidateId,
+      "1".repeat(64),
+      "2".repeat(40),
+      `serving/candidates/${candidateId}/candidate.manifest.json`,
+      candidateManifestSha256,
+      "bp.serving.d1.v2",
+      "3".repeat(64),
+      "6".repeat(64),
+      mapPublishedAt,
+    )
+    .run();
+  await insertRow(db, "serving_candidate_builder", {
+    candidate_id: candidateId,
+    builder_rank: 0,
+    name: "worker-fixture",
+    version: "1",
+  });
+  await insertRow(db, "serving_candidate_dataset", {
+    candidate_id: candidateId,
+    dataset_id: "reviewed-serving",
+    grain: "month",
+    coverage_start: null,
+    coverage_end: mapCoverage.end,
+    source_snapshot_ids_json: "[]",
+    source_ids_json: "[]",
+    missing_intervals_json: "[]",
+  });
+  for (const artifact of [
+    {
+      logicalId: mapManifestKey,
+      key: mapManifestPhysicalKey,
+      sha256: mapManifestSha256,
+      bytes: new TextEncoder().encode(mapManifestBody).byteLength,
+      mediaType: "application/json",
+      schemaId: "bp.map.manifest.v2",
+    },
+    {
+      logicalId: mapArtifactKey,
+      key: mapArtifactPhysicalKey,
+      sha256: mapArtifactSha256,
+      bytes: new TextEncoder().encode(mapArtifactBody).byteLength,
+      mediaType: "application/geo+json",
+      schemaId: "bp.map.route-segments.v1",
+    },
+    {
+      logicalId: capabilityManifestKey,
+      key: capabilityManifestPhysicalKey,
+      sha256: capabilityManifestSha256,
+      bytes: new TextEncoder().encode(capabilityManifestBody).byteLength,
+      mediaType: "application/json",
+      schemaId: "bp.studio.route_capability_manifest.v2",
+    },
+  ]) {
+    await insertRow(db, "serving_candidate_artifact", {
+      candidate_id: candidateId,
+      logical_id: artifact.logicalId,
+      physical_key: artifact.key,
+      sha256: artifact.sha256,
+      byte_length: artifact.bytes,
+      media_type: artifact.mediaType,
+      schema_id: artifact.schemaId,
+      verified_at: mapPublishedAt,
+    });
+  }
+  for (const table of fixtureTables) {
+    await db.prepare(`INSERT INTO ${table}_v2 SELECT *, ? FROM ${table}`).bind(candidateId).run();
+  }
+  await db
+    .prepare("UPDATE serving_candidate SET state = 'ready', ready_at = ? WHERE candidate_id = ?")
+    .bind(mapPublishedAt, candidateId)
+    .run();
+  await insertRow(db, "serving_activation_intent", {
+    operation_id: "worker-fixture-activation",
+    state: "prepared",
+    expected_release_id: null,
+    expected_generation: 0,
+    release_id: mapReleaseId,
+    candidate_id: candidateId,
+    published_at: mapPublishedAt,
+    activated_at: mapPublishedAt,
+    canonical_manifest_sha256: candidateManifestSha256,
+    new_generation: 1,
+    created_at: mapPublishedAt,
+    committed_at: null,
+  });
+  await insertRow(db, "serving_release", {
+    release_id: mapReleaseId,
+    candidate_id: candidateId,
+    published_at: mapPublishedAt,
+    activated_at: mapPublishedAt,
+    retained_public: 1,
+    canonical_manifest_sha256: candidateManifestSha256,
+    operation_id: "worker-fixture-activation",
+  });
+  await db
+    .prepare(
+      "UPDATE serving_active_release SET release_id = ?, generation = 1, last_operation_id = ? WHERE singleton_id = 1",
+    )
+    .bind(mapReleaseId, "worker-fixture-activation")
+    .run();
 }
 
 async function seedR2Fixture(): Promise<void> {
   const artifacts = requireArtifacts();
-  await artifacts.put(mapManifestKey, mapManifestBody, {
+  await artifacts.put(mapManifestPhysicalKey, mapManifestBody, {
     httpMetadata: {
       contentType: "application/json",
     },
+    customMetadata: { sha256: mapManifestSha256 },
   });
-  await artifacts.put(mapArtifactKey, '{"type":"FeatureCollection","features":[]}', {
+  await artifacts.put(mapArtifactPhysicalKey, mapArtifactBody, {
     httpMetadata: {
       contentType: "application/geo+json",
     },
+    customMetadata: { sha256: mapArtifactSha256 },
+  });
+  await artifacts.put(capabilityManifestPhysicalKey, capabilityManifestBody, {
+    httpMetadata: { contentType: "application/json" },
+    customMetadata: { sha256: capabilityManifestSha256 },
   });
 }
 
@@ -516,7 +655,7 @@ describe("Worker public route API smoke", () => {
     }
   });
 
-  it("reproduces the production failure boundary when the exact release registry is absent", async () => {
+  it("keeps candidate-scoped exact identity independent of the legacy registry", async () => {
     const db = requireDb();
     await db.prepare("DELETE FROM exact_route_identity_release").run();
     try {
@@ -525,13 +664,10 @@ describe("Worker public route API smoke", () => {
         SELF.fetch("https://example.test/api/v1/studio/routes?schema=3"),
       ]);
       expect(legacy.status).toBe(200);
-      expect(exact.status).toBe(503);
-      expect(await exact.json()).toEqual({
-        error: {
-          code: "SERVICE_UNAVAILABLE",
-          message: "Exact route identity serving data is unavailable.",
-        },
-      });
+      expect(exact.status).toBe(200);
+      expect(
+        decodeSchemaStrict(StudioRouteIndex3ResponseSchema, await exact.json()).routes,
+      ).toEqual(expect.arrayContaining([expect.objectContaining({ routeId: "B44+" })]));
     } finally {
       await seedExactRouteRegistry(db);
     }
@@ -546,23 +682,23 @@ describe("Worker public route API smoke", () => {
       schemaVersion: 2,
       releaseId: mapReleaseId,
       publishedAt: mapPublishedAt,
-      coverage: mapCoverage,
+      coverage: { start: null, end: mapCoverage.end },
     });
     expect(manifest.artifacts[0]).toEqual(
       expect.objectContaining({
         routeId: "M57",
-        apiPath: "/api/v1/artifacts/map/2026-03/routes/M57.segments.geojson",
+        apiPath: `/api/v1/releases/${mapReleaseId}/artifacts/map/2026-03/routes/m57.segments.geojson`,
       }),
     );
 
     const artifact = await SELF.fetch(
-      new Request("https://example.test/api/v1/artifacts/map/2026-03/routes/M57.segments.geojson"),
+      new Request(
+        `https://example.test/api/v1/releases/${mapReleaseId}/artifacts/map/2026-03/routes/m57.segments.geojson`,
+      ),
     );
     expect(artifact.status).toBe(200);
     expect(artifact.headers.get("Content-Type")).toContain("application/geo+json");
-    expect(artifact.headers.get("Cache-Control")).toBe(
-      "public, max-age=300, stale-while-revalidate=3600",
-    );
+    expect(artifact.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
     expect(await artifact.json()).toEqual({ type: "FeatureCollection", features: [] });
   });
 

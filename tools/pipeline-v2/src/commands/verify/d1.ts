@@ -91,7 +91,6 @@ export type VerifyD1Inputs = {
   releaseIdentity: ReleaseIdentity;
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
-  routeTimelineProjectionPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
   inputs?: D1CanonicalInputs | undefined;
 };
@@ -154,7 +153,6 @@ export async function runVerifyD1Export(inputs: VerifyD1Inputs): Promise<D1Verif
     releaseIdentity,
     exportRoot: inputs.exportRoot,
     artifactRoot: inputs.artifactRoot,
-    routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
     routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
     inputs: inputs.inputs,
   });
@@ -225,23 +223,13 @@ export default defineCommand({
     options: Schema.Struct({
       ...dbOptions.fields,
       ...{
-        year: arg
-          .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
-          .annotate({ description: "Calendar year" }),
-        month: arg
-          .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
-          .annotate({ description: "Calendar month, 1-12" }),
+        year: arg.positiveInt().annotate({ description: "Calendar year" }),
+        month: arg.positiveInt().annotate({ description: "Calendar month, 1-12" }),
         exportRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override export root directory",
         }),
         artifactRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override artifact root for D1 derivative inputs and outputs",
-        }),
-        routeTimelineProjectionPath: Schema.optionalKey(Schema.String).annotate({
-          description:
-            "Optional route timeline serving projection JSON to fold into D1 verification",
         }),
         routeEvidenceIndexPath: Schema.optionalKey(Schema.String).annotate({
           description: "Optional MTA-wiki route evidence index JSON to fold into D1 verification",
@@ -296,10 +284,6 @@ export default defineCommand({
             input.options.artifactRoot === undefined
               ? undefined
               : fromCliPath(input.options.artifactRoot),
-          routeTimelineProjectionPath:
-            input.options.routeTimelineProjectionPath === undefined
-              ? undefined
-              : fromCliPath(input.options.routeTimelineProjectionPath),
           routeEvidenceIndexPath:
             input.options.routeEvidenceIndexPath === undefined
               ? undefined

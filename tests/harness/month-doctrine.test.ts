@@ -52,10 +52,6 @@ const RELEASE_MONTH_IDENTITY_FILES = new Set([
   "tools/pipeline-v2/src/commands/map/artifacts.ts",
 ]);
 
-const D1_INPUTS_FILE = "tools/pipeline-v2/src/commands/export/d1-inputs.ts";
-const D1_INPUTS_SCHEMA_RELEASE_MONTH = /\b(releaseMonth)(?=\s*:\s*Schema\.)/g;
-const D1_INPUTS_READER_RELEASE_MONTH = /(?:projection(?:\.success)?|manifest)\.(releaseMonth)\b/g;
-
 const ANALYSIS_PERIOD_IDENTITY_FILES = new Set([
   "apps/web/src/studio/api-client.ts",
   "packages/analytics/src/evaluation/map-artifacts.ts",
@@ -90,6 +86,10 @@ const PUBLIC_SELECTOR_METHOD =
   /\bsearchParams\s*(?:\.\s*(?:get|getAll|has|set|append|delete)|\?\.\s*(?:get|getAll|has|set|append|delete)|\[\s*["'`](?:get|getAll|has|set|append|delete)["'`]\s*\]|\?\.\s*\[\s*["'`](?:get|getAll|has|set|append|delete)["'`]\s*\])\s*(?:\?\.\s*)?\(\s*["'`]month["'`]/g;
 const PUBLIC_STATIC_MONTH_QUERY = /[?&]month\s*=/g;
 const URL_SEARCH_PARAMS_OBJECT = /\bnew\s+URLSearchParams\s*\(\s*\{/g;
+const PUBLICATION_MONTH_SELECTOR =
+  /(?:publish(?::|\s+)serving-release[^\n]*--month|--month[^\n]*publish(?::|\s+)serving-release)/g;
+const SILENT_RELEASE_DEFAULT =
+  /(?:\b(?:year|month)\s*:\s*arg\s*\.\s*positiveInt\s*\(\s*\)\s*\.\s*pipe\s*\(\s*Schema\.withDecodingDefaultTypeKey\b|\bdefault\s*:\s*["'`]\d{4}-(?:0[1-9]|1[0-2])["'`])/g;
 
 const WHOLE_MONTH_LITERAL = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 const LOCAL_MONTH_PATH_SEGMENT = /(?:^|\/)\d{4}-(?:0[1-9]|1[0-2])(?:\/|$)/;
@@ -107,6 +107,16 @@ export function isExcludedProductionPath(path: string): boolean {
 
 function isPublicRuntimeFile(file: string): boolean {
   return file.startsWith("apps/web/src/") || file.startsWith("packages/studio-api/src/");
+}
+
+function isPublicationOperationalSurface(file: string): boolean {
+  return (
+    file.startsWith(".github/workflows/") ||
+    file === "tools/pipeline-v2/src/commands/export/d1.ts" ||
+    file === "tools/pipeline-v2/src/commands/verify/d1.ts" ||
+    file.startsWith("tools/pipeline-v2/src/commands/publish/") ||
+    file.startsWith("scripts/publish")
+  );
 }
 
 function isPinnedIdentitySurface(file: string): boolean {
@@ -448,9 +458,6 @@ export function collectViolations(
 
     if (RELEASE_MONTH_IDENTITY_FILES.has(source.file)) {
       collectRegex(violations, source, "release-month-identity", RELEASE_MONTH_IDENTITY);
-    } else if (source.file === D1_INPUTS_FILE) {
-      collectRegex(violations, source, "release-month-identity", D1_INPUTS_SCHEMA_RELEASE_MONTH, 1);
-      collectRegex(violations, source, "release-month-identity", D1_INPUTS_READER_RELEASE_MONTH, 1);
     }
 
     if (ANALYSIS_PERIOD_IDENTITY_FILES.has(source.file)) {
@@ -477,6 +484,11 @@ export function collectViolations(
       collectRegex(violations, source, "public-month-selector", PUBLIC_SELECTOR_METHOD);
       collectRegex(violations, source, "public-month-selector", PUBLIC_STATIC_MONTH_QUERY);
       collectUrlSearchParamsObjectSelectors(violations, source);
+    }
+
+    if (isPublicationOperationalSurface(source.file)) {
+      collectRegex(violations, source, "public-month-selector", PUBLICATION_MONTH_SELECTOR);
+      collectRegex(violations, source, "silent-release-default", SILENT_RELEASE_DEFAULT);
     }
 
     if (isPinnedIdentitySurface(source.file)) {
@@ -512,11 +524,12 @@ export async function readProductionFiles(): Promise<MonthDoctrineSourceFile[]> 
     "packages/*/src/**/*.{ts,tsx}",
     "apps/web/src/**/*.{ts,tsx}",
     "tools/pipeline-v2/src/**/*.{ts,tsx}",
+    "scripts/**/*.{sh,ts}",
+    ".github/workflows/*.yml",
+    "apps/web/wrangler*.jsonc",
   ]) {
     for (const file of await readGlob(pattern)) paths.add(file);
   }
-  paths.add("apps/web/wrangler.jsonc");
-
   const files: MonthDoctrineSourceFile[] = [];
   for (const file of [...paths].sort((left, right) => left.localeCompare(right))) {
     files.push({ file, text: await Bun.file(file).text() });
@@ -634,7 +647,7 @@ describe("month doctrine scanner", () => {
     expect(violations.map((violation) => violation.match)).toEqual(retiredTokens);
   });
 
-  test("releaseMonth is scoped and d1-input readers are contextual", () => {
+  test("releaseMonth is scoped to active release identity surfaces", () => {
     const identitySurfaces = [
       "packages/analytics/src/evaluation/build-route-capability-manifest.ts",
       "packages/analytics/src/evaluation/build-route-dossier-summary.ts",
@@ -656,10 +669,10 @@ describe("month doctrine scanner", () => {
     expect(
       violationsFor(
         "tools/pipeline-v2/src/commands/export/d1-inputs.ts",
-        "releaseMonth: Schema.String, projection.releaseMonth, projection.success.releaseMonth, manifest.releaseMonth, const releaseMonth = month",
+        "const releaseMonth = sourceCoverage.endMonth",
         "release-month-identity",
       ),
-    ).toHaveLength(4);
+    ).toEqual([]);
     expect(
       violationsFor(
         "tools/pipeline-v2/src/commands/ingest/example.ts",
@@ -734,12 +747,12 @@ describe("month doctrine scanner", () => {
     const methodSelectors = [
       'url.searchParams . get ( "month" )',
       "url.searchParams.getAll('month')",
-      "url.searchParams.has(\`month\`)",
+      "url.searchParams.has(`month`)",
       'url.searchParams . set ( "month", value )',
       "url.searchParams.append('month', value)",
-      "url.searchParams.delete(\`month\`)",
+      "url.searchParams.delete(`month`)",
       "url.searchParams ?. get ?. ( 'month' )",
-      'url.searchParams [ "has" ] ( \`month\` )',
+      'url.searchParams [ "has" ] ( `month` )',
       "url.searchParams ?. [ 'delete' ] ?. ( \"month\" )",
     ];
     for (const selector of methodSelectors) {
@@ -760,7 +773,7 @@ describe("month doctrine scanner", () => {
         `
           new URLSearchParams({ month: value });
           new URLSearchParams({ q, 'month': value });
-          new URLSearchParams({ q, \"month\" /* key */ : value });
+          new URLSearchParams({ q, "month" /* key */ : value });
           new URLSearchParams({ q, \`month\`: value });
           new URLSearchParams({ q, /* product selector */ month: release });
         `,
@@ -810,6 +823,36 @@ describe("month doctrine scanner", () => {
     expect(violationsFor("apps/web/src/tests/example.ts", "baselineMonth")).toEqual([]);
     expect(violationsFor("apps/web/src/worker/example.gen.ts", "baselineMonth")).toHaveLength(1);
     expect(violationsFor("apps/web/src/dev/example.ts", "baselineMonth")).toHaveLength(1);
+  });
+
+  test("operational publication surfaces reject release selectors and silent defaults", () => {
+    expect(
+      violationsFor(
+        "scripts/publish-serving-release.sh",
+        "bun pipeline publish serving-release --month 2026-03",
+        "public-month-selector",
+      ),
+    ).toHaveLength(1);
+    expect(
+      violationsFor(
+        ".github/workflows/publication.yml",
+        'default: "2026-03"',
+        "silent-release-default",
+      ),
+    ).toHaveLength(1);
+    expect(
+      violationsFor(
+        "tools/pipeline-v2/src/commands/export/d1.ts",
+        "month: arg.positiveInt().pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))",
+        "silent-release-default",
+      ),
+    ).toHaveLength(1);
+    expect(
+      violationsFor(
+        "tools/pipeline-v2/src/commands/ingest/route-segment-speeds.ts",
+        "--month 2026-03 monthly chart source/2026-03/partition.json IsoMonth",
+      ),
+    ).toEqual([]);
   });
 
   test("allowlist audit rejects drift and can enforce the initial permanent-entry guard", () => {

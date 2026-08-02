@@ -6,6 +6,7 @@ export const MONTH_DOCTRINE_RULE_IDS = [
   "release-month-identity",
   "retired-identity-token",
   "serialized-release-month",
+  "silent-release-default",
 ] as const;
 
 export type MonthDoctrineRuleId = (typeof MONTH_DOCTRINE_RULE_IDS)[number];
@@ -30,19 +31,5 @@ export type MonthDoctrineAllowlistEntry = {
 // Exact occurrence counts at Plan 088 landing. Entries are sorted by file,
 // then rule. Plans 079 and 085-087 must shrink, remove, or explicitly preserve
 // their own pairs in the same commit as the production edit.
-export const MONTH_DOCTRINE_ALLOWLIST = [
-  {
-    file: "tools/pipeline-v2/src/commands/export/d1-inputs.ts",
-    rule: "release-month-identity",
-    count: 7,
-    disposition: "permanent-frozen-artifact",
-    note: "Four legacy timeline reads plus three detector-readiness reads preserve immutable artifact branches.",
-  },
-  {
-    file: "tools/pipeline-v2/src/commands/export/route-capability-manifest.ts",
-    rule: "release-month-identity",
-    count: 3,
-    disposition: "permanent-frozen-artifact",
-    note: "The frozen detector-readiness reader preserves its immutable legacy manifest branch.",
-  },
-] as const satisfies readonly MonthDoctrineAllowlistEntry[];
+export const MONTH_DOCTRINE_ALLOWLIST =
+  [] as const satisfies readonly MonthDoctrineAllowlistEntry[];
