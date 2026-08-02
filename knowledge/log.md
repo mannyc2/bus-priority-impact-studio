@@ -10091,3 +10091,16 @@ changed-file formatting was repaired separately. No Cloudflare mutation was
 performed and no new production receipt exists. Production remains generation
 4 on release `pub_20260801T232501631Z` pending the separately approved
 June/July catch-up including gen-18 artifacts.
+
+The catch-up production continuation is now prepared behind a manually
+confirmed GitHub Actions `production` environment, using the repository's
+existing `CLOUDFLARE_API_TOKEN` secret rather than a local operator token.
+The exact 795,753,056-byte candidate was clean-extracted from a 36 MB pinned
+transfer bundle (`10fce240398c6683fd20dac025301063caf23b14801552ced8f0d8f599b1a3fc`)
+and all 4,247 manifest bodies passed offline byte/SHA verification. The
+workflow reuses the authenticated Plan 098 operator, submits the 1,848
+objects found absent by the live read-only dry-run, GET/SHA-verifies the
+complete manifest, stages the replay-safe candidate D1 seed, activates only
+through the generation 4 CAS, smokes the June coverage plus Plans 090, 091,
+and 106 artifacts, records content-addressed evidence, and rolls back only
+after a failed finalize. No new Cloudflare mutation has occurred.

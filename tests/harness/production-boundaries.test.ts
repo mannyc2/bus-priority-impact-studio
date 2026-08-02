@@ -250,6 +250,29 @@ describe("production boundary harness", () => {
     expect(activationWorkflow).toContain("and .candidateB.artifactCount == 3191");
   });
 
+  test("Generation 17 catch-up stays behind the pinned protected publication workflow", async () => {
+    const workflow = await Bun.file(".github/workflows/gen17-catchup-publication.yml").text();
+    const stage = workflow.indexOf("stage-gen17-catchup-production.ts");
+    const d1 = workflow.indexOf("wrangler d1 execute bus-priority-serving");
+    const finalize = workflow.indexOf("finalize-gen17-catchup-production.ts");
+
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("environment:\n      name: production");
+    expect(workflow).toContain("group: serving-production-publication");
+    expect(workflow).toContain("secrets.CLOUDFLARE_API_TOKEN");
+    expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
+    expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
+    expect(workflow).toContain("10fce240398c6683fd20dac025301063caf23b14801552ced8f0d8f599b1a3fc");
+    expect(workflow).toContain("afa266944bc3e85d13c0ffd3c9a012acd9e2d9f01d965942d7ebf3b805f82ccf");
+    expect(workflow).not.toMatch(/uses: [^\n]+@(v|main|master)\b/u);
+    expect(stage).toBeGreaterThan(0);
+    expect(d1).toBeGreaterThan(stage);
+    expect(finalize).toBeGreaterThan(d1);
+    expect(workflow).toContain("rollback-gen17-catchup-production.ts");
+    expect(workflow).toContain("steps.finalize.outcome != 'success'");
+    expect(workflow).toContain("workers/services/bus-priority-plan098-operator");
+  });
+
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
     const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();

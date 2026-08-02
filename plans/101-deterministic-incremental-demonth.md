@@ -3,8 +3,9 @@
 ## Status
 
 - **State**: IN PROGRESS — steps 1-2 implemented and locally verified on
-  `codex/101-deterministic-demonth`; production upload evidence awaits the
-  reviewed June/July catch-up, while steps 3-5 remain last in the sequence
+  `codex/101-deterministic-demonth`; the reviewed June/July candidate and
+  protected Actions continuation are locally verified and await production
+  authorization, while steps 3-5 remain last in the sequence
 - **Priority**: P1 for steps 1-2 (land with or before Plan 098's stage B so
   the first pointer-published candidate is byte-deterministic); P2 for the
   rest
@@ -59,6 +60,16 @@ Plan 098 was already complete when this reconciliation began, so the dirty
 tree's instruction to fold steps 1-2 into its stage B is historical, not a
 reason to replay production. These changes instead gate the next normal
 pointer publication.
+
+The catch-up continuation uses
+`.github/workflows/gen17-catchup-publication.yml`: a manually confirmed,
+`production`-environment GitHub Actions workflow backed by the existing
+`CLOUDFLARE_API_TOKEN` secret. It verifies a pinned immutable candidate
+bundle, reuses Plan 098's temporary authenticated operator, stages candidate
+D1 rows, performs the generation-4-to-5 CAS activation, records durable
+receipts, and invokes the failure-only rollback path. It does not require or
+accept local Cloudflare or R2 credentials and never replays the Plan 098
+A-to-B-to-A-to-B drill.
 
 ## Implementation
 
