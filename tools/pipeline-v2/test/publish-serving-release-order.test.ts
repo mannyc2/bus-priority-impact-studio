@@ -1,97 +1,80 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import {
+  advanceServingPublicationPhase,
+  type ServingPublicationPhase,
+} from "../src/lib/serving-publication.ts";
 
-const roots: string[] = [];
+describe("protected serving publication ordering", () => {
+  test("allows only the activation-last forward state machine", () => {
+    const phases: ServingPublicationPhase[] = [
+      "candidate_validated",
+      "migrations_applied",
+      "blobs_uploaded",
+      "d1_staged",
+      "candidate_verified",
+      "activated",
+      "production_smoke_passed",
+      "complete",
+    ];
+    let current = phases[0];
+    if (current === undefined) throw new Error("missing initial phase");
+    for (const next of phases.slice(1)) current = advanceServingPublicationPhase(current, next);
+    expect(current).toBe("complete");
+    expect(() => advanceServingPublicationPhase("candidate_validated", "activated")).toThrow(
+      "Invalid serving publication transition",
+    );
+    expect(() => advanceServingPublicationPhase("d1_staged", "complete")).toThrow(
+      "Invalid serving publication transition",
+    );
+    expect(advanceServingPublicationPhase("candidate_validated", "no_op")).toBe("no_op");
+    expect(advanceServingPublicationPhase("activated", "rolled_back")).toBe("rolled_back");
+  });
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
-describe("publish serving release ordering", () => {
-  test("runs completeness, ordinary D1, R2, then final catalog registration", async () => {
-    const script = await readFile(
-      join(import.meta.dir, "../../../scripts/publish-serving-release.sh"),
+  test("the protected workflow orders one wrapper, closed staging, activation, rollback, and cleanup", async () => {
+    const workflow = await readFile(
+      join(import.meta.dir, "../../../.github/workflows/publication.yml"),
       "utf8",
     );
-    const gate = script.indexOf("check-publish-completeness.ts");
-    const schema = script.indexOf('--file "$schema_sql"');
-    const seed = script.indexOf('--file "$seed_sql"');
-    const r2 = script.indexOf("publish r2-artifacts");
-    const registration = script.indexOf('--file "$map_release_registration_sql"');
-    expect(gate).toBeGreaterThan(0);
-    expect(schema).toBeGreaterThan(gate);
-    expect(seed).toBeGreaterThan(schema);
-    expect(r2).toBeGreaterThan(seed);
-    expect(registration).toBeGreaterThan(r2);
-    expect(script.indexOf("aborting before remote mutation")).toBeGreaterThan(gate);
-    expect(
-      script.indexOf('map_release_registration_sql="$export_dir/map-release-registration.sql"'),
-    ).toBeGreaterThan(0);
+    const classify = workflow.indexOf("--action classify");
+    const migrate = workflow.indexOf("--action migrate");
+    const blobs = workflow.indexOf("--action blobs");
+    const d1 = workflow.indexOf("--action d1");
+    const verify = workflow.indexOf("--action verify");
+    const finalize = workflow.indexOf("--action finalize");
+    const rollback = workflow.indexOf("--action rollback");
+    const cleanup = workflow.indexOf("workers/services/bus-priority-plan098-operator");
+    expect(classify).toBeGreaterThan(0);
+    expect(migrate).toBeGreaterThan(classify);
+    expect(blobs).toBeGreaterThan(migrate);
+    expect(d1).toBeGreaterThan(blobs);
+    expect(verify).toBeGreaterThan(d1);
+    expect(finalize).toBeGreaterThan(verify);
+    expect(rollback).toBeGreaterThan(finalize);
+    expect(cleanup).toBeGreaterThan(rollback);
+    expect(workflow).toContain("environment:\n      name: production");
+    expect(workflow).toContain("group: serving-production-publication");
+    expect(workflow).toContain("secrets.CLOUDFLARE_API_TOKEN");
+    expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
+    expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
+    expect(workflow).not.toMatch(/uses: [^\n]+@(v|main|master)\b/u);
+    expect(workflow).toContain("steps.finalize.outcome != 'success'");
   });
 
-  test("refuses every legacy direct remote execution during Plan 097", async () => {
-    const root = await mkdtemp(join(tmpdir(), "publish-serving-order-"));
-    roots.push(root);
-    const bin = join(root, "bin");
-    const exportDir = join(root, "data", "exports", "d1", "2026-03");
-    const logPath = join(root, "commands.log");
-    await mkdir(bin, { recursive: true });
-    await mkdir(exportDir, { recursive: true });
-    for (const file of ["schema.sql", "seed.sql", "map-release-registration.sql"]) {
-      await writeFile(join(exportDir, file), "SELECT 1;\n");
-    }
-
-    const bunPath = join(bin, "bun");
-    await writeFile(
-      bunPath,
-      `#!/bin/sh
-printf 'bun %s\\n' "$*" >> "$PUBLISH_TEST_LOG"
-case "$*" in
-  "run tools/pipeline-v2/src/checks/check-publish-completeness.ts --month 2026-03") exit 0 ;;
-  "--filter @bp/pipeline-v2 cli -- publish r2-artifacts --month 2026-03 --bucket test-bucket") exit 42 ;;
-  *) exit 0 ;;
-esac
-`,
+  test("semantic no-op exits before migrations and records zero serving mutations", async () => {
+    const script = await readFile(
+      join(import.meta.dir, "../scripts/run-serving-publication-production.ts"),
+      "utf8",
     );
-    const bunxPath = join(bin, "bunx");
-    await writeFile(
-      bunxPath,
-      `#!/bin/sh
-printf 'bunx %s\\n' "$*" >> "$PUBLISH_TEST_LOG"
-exit 0
-`,
-    );
-    await Promise.all([chmod(bunPath, 0o755), chmod(bunxPath, 0o755)]);
-
-    const script = join(import.meta.dir, "../../../scripts/publish-serving-release.sh");
-    const child = Bun.spawn(
-      ["sh", script, "--month", "2026-03", "--d1", "test-db", "--r2", "test-bucket", "--execute"],
-      {
-        cwd: root,
-        env: {
-          ...processEnv(),
-          // biome-ignore lint/complexity/useLiteralKeys: process.env is index-signature typed.
-          PATH: `${bin}:${globalThis.process.env["PATH"] ?? ""}`,
-          PUBLISH_TEST_LOG: logPath,
-        },
-        stdout: "pipe",
-        stderr: "pipe",
-      },
-    );
-    expect(await child.exited).toBe(2);
-    expect(await new Response(child.stderr).text()).toContain(
-      "Use the protected `publish recovery` Worker transport",
-    );
-    expect(await Bun.file(logPath).exists()).toBe(false);
+    const comparison = script.indexOf("activeCandidate.candidate.semanticInputFingerprint");
+    const migration = script.indexOf('if (action === "migrate")');
+    expect(comparison).toBeGreaterThan(0);
+    expect(migration).toBeGreaterThan(comparison);
+    expect(script).toContain("contentPutCount: 0");
+    expect(script).toContain("servingWriteCount: 0");
+    expect(script).toContain("releaseWriteCount: 0");
+    expect(script).toContain("pointerWriteCount: 0");
+    expect(script).toContain('action: "read-receipt"');
   });
 });
-
-function processEnv(): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(process.env).filter(
-      (entry): entry is [string, string] => entry[1] !== undefined,
-    ),
-  );
-}

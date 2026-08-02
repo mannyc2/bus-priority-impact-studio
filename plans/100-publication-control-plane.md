@@ -1,11 +1,11 @@
-error: Can't create the symlink for multishells at "/run/user/1000/fnm_multishells/6_1785697528830". Maybe there are some issues with permissions for the directory? Read-only file system (os error 30)
 # Plan 100: One publish command and a scheduled freshness alarm
 
 ## Status
 
 - **State**: IN PROGRESS — the scheduled advisory alarm is implemented and
-  live-read verified; the reusable normal publisher follows the catch-up
-  activation and its real receipt
+  live-read verified; the generation-5 catch-up receipt is verified and the
+  reusable normal publisher is locally implemented pending protected-main
+  no-op proof
 - **Priority**: P1
 - **Effort**: S-M
 - **Depends on**: steps 1-4 and 6: Plan 098 active; step 5 (the alarm) has no
@@ -63,8 +63,8 @@ deduplicated GitHub issue; it can never publish.
 
 ### 1. The command and its receipt
 
-Add `publish serving-release` under
-`tools/pipeline-v2/src/commands/publish/serving-release/` with an injectable
+Add `publish serving-release` at
+`tools/pipeline-v2/src/commands/publish/serving-release.ts` with an injectable
 orchestrator and ordered stages:
 
 ```text
@@ -201,7 +201,7 @@ remotely; one drift marker maps to one issue.
 - [x] The scheduled alarm maintains exactly one deduplicated issue and has no
       publish capability; a real scheduled/manual Actions receipt remains part
       of final Plan 100 completion.
-- [ ] The shell script is a deprecation error and the runbook matches the
+- [x] The shell script is a deprecation error and the runbook matches the
       real command sequence.
 
 ## Verification

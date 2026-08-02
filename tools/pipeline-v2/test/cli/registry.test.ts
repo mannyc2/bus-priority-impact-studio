@@ -80,7 +80,7 @@ const expectedRegistry = {
   ],
   map: ["artifacts", "context", "release"],
   plan: ["source-refresh"],
-  publish: ["r2-artifacts", "recovery"],
+  publish: ["r2-artifacts", "recovery", "serving-release"],
   pull: ["gtfs-rt-r2-run"],
   route: [
     "brief-model",
@@ -122,7 +122,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(105);
+    expect(commands).toHaveLength(106);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

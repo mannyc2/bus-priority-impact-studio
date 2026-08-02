@@ -6,6 +6,7 @@ type Plan098OperatorPayload = { action?: unknown } & Record<string, unknown>;
 const retryableReadActions = new Set([
   "candidate-status",
   "protected-fingerprints",
+  "read-receipt",
   "status",
   "verify-plan097-preflight",
 ]);

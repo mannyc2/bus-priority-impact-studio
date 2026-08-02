@@ -349,6 +349,36 @@ async function recordReceipt(
   return { operationId, receiptKind, key, sha256: digest, bytes: bytes.byteLength };
 }
 
+async function readReceipt(
+  env: Plan098OperatorEnv & { DB: D1Database; ARTIFACTS: R2Bucket },
+  payload: Record<string, unknown>,
+) {
+  const operationId = stringField(payload, "operationId");
+  const receiptKind = stringField(payload, "receiptKind");
+  const row = await env.DB.prepare(
+    `SELECT physical_key AS key, sha256, byte_length AS bytes
+    FROM serving_operation_receipt
+    WHERE operation_id = ? AND receipt_kind = ?`,
+  )
+    .bind(operationId, receiptKind)
+    .first<{ key: string; sha256: string; bytes: number }>();
+  if (row === null) return null;
+  const object = await env.ARTIFACTS.get(row.key);
+  if (object === null) throw new Error("Recorded serving operation receipt object is absent.");
+  const bytes = new Uint8Array(await object.arrayBuffer());
+  if (bytes.byteLength !== row.bytes || (await sha256(bytes)) !== row.sha256) {
+    throw new Error("Recorded serving operation receipt bytes drifted.");
+  }
+  return {
+    operationId,
+    receiptKind,
+    key: row.key,
+    sha256: row.sha256,
+    bytes: row.bytes,
+    receipt: JSON.parse(new TextDecoder().decode(bytes)),
+  };
+}
+
 async function jsonAction(
   request: Request,
   env: Plan098OperatorEnv & { DB: D1Database; ARTIFACTS: R2Bucket },
@@ -509,6 +539,7 @@ async function jsonAction(
     const candidateId = stringField(payload, "candidateId");
     const candidate = await env.DB.prepare(
       `SELECT state, ready_at AS readyAt,
+        semantic_input_fingerprint AS semanticInputFingerprint,
         canonical_manifest_key AS manifestKey,
         canonical_manifest_sha256 AS manifestSha256
       FROM serving_candidate
@@ -518,6 +549,7 @@ async function jsonAction(
       .first<{
         state: string;
         readyAt: string | null;
+        semanticInputFingerprint: string;
         manifestKey: string;
         manifestSha256: string;
       }>();
@@ -538,14 +570,25 @@ async function jsonAction(
       .bind(candidateId)
       .all<{ releaseId: string; publishedAt: string; activatedAt: string }>();
     if (!releases.success) throw new Error("Candidate release query failed.");
+    const verified = await env.DB.prepare(
+      `SELECT logical_id AS logicalId
+      FROM serving_candidate_artifact
+      WHERE candidate_id = ? AND verified_at IS NOT NULL
+      ORDER BY logical_id`,
+    )
+      .bind(candidateId)
+      .all<{ logicalId: string }>();
+    if (!verified.success) throw new Error("Candidate verification query failed.");
     return {
       candidateId,
       candidate,
       artifacts: { total: artifacts?.total ?? 0, verified: artifacts?.verified ?? 0 },
+      verifiedLogicalIds: verified.results.map((row) => row.logicalId),
       releases: releases.results,
     };
   }
   if (action === "record-receipt") return recordReceipt(env, payload);
+  if (action === "read-receipt") return readReceipt(env, payload);
   throw new Error(`Unsupported Plan 098 action ${action}.`);
 }
 
