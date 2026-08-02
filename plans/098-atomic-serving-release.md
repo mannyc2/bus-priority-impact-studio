@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State**: IN PROGRESS — implementation and local A→B→A→B proof complete;
-  protected production activation pending
+- **State**: DONE — protected production A→B→A→B activation, rollback,
+  reactivation, public smoke, and durable remote receipt verification complete
 - **Priority**: P1
 - **Effort**: XL
 - **Depends on**: Plans 084-087 and 095; either Plan 097 production completion,
@@ -89,6 +89,33 @@ any present live table is row-fingerprinted, and either v2 current-signal table
 remains mandatory. This protects the production database's actual boundary
 without manufacturing never-applied auth/editorial tables or treating their
 absence as mutable serving state.
+
+## Production completion receipt (2026-08-02)
+
+Protected-main `ci-cd` run `30725835823` passed the complete reader deployment
+gate at merge commit `08c6706d36722ffc39491c9f6db875ee326b47ce`: repository
+verification, additive v2 migration verification, zero-traffic staging,
+exact-version proof, promotion, ordinary-traffic proof, post-deploy D1 audit,
+and exact-route production smoke. No deploy rollback was invoked.
+
+The separately authorized `Plan 098 production activation` run `30725967026`
+then independently rebuilt and verified Candidate A and Candidate B from the
+production projection, verified the pinned Plan 097 signed preflight receipt
+`f46204de5f909f81c834d92d087f73b296bad0fb5137ba3caeb41430da4ecce6`,
+and completed the production rollback/reactivation sequence. Candidate A's
+expected absence of the Candidate B-only Plan 106 logical artifact was
+recorded as positive no-leakage evidence; Candidate B served the exact Plan
+106 candidate and all protected fingerprints remained unchanged.
+
+The terminal pointer is generation 4 on Candidate B
+`a8a3747fc2889d8d32daab2b5705efc2991349732c5cf991f1a6b271d2d226d5`,
+with release `pub_20260801T232501631Z`, 3,191 artifacts, and registered manifest
+SHA-256 `59d4c030d6006adb51b1cf5c88151cc254cffdb27d1b160af06f8b775cd25428`.
+The downloaded `completion.json` SHA-256 is
+`ddc8f9dbb8e436d964bbe2f53eba45942bc75986e21f5b8c30f44d16313dc76b`;
+the append-only remote completion receipt is
+`serving/operations/plan098-complete-a8a3747fc2889d8d-bf23e62fd96d3cd2/completion.bf23e62fd96d3cd27e81e70d72b7189f56feac2f3c5d7b1c446165001fb62b95.json`.
+The temporary privileged operator was deleted by the successful workflow.
 
 ## Outcome
 
@@ -599,24 +626,24 @@ sentinels.
 
 ## Acceptance criteria
 
-- [ ] One canonical pointer selects Studio D1, exact identity, maps, and every
+- [x] One canonical pointer selects Studio D1, exact identity, maps, and every
       R2 artifact for a request.
-- [ ] Build/stage timestamps and content-derived candidate identity are distinct
+- [x] Build/stage timestamps and content-derived candidate identity are distinct
       from activation-time `releaseId`/`publishedAt`.
-- [ ] Every full-seed-owned D1 row is candidate-scoped; no live-write or current
+- [x] Every full-seed-owned D1 row is candidate-scoped; no live-write or current
       signal table is versioned, replaced, or rolled back.
-- [ ] Candidate B can be fully staged/retried while A remains byte-identical and
+- [x] Candidate B can be fully staged/retried while A remains byte-identical and
       public; activation is one atomic transaction whose only externally
       visible switch is the CAS pointer update.
-- [ ] Every physical R2 body is immutable/hash-addressed and every read uses the
+- [x] Every physical R2 body is immutable/hash-addressed and every read uses the
       manifest locator; no production request selects an unpublished candidate.
-- [ ] A pointer rollback restores all reviewed surfaces in one step without D1
+- [x] A pointer rollback restores all reviewed surfaces in one step without D1
       reseed, R2 overwrite, Time Travel, or user-write loss.
-- [ ] A new truthful v2 migration stream is applied through Wrangler migrations
+- [x] A new truthful v2 migration stream is applied through Wrangler migrations
       only; legacy ledger divergence is documented, not falsified.
-- [ ] The first production switch and rollback drill have durable receipts and
+- [x] The first production switch and rollback drill have durable receipts and
       cross-surface HTTP evidence.
-- [ ] Every production decode-to-absence path is registered as contract-allowed
+- [x] Every production decode-to-absence path is registered as contract-allowed
       optionality; corrupt or identity-mismatched required data cannot render as
       honest absence and emits redacted structured telemetry.
 
