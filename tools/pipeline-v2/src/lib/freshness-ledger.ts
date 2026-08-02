@@ -5,14 +5,14 @@ import { join } from "node:path";
 import { Schema } from "effect";
 
 export const FRESHNESS_GRAINS = ["month", "snapshot", "realtime"] as const;
-export const FRESHNESS_STATUSES = ["current", "recent", "stale", "unknown"] as const;
+export const FRESHNESS_STATUSES = ["current", "unknown", "unavailable"] as const;
 
 export type FreshnessGrain = (typeof FRESHNESS_GRAINS)[number];
-export type FreshnessStatus = (typeof FRESHNESS_STATUSES)[number];
+export type FreshnessStatus = (typeof FRESHNESS_STATUSES)[number] | `behind(${number})`;
 export type FreshnessPublishTarget = "d1" | "map" | "none";
 
 export type FreshnessUpstreamProbe =
-  | { readonly kind: "route_speed" }
+  | { readonly kind: "route_speed"; readonly sourceId: string }
   | {
       readonly kind: "socrata_max";
       readonly sourceId: string;
@@ -29,20 +29,24 @@ export type FreshnessIngestedProbe =
   | { readonly kind: "none" };
 
 export type FreshnessSourceDescriptor = {
+  /** Logical public dataset ID. Kept as sourceId for CLI/API compatibility. */
   readonly sourceId: string;
+  readonly sourceIds?: readonly string[] | undefined;
   readonly grain: FreshnessGrain;
   readonly servingCritical: boolean;
   readonly upstreamProbe: FreshnessUpstreamProbe;
   readonly ingestedProbe: FreshnessIngestedProbe;
   readonly publishTarget: FreshnessPublishTarget;
+  readonly unavailableReason?: string | undefined;
 };
 
 export const FRESHNESS_SOURCE_DESCRIPTORS = [
   {
-    sourceId: "bus_segment_speeds_2025",
+    sourceId: "route-speed",
+    sourceIds: ["bus_segment_speeds_2023_2024", "bus_segment_speeds_2025"],
     grain: "month",
     servingCritical: true,
-    upstreamProbe: { kind: "route_speed" },
+    upstreamProbe: { kind: "route_speed", sourceId: "bus_segment_speeds_2025" },
     ingestedProbe: {
       kind: "sqlite_max",
       table: "local_route_segment_speed",
@@ -51,7 +55,8 @@ export const FRESHNESS_SOURCE_DESCRIPTORS = [
     publishTarget: "d1",
   },
   {
-    sourceId: "bus_hourly_ridership_2025",
+    sourceId: "route-ridership",
+    sourceIds: ["bus_hourly_ridership_2020_2024", "bus_hourly_ridership_2025"],
     grain: "month",
     servingCritical: true,
     upstreamProbe: {
@@ -67,7 +72,8 @@ export const FRESHNESS_SOURCE_DESCRIPTORS = [
     publishTarget: "d1",
   },
   {
-    sourceId: "bus_wait_assessment",
+    sourceId: "route-reliability",
+    sourceIds: ["bus_wait_assessment"],
     grain: "month",
     servingCritical: true,
     upstreamProbe: {
@@ -83,7 +89,51 @@ export const FRESHNESS_SOURCE_DESCRIPTORS = [
     publishTarget: "d1",
   },
   {
-    sourceId: "ace_violations",
+    sourceId: "realtime-operations",
+    sourceIds: [
+      "bus_time_gtfsrt_trip_updates",
+      "bus_time_gtfsrt_vehicle_positions",
+      "bus_time_gtfsrt_alerts",
+    ],
+    grain: "realtime",
+    servingCritical: false,
+    upstreamProbe: { kind: "none" },
+    ingestedProbe: {
+      kind: "sqlite_max",
+      table: "local_gtfs_rt_feed_snapshot",
+      expression: "max(substr(fetched_at, 1, 10))",
+    },
+    publishTarget: "none",
+    unavailableReason: "Realtime captures do not define a continuous immutable publication window.",
+  },
+  {
+    sourceId: "route-schedule",
+    sourceIds: [
+      "bus_schedules_2023",
+      "bus_schedules_2024",
+      "bus_schedules_2025",
+      "bus_schedules_2026",
+    ],
+    grain: "snapshot",
+    servingCritical: true,
+    upstreamProbe: { kind: "none" },
+    ingestedProbe: { kind: "none" },
+    publishTarget: "d1",
+    unavailableReason: "Annual schedule snapshots have no continuous upstream-period clock.",
+  },
+  {
+    sourceId: "route-customer-journey",
+    sourceIds: ["bus_customer_journey_metrics"],
+    grain: "snapshot",
+    servingCritical: false,
+    upstreamProbe: { kind: "none" },
+    ingestedProbe: { kind: "none" },
+    publishTarget: "d1",
+    unavailableReason: "The reviewed customer-journey context is a release snapshot.",
+  },
+  {
+    sourceId: "interventions",
+    sourceIds: ["ace_routes", "ace_violations"],
     grain: "month",
     servingCritical: true,
     upstreamProbe: {
@@ -99,40 +149,34 @@ export const FRESHNESS_SOURCE_DESCRIPTORS = [
     publishTarget: "d1",
   },
   {
-    sourceId: "bus_time_gtfsrt_vehicle_positions",
-    grain: "realtime",
-    servingCritical: true,
-    upstreamProbe: { kind: "none" },
-    ingestedProbe: {
-      kind: "sqlite_max",
-      table: "local_gtfs_rt_feed_snapshot",
-      expression: "max(substr(fetched_at, 1, 10))",
-    },
-    publishTarget: "d1",
-  },
-  {
-    sourceId: "ace_routes",
+    sourceId: "route-identity",
+    sourceIds: ["current_bus_routes", "current_bus_stops"],
     grain: "snapshot",
     servingCritical: true,
     upstreamProbe: { kind: "none" },
     ingestedProbe: { kind: "none" },
     publishTarget: "d1",
+    unavailableReason: "Versioned snapshots have no continuous upstream-period clock.",
   },
   {
-    sourceId: "nyc_dot_bus_lanes_local_streets",
+    sourceId: "geometry-map",
+    sourceIds: ["nyc_borough_boundaries", "nyc_lion_street_centerline"],
     grain: "snapshot",
     servingCritical: true,
     upstreamProbe: { kind: "none" },
     ingestedProbe: { kind: "none" },
     publishTarget: "map",
+    unavailableReason: "Versioned geometry snapshots have no continuous upstream-period clock.",
   },
   {
-    sourceId: "mta_wiki_route_treatment_evidence",
+    sourceId: "route-equity",
+    sourceIds: ["census_acs5_profile_tracts"],
     grain: "snapshot",
     servingCritical: false,
     upstreamProbe: { kind: "none" },
     ingestedProbe: { kind: "none" },
     publishTarget: "d1",
+    unavailableReason: "ACS context is a release snapshot, not a monthly clock.",
   },
 ] as const satisfies readonly FreshnessSourceDescriptor[];
 
@@ -143,7 +187,8 @@ const NullableLagSchema = Schema.NullOr(
 );
 
 export const FreshnessLedgerRowSchema = Schema.Struct({
-  sourceId: Schema.String.check(Schema.isMinLength(1)),
+  datasetId: Schema.String.check(Schema.isMinLength(1)),
+  sourceIds: Schema.Array(Schema.String.check(Schema.isMinLength(1))),
   grain: Schema.Literals(FRESHNESS_GRAINS),
   servingCritical: Schema.Boolean,
   upstreamLatest: NullableFreshnessValueSchema,
@@ -151,12 +196,13 @@ export const FreshnessLedgerRowSchema = Schema.Struct({
   publishedCoverageEnd: NullableFreshnessValueSchema,
   ingestLagMonths: NullableLagSchema,
   publishLagMonths: NullableLagSchema,
-  status: Schema.Literals(FRESHNESS_STATUSES),
+  status: Schema.String.check(Schema.isPattern(/^(?:current|unknown|unavailable|behind\(\d+\))$/u)),
+  gaps: Schema.Array(Schema.Struct({ start: FreshnessValueSchema, end: FreshnessValueSchema })),
 });
 
 export const FreshnessLedgerSchema = Schema.Struct({
   artifactKind: Schema.Literal("freshness_ledger"),
-  schemaVersion: Schema.Literal(1),
+  schemaVersion: Schema.Literal(2),
   checkedAt: Schema.String.check(Schema.isMinLength(1)),
   publishedAt: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
   rows: Schema.Array(FreshnessLedgerRowSchema),
@@ -207,32 +253,31 @@ export function freshnessStatus(input: {
   upstreamLatest: string | null;
   ingestedLatest: string | null;
   publishedCoverageEnd: string | null;
+  unavailable?: boolean | undefined;
 }): FreshnessStatus {
+  if (input.unavailable === true) return "unavailable";
   const ingestLag = freshnessLagMonths(input.upstreamLatest, input.ingestedLatest);
   const publishLag = freshnessLagMonths(input.upstreamLatest, input.publishedCoverageEnd);
   if (ingestLag === null || publishLag === null) return "unknown";
   const lag = Math.max(ingestLag, publishLag);
-  if (lag === 0) return "current";
-  return lag <= 3 ? "recent" : "stale";
+  return lag === 0 ? "current" : `behind(${lag})`;
 }
 
-const StatusRank: Readonly<Record<FreshnessStatus, number>> = {
-  stale: 3,
-  unknown: 2,
-  recent: 1,
-  current: 0,
-};
-
-function rowLag(row: FreshnessLedgerRow): number {
-  return Math.max(row.ingestLagMonths ?? -1, row.publishLagMonths ?? -1);
+function attentionRank(row: FreshnessLedgerRow): number {
+  if (row.status.startsWith("behind(")) {
+    return Math.max(row.ingestLagMonths ?? 0, row.publishLagMonths ?? 0);
+  }
+  // Keep unknown conspicuous: above a one/two-period delay, below a clearly
+  // stale four-plus-period delay. Unavailable has an evidenced boundary.
+  if (row.status === "unknown") return 3;
+  if (row.status === "unavailable") return -1;
+  return 0;
 }
 
 export function sortFreshnessRows(rows: readonly FreshnessLedgerRow[]): FreshnessLedgerRow[] {
   return [...rows].sort(
     (left, right) =>
-      StatusRank[right.status] - StatusRank[left.status] ||
-      rowLag(right) - rowLag(left) ||
-      left.sourceId.localeCompare(right.sourceId),
+      attentionRank(right) - attentionRank(left) || left.datasetId.localeCompare(right.datasetId),
   );
 }
 
@@ -243,16 +288,22 @@ export function buildFreshnessLedger(input: {
   readonly upstreamLatest: ReadonlyMap<string, string | null>;
   readonly ingestedLatest: ReadonlyMap<string, string | null>;
   readonly publishedCoverageEnd: ReadonlyMap<FreshnessPublishTarget, string | null>;
+  readonly publishedDatasetCoverage?:
+    | ReadonlyMap<string, { end: string | null; gaps: readonly { start: string; end: string }[] }>
+    | undefined;
 }): FreshnessLedger {
   const rows = input.descriptors.map((descriptor): FreshnessLedgerRow => {
     const upstreamLatest = input.upstreamLatest.get(descriptor.sourceId) ?? null;
     const ingestedLatest = input.ingestedLatest.get(descriptor.sourceId) ?? null;
+    const datasetCoverage = input.publishedDatasetCoverage?.get(descriptor.sourceId);
     const publishedCoverageEnd =
-      descriptor.publishTarget === "none"
+      datasetCoverage?.end ??
+      (descriptor.publishTarget === "none"
         ? null
-        : (input.publishedCoverageEnd.get(descriptor.publishTarget) ?? null);
+        : (input.publishedCoverageEnd.get(descriptor.publishTarget) ?? null));
     return {
-      sourceId: descriptor.sourceId,
+      datasetId: descriptor.sourceId,
+      sourceIds: [...(descriptor.sourceIds ?? [descriptor.sourceId])].toSorted(),
       grain: descriptor.grain,
       servingCritical: descriptor.servingCritical,
       upstreamLatest,
@@ -260,13 +311,19 @@ export function buildFreshnessLedger(input: {
       publishedCoverageEnd,
       ingestLagMonths: freshnessLagMonths(upstreamLatest, ingestedLatest),
       publishLagMonths: freshnessLagMonths(upstreamLatest, publishedCoverageEnd),
-      status: freshnessStatus({ upstreamLatest, ingestedLatest, publishedCoverageEnd }),
+      status: freshnessStatus({
+        upstreamLatest,
+        ingestedLatest,
+        publishedCoverageEnd,
+        unavailable: descriptor.unavailableReason !== undefined,
+      }),
+      gaps: [...(datasetCoverage?.gaps ?? [])],
     };
   });
 
   return {
     artifactKind: "freshness_ledger",
-    schemaVersion: 1,
+    schemaVersion: 2,
     checkedAt: input.checkedAt,
     publishedAt: input.publishedAt,
     rows: sortFreshnessRows(rows),

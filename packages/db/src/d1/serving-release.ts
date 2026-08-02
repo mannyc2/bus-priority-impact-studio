@@ -50,6 +50,8 @@ type DatasetRow = {
   coverageStart: string | null;
   coverageEnd: string;
   sourceSnapshotIdsJson: string;
+  sourceIdsJson: string;
+  missingIntervalsJson: string;
 };
 type ArtifactRow = {
   logicalId: string;
@@ -95,6 +97,35 @@ function parseStringArray(value: string, label: string): string[] {
     throw new ServingReleaseResolutionError("catalog_corrupt", `${label} is not a string array.`);
   }
   return parsed;
+}
+
+function parseCoverageIntervals(
+  value: string,
+  label: string,
+): Array<{ start: string; end: string }> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new ServingReleaseResolutionError("catalog_corrupt", `${label} is not valid JSON.`);
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.some(
+      (entry) =>
+        typeof entry !== "object" ||
+        entry === null ||
+        Array.isArray(entry) ||
+        typeof (entry as { start?: unknown }).start !== "string" ||
+        typeof (entry as { end?: unknown }).end !== "string",
+    )
+  ) {
+    throw new ServingReleaseResolutionError(
+      "catalog_corrupt",
+      `${label} is not an interval array.`,
+    );
+  }
+  return parsed as Array<{ start: string; end: string }>;
 }
 
 export async function resolveActiveServingRelease(
@@ -181,7 +212,9 @@ export async function resolveActiveServingRelease(
             grain,
             coverage_start AS coverageStart,
             coverage_end AS coverageEnd,
-            source_snapshot_ids_json AS sourceSnapshotIdsJson
+            source_snapshot_ids_json AS sourceSnapshotIdsJson,
+            source_ids_json AS sourceIdsJson,
+            missing_intervals_json AS missingIntervalsJson
           FROM serving_candidate_dataset
           WHERE candidate_id = ?
           ORDER BY dataset_id`,
@@ -234,7 +267,18 @@ export async function resolveActiveServingRelease(
       datasets: datasets.map((dataset) => ({
         datasetId: dataset.datasetId,
         grain: dataset.grain,
-        coverage: { start: dataset.coverageStart, end: dataset.coverageEnd },
+        coverage: {
+          start: dataset.coverageStart,
+          end: dataset.coverageEnd,
+          missingIntervals: parseCoverageIntervals(
+            dataset.missingIntervalsJson,
+            `Dataset ${dataset.datasetId} missing intervals`,
+          ),
+        },
+        sourceIds: parseStringArray(
+          dataset.sourceIdsJson,
+          `Dataset ${dataset.datasetId} source IDs`,
+        ),
         sourceSnapshotIds: parseStringArray(
           dataset.sourceSnapshotIdsJson,
           `Dataset ${dataset.datasetId} snapshot IDs`,

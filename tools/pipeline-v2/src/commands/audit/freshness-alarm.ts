@@ -81,6 +81,7 @@ async function fetchPublicRelease(
     releaseId: status.releaseId,
     publishedAt: status.publishedAt,
     coverage: status.coverage,
+    ...(status.datasets === undefined ? {} : { datasets: status.datasets }),
   };
 }
 

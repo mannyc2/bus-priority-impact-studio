@@ -45,17 +45,24 @@ describe("audit plan097-readiness", () => {
       freshnessLedgerPath,
       JSON.stringify({
         artifactKind: "freshness_ledger",
-        schemaVersion: 1,
+        schemaVersion: 2,
         checkedAt: "2026-07-23T00:00:00.000Z",
         publishedAt: null,
         rows: [
-          ["bus_segment_speeds_2025", "month", "2026-05", "2026-05"],
-          ["bus_hourly_ridership_2025", "month", "2026-07", "2026-06"],
-          ["bus_wait_assessment", "month", "2026-05", "2026-05"],
-          ["ace_violations", "month", "2026-06", "2026-06"],
-          ["bus_time_gtfsrt_vehicle_positions", "realtime", null, "2026-07-22"],
-        ].map(([sourceId, grain, upstreamLatest, ingestedLatest]) => ({
-          sourceId,
+          ["route-speed", ["bus_segment_speeds_2025"], "month", "2026-05", "2026-05"],
+          ["route-ridership", ["bus_hourly_ridership_2025"], "month", "2026-07", "2026-06"],
+          ["route-reliability", ["bus_wait_assessment"], "month", "2026-05", "2026-05"],
+          [
+            "realtime-operations",
+            ["bus_time_gtfsrt_vehicle_positions"],
+            "realtime",
+            null,
+            "2026-07-22",
+          ],
+          ["interventions", ["ace_violations"], "month", "2026-06", "2026-06"],
+        ].map(([datasetId, sourceIds, grain, upstreamLatest, ingestedLatest]) => ({
+          datasetId,
+          sourceIds,
           grain,
           servingCritical: true,
           upstreamLatest,
@@ -64,6 +71,7 @@ describe("audit plan097-readiness", () => {
           ingestLagMonths: null,
           publishLagMonths: null,
           status: "unknown",
+          gaps: [],
         })),
       }),
     );

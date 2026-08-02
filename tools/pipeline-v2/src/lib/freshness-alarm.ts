@@ -13,6 +13,17 @@ export const FRESHNESS_ALARM_CATCH_UP_COMMAND =
 const FreshnessValueSchema = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}(?:-\d{2})?$/u));
 const NullableFreshnessValueSchema = Schema.NullOr(FreshnessValueSchema);
 const NonNegativeIntSchema = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const ReleaseDatasetCoverageSchema = Schema.Struct({
+  datasetId: Schema.NonEmptyString,
+  grain: Schema.Literals(["month", "day", "snapshot", "realtime"]),
+  coverage: Schema.Struct({
+    start: Schema.NullOr(Schema.NonEmptyString),
+    end: Schema.NonEmptyString,
+    missingIntervals: Schema.Array(
+      Schema.Struct({ start: Schema.NonEmptyString, end: Schema.NonEmptyString }),
+    ),
+  }),
+});
 
 export const FreshnessAlarmRowSchema = Schema.Struct({
   datasetId: Schema.NonEmptyString,
@@ -22,7 +33,11 @@ export const FreshnessAlarmRowSchema = Schema.Struct({
   upstreamLatest: NullableFreshnessValueSchema,
   publishedCoverageEnd: NullableFreshnessValueSchema,
   publishLagPeriods: Schema.NullOr(NonNegativeIntSchema),
-  coverageEvidence: Schema.Literals(["release_compatibility_fallback", "not_assessed"]),
+  coverageEvidence: Schema.Literals([
+    "candidate_dataset",
+    "release_compatibility_fallback",
+    "not_assessed",
+  ]),
   attentionReasons: Schema.Array(
     Schema.Literals(["published_behind_upstream", "upstream_probe_unavailable"]),
   ),
@@ -43,6 +58,7 @@ export const FreshnessAlarmReportSchema = Schema.Struct({
       start: Schema.NullOr(FreshnessValueSchema),
       end: FreshnessValueSchema,
     }),
+    datasets: Schema.optionalKey(Schema.Array(ReleaseDatasetCoverageSchema)),
   }),
   rows: Schema.Array(FreshnessAlarmRowSchema),
   issueMarker: Schema.Literal(FRESHNESS_ALARM_MARKER),
@@ -58,6 +74,7 @@ function buildRow(input: {
   descriptor: FreshnessSourceDescriptor;
   upstreamLatest: string | null;
   publishedCoverageEnd: string;
+  coverageEvidence: "candidate_dataset" | "release_compatibility_fallback";
 }): FreshnessAlarmRow {
   const { descriptor } = input;
   if (descriptor.upstreamProbe.kind === "none") {
@@ -93,7 +110,7 @@ function buildRow(input: {
     upstreamLatest,
     publishedCoverageEnd,
     publishLagPeriods,
-    coverageEvidence: "release_compatibility_fallback",
+    coverageEvidence: input.coverageEvidence,
     attentionReasons,
   };
 }
@@ -105,13 +122,18 @@ export function buildFreshnessAlarmReport(input: {
   upstreamLatest: ReadonlyMap<string, string | null>;
 }): FreshnessAlarmReport {
   const rows = input.descriptors
-    .map((descriptor) =>
-      buildRow({
+    .map((descriptor) => {
+      const candidateDataset = input.release.datasets?.find(
+        (dataset) => dataset.datasetId === descriptor.sourceId,
+      );
+      return buildRow({
         descriptor,
         upstreamLatest: input.upstreamLatest.get(descriptor.sourceId) ?? null,
-        publishedCoverageEnd: input.release.coverage.end,
-      }),
-    )
+        publishedCoverageEnd: candidateDataset?.coverage.end ?? input.release.coverage.end,
+        coverageEvidence:
+          candidateDataset === undefined ? "release_compatibility_fallback" : "candidate_dataset",
+      });
+    })
     .toSorted(
       (left, right) =>
         Number(right.attentionReasons.length > 0) - Number(left.attentionReasons.length > 0) ||
@@ -158,8 +180,8 @@ This is an advisory scheduled report. It never publishes data or changes the ser
 - Published: ${report.release.publishedAt}
 - Decision: **${report.status}**
 
-The current API exposes the reviewed-serving compatibility window, so assessed rows explicitly
-label that window as a fallback until Plan 099 publishes dataset-specific coverage.
+Coverage comes from the active candidate's logical-dataset catalog when present. Older candidates
+remain explicitly labelled as compatibility-window fallbacks.
 
 | Dataset | Upstream latest | Published coverage | Lag periods | Notes |
 |---|---:|---:|---:|---|

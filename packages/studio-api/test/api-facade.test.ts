@@ -3672,6 +3672,11 @@ describe("Studio API facade", () => {
       pointCount: 1,
       speedMonthCount: 0,
       ridershipMonthCount: 0,
+      datasets: {
+        speed: { startMonth: null, endMonth: null, monthCount: 0, missingIntervals: [] },
+        ridership: { startMonth: null, endMonth: null, monthCount: 0, missingIntervals: [] },
+        waitAssessment: { startMonth: null, endMonth: null, monthCount: 0, missingIntervals: [] },
+      },
     });
   });
 
@@ -3860,7 +3865,17 @@ describe("Studio API facade", () => {
 
     const history = decodeStrict(StudioRouteHistoryResponseSchema)(await historyResponse.json());
     expect(history.route.slug).toBe(historyRoute.slug);
-    expect(history.coverage).toEqual(historyRoute.historyCoverage);
+    expect(history.coverage).toEqual(expect.objectContaining(historyRoute.historyCoverage));
+    expect(history.coverage.datasets).toEqual({
+      speed: { startMonth: "2023-04", endMonth: "2023-04", monthCount: 1, missingIntervals: [] },
+      ridership: {
+        startMonth: "2023-04",
+        endMonth: "2023-04",
+        monthCount: 1,
+        missingIntervals: [],
+      },
+      waitAssessment: { startMonth: null, endMonth: null, monthCount: 0, missingIntervals: [] },
+    });
     expect(history.coverage.pointCount).toBe(history.points.length);
   });
 
@@ -4148,6 +4163,16 @@ describe("Studio API facade", () => {
           has_ridership_trend: true,
         },
       ],
+      route_wait_assessment: [
+        {
+          route_id: "B46-SBS",
+          month: "2015-01",
+          assessment_row_count: 12,
+          trips_passing_wait: 960,
+          scheduled_trips: 1200,
+          wait_assessment: 0.8,
+        },
+      ],
       route_observed_reliability_summary: [],
       route_readiness: [
         {
@@ -4177,19 +4202,44 @@ describe("Studio API facade", () => {
     const history = decodeStrict(StudioRouteHistoryResponseSchema)(await response.json());
     expect(history.route.slug).toBe("b46-sbs");
     expect(history.coverage).toEqual({
-      startMonth: "2023-04",
+      startMonth: "2015-01",
       endMonth: "2026-05",
-      pointCount: 2,
+      pointCount: 3,
       speedMonthCount: 1,
       ridershipMonthCount: 2,
+      datasets: {
+        speed: { startMonth: "2023-04", endMonth: "2023-04", monthCount: 1, missingIntervals: [] },
+        ridership: {
+          startMonth: "2023-04",
+          endMonth: "2026-05",
+          monthCount: 2,
+          missingIntervals: [{ start: "2023-05", end: "2026-04" }],
+        },
+        waitAssessment: {
+          startMonth: "2015-01",
+          endMonth: "2015-01",
+          monthCount: 1,
+          missingIntervals: [],
+        },
+      },
     });
-    expect(history.points[1]).toEqual(
+    expect(history.points.find((point) => point.month === "2026-05")).toEqual(
       expect.objectContaining({
         month: "2026-05",
         averageSpeedMph: null,
         ridership: 411222,
         hasSpeedTrend: false,
         hasRidershipTrend: true,
+      }),
+    );
+    expect(history.points.find((point) => point.month === "2015-01")).toEqual(
+      expect.objectContaining({
+        averageSpeedMph: null,
+        ridership: null,
+        waitAssessment: 0.8,
+        waitTripsPassing: 960,
+        waitScheduledTrips: 1200,
+        hasWaitAssessment: true,
       }),
     );
   });

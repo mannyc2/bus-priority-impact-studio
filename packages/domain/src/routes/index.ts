@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { IsoMonthSchema, RouteIdSchema, SourceCitationSchema } from "../primitives/index.js";
 import { registerProjectSchema } from "../schema-registry.js";
 import { CoverageWindowSchema } from "../studio/shared.js";
@@ -104,6 +104,24 @@ export const ReleaseStatusResponseSchema = registerProjectSchema(
     releaseId: Schema.String,
     publishedAt: Schema.String,
     coverage: CoverageWindowSchema,
+    datasets: Schema.optionalKey(
+      Schema.Array(
+        Schema.Struct({
+          datasetId: Schema.String.check(Schema.isMinLength(1)),
+          grain: Schema.Literals(["month", "day", "snapshot", "realtime"]),
+          coverage: Schema.Struct({
+            start: Schema.NullOr(Schema.String.check(Schema.isMinLength(1))),
+            end: Schema.String.check(Schema.isMinLength(1)),
+            missingIntervals: Schema.Array(
+              Schema.Struct({
+                start: Schema.String.check(Schema.isMinLength(1)),
+                end: Schema.String.check(Schema.isMinLength(1)),
+              }),
+            ),
+          }),
+        }),
+      ),
+    ).pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed([]))),
     currentSignalMonth: Schema.NullOr(IsoMonthSchema),
     release: Schema.Struct({
       releaseId: Schema.String,

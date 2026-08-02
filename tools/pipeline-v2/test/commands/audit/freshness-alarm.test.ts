@@ -12,6 +12,7 @@ import {
   renderFreshnessAlarmIssue,
 } from "../../../src/lib/freshness-alarm.ts";
 import type { FreshnessSourceDescriptor } from "../../../src/lib/freshness-ledger.ts";
+import { fromRepoRoot } from "../../../src/lib/paths.ts";
 
 const roots: string[] = [];
 
@@ -41,6 +42,7 @@ const release = {
   releaseId: "pub_20260802T160400000Z",
   publishedAt: "2026-08-02T16:04:00.000Z",
   coverage: { start: "2023-04", end: "2026-06" },
+  datasets: [],
 } as const;
 
 describe("scheduled freshness alarm", () => {
@@ -99,6 +101,31 @@ describe("scheduled freshness alarm", () => {
     expect(body.match(new RegExp(FRESHNESS_ALARM_MARKER, "gu"))).toHaveLength(1);
     expect(body).toContain("audit freshness --db data/local/pipeline.sqlite");
     expect(body).toContain("never publishes data or changes the serving pointer");
+  });
+
+  test("uses logical-dataset coverage from the active candidate when available", () => {
+    const report = buildFreshnessAlarmReport({
+      checkedAt: "2026-08-02T17:00:00.000Z",
+      release: {
+        ...release,
+        datasets: [
+          {
+            datasetId: "route-ridership",
+            grain: "month",
+            coverage: { start: "2020-01", end: "2026-07", missingIntervals: [] },
+          },
+        ],
+      },
+      descriptors: [descriptor("route-ridership")],
+      upstreamLatest: new Map([["route-ridership", "2026-07"]]),
+    });
+
+    expect(report.rows[0]).toMatchObject({
+      publishedCoverageEnd: "2026-07",
+      publishLagPeriods: 0,
+      coverageEvidence: "candidate_dataset",
+      attentionReasons: [],
+    });
   });
 
   test("writes canonical report bytes and an issue body without needing a local corpus", async () => {
@@ -160,9 +187,7 @@ describe("scheduled freshness alarm", () => {
       probeTimeoutMs: 10,
       upstreamLatestResolver: (source) => {
         started.push(source.sourceId);
-        return source.sourceId === "slow_source"
-          ? new Promise<string>(() => undefined)
-          : "2026-06";
+        return source.sourceId === "slow_source" ? new Promise<string>(() => undefined) : "2026-06";
       },
       releaseResolver: async () => release,
     });
@@ -188,7 +213,7 @@ describe("scheduled freshness alarm", () => {
       issueBodyPath: join(root, "issue.md"),
       checkedAt: "2026-08-02T17:00:00.000Z",
       descriptors: [descriptor("bus_hourly_ridership_2025")],
-      manifestText: await Bun.file("knowledge/raw/source_manifest.yaml").text(),
+      manifestText: await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text(),
       probeTimeoutMs: 10,
       fetcher: async (_resource, init) =>
         new Promise<Response>((_resolve, reject) => {

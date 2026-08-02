@@ -85,6 +85,8 @@ export {
   serializeRouteScorecard,
   serializeRouteScorecardCitations,
 } from "./queries/route-scorecard.js";
+export type { RouteWaitAssessment } from "./queries/route-wait-assessments.js";
+export { listRouteWaitAssessments } from "./queries/route-wait-assessments.js";
 export type {
   PublicSnapshotSourceMonthCoverage,
   RouteSpeedHistoryCoverage,

@@ -147,7 +147,21 @@ function depthLabel(depth: RouteSurfaceCapability["depth"]): string {
   if (depth === null) return "unknown";
   const months =
     depth.monthsCovered === 1 ? "1 month" : `${depth.monthsCovered.toLocaleString()} months`;
-  return depth.grains.length > 0 ? `${months} / ${depth.grains.join(", ")}` : months;
+  const range =
+    depth.coverageStart != null && depth.coverageEnd != null
+      ? `${depth.coverageStart}–${depth.coverageEnd}`
+      : null;
+  const gaps =
+    (depth.missingIntervals?.length ?? 0) === 0
+      ? null
+      : `${depth.missingIntervals?.length ?? 0} gap${depth.missingIntervals?.length === 1 ? "" : "s"}: ${(
+          depth.missingIntervals ?? []
+        )
+          .map((gap) => (gap.start === gap.end ? gap.start : `${gap.start}–${gap.end}`))
+          .join(", ")}`;
+  return [months, range, depth.grains.length > 0 ? depth.grains.join(", ") : null, gaps]
+    .filter((value): value is string => value !== null)
+    .join(" / ");
 }
 
 function labelFromKey(key: string): string {

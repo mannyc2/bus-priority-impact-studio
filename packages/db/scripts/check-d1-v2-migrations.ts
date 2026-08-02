@@ -104,9 +104,18 @@ if (failedActualSha256 !== failedMigrationSha256) {
     `Failed D1 v2 migration archive drifted: expected ${failedMigrationSha256}, received ${failedActualSha256}.`,
   );
 }
+const approvedSplitFiles = migrationFiles.filter((filename) => {
+  const sequence = Number(filename.slice(0, 4));
+  return Number.isInteger(sequence) && sequence >= 1 && sequence <= 14;
+});
+if (approvedSplitFiles.length !== 14) {
+  throw new Error(
+    `Expected the 14 approved split migrations, received ${approvedSplitFiles.length}.`,
+  );
+}
 const activeStatements = (
   await Promise.all(
-    migrationFiles.map(async (filename) =>
+    approvedSplitFiles.map(async (filename) =>
       normalizedStatements(await Bun.file(new URL(filename, migrationsDirectory)).text()),
     ),
   )
@@ -123,5 +132,5 @@ if (JSON.stringify(activeStatements) !== JSON.stringify(remoteSafeStatements)) {
 }
 
 console.log(
-  `Verified ${migrationFiles.length} trigger-safe D1 v2 migration checksum(s), failed-query archives, and the approved remote-safe statement stream against ${failedMigrationSha256}.`,
+  `Verified ${migrationFiles.length} D1 v2 migration checksum(s), the 14-file trigger-safe split, failed-query archives, and the approved remote-safe statement stream against ${failedMigrationSha256}.`,
 );

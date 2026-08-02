@@ -19,11 +19,12 @@ const sourceRows = [
 function ledger(): FreshnessLedger {
   return {
     artifactKind: "freshness_ledger",
-    schemaVersion: 1,
+    schemaVersion: 2,
     checkedAt,
     publishedAt: null,
     rows: sourceRows.map(([sourceId, upstreamLatest, ingestedLatest]) => ({
-      sourceId,
+      datasetId: sourceId,
+      sourceIds: [sourceId],
       grain: sourceId === "bus_time_gtfsrt_vehicle_positions" ? "realtime" : "month",
       servingCritical: true,
       upstreamLatest,
@@ -32,6 +33,7 @@ function ledger(): FreshnessLedger {
       ingestLagMonths: null,
       publishLagMonths: null,
       status: "unknown",
+      gaps: [],
     })),
   };
 }

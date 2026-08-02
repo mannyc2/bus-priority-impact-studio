@@ -56,7 +56,9 @@ export function buildPlan097FreshnessMatrix(input: {
   routeSpeedAvailability: Plan097RouteSpeedAvailability;
   evidence: readonly Plan097FreshnessEvidence[];
 }): Plan097FreshnessMatrix {
-  const ledgerBySource = new Map(input.ledger.rows.map((row) => [row.sourceId, row]));
+  const ledgerBySource = new Map(
+    input.ledger.rows.flatMap((row) => row.sourceIds.map((sourceId) => [sourceId, row] as const)),
+  );
   const evidenceBySource = new Map(input.evidence.map((row) => [row.sourceId, row]));
   const datasets: Plan097FreshnessMatrix["datasets"][number][] = [];
 
