@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State**: IN PROGRESS — steps 1-2 proved by the generation-5 production
-  catch-up; steps 3-5 are locally verified and await the protected-main deploy
+- **State**: DONE — steps 1-2 proved by the generation-5 production catch-up;
+  steps 3-5 deployed and receipt-verified through protected main
 - **Priority**: P1 for steps 1-2 (land with or before Plan 098's stage B so
   the first pointer-published candidate is byte-deterministic); P2 for the
   rest
@@ -179,7 +179,7 @@ bun run check:architecture
 Run the determinism test twice from a pinned fixture candidate and attach
 both receipts.
 
-## Implementation record (2026-08-02)
+## Completion record (2026-08-02)
 
 Steps 1-2 were production-proved by generation-5 catch-up run `30762362255`:
 4,247 canonical artifacts were verified through the candidate manifest and
@@ -202,8 +202,23 @@ Verification passed analytics 51/51, domain 146/146, pipeline-v2 542/542,
 Studio API 96/96, Worker 35/35, architecture/doctrine and knowledge checks,
 and scoped typechecks for pipeline-v2, Studio API, and web. The first Worker
 invocation was blocked by the sandbox's localhost bind policy; the approved
-outside-sandbox rerun passed. Plan 101 remains in progress until this sweep is
-deployed through protected main and the real deployment receipts are verified.
+outside-sandbox rerun passed. The protected-main deployment and receipt
+verification below complete the sweep.
+
+PR #161 merged the exact reviewed head as main commit
+`9b1daac04d9b3ed0da639730b43178dc65b4aaac`. Protected-main run
+`30770846649` then passed repository verification, applied the serving
+migration as a no-op, audited the active candidate-scoped D1 projection,
+staged Worker version `bb4c0d92-7991-4384-a694-a068d497bf3b` at zero traffic,
+proved that exact version, promoted it, and passed ordinary-traffic and public
+production smokes. Rollback was not invoked and the temporary operator was
+removed. Independently downloaded deploy, staged, and production-smoke receipt
+bytes have SHA-256 values
+`dcb7871239754e51e0d026f9b2383fdcdfb039bf24c365d2d62d336841964b3f`,
+`c9cab19f345ff9452790da66e537b526e8af146a0002bbbb91072d8dc4493179`,
+and `2cab021ae9e29b2a01f95b5714d58a45917431a5574589d656a6543e8c136ce9`.
+The final public read still reports generation-6 release
+`pub_20260802T215956764Z` with the honest per-dataset coverage and speed gap.
 
 ## STOP conditions
 
