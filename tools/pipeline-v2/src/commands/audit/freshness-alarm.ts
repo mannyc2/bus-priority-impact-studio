@@ -43,18 +43,19 @@ export type RunFreshnessAlarmInputs = {
 
 async function resolveAdvisoryProbe(input: {
   readonly descriptor: FreshnessSourceDescriptor;
-  readonly resolve: () => Promise<string | null> | string | null;
+  readonly resolve: (signal: AbortSignal) => Promise<string | null> | string | null;
   readonly timeoutMs: number;
 }): Promise<readonly [string, string | null]> {
+  const controller = new AbortController();
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
     const latest = await Promise.race([
-      Promise.resolve().then(input.resolve),
+      Promise.resolve().then(() => input.resolve(controller.signal)),
       new Promise<never>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error(`Freshness probe timed out for ${input.descriptor.sourceId}.`)),
-          input.timeoutMs,
-        );
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Freshness probe timed out for ${input.descriptor.sourceId}.`));
+        }, input.timeoutMs);
       }),
     ]);
     return [input.descriptor.sourceId, latest] as const;
@@ -104,18 +105,27 @@ export async function runFreshnessAlarm(
         resolveAdvisoryProbe({
           descriptor,
           timeoutMs: probeTimeoutMs,
-          resolve: () => {
+          resolve: (signal) => {
             if (input.upstreamLatestResolver !== undefined) {
               return input.upstreamLatestResolver(descriptor);
             }
             if (manifest === undefined) {
               throw new Error("Freshness source manifest is unavailable.");
             }
+            const fetcher = input.fetcher ?? fetch;
+            const abortableFetcher: SocrataFetch = (resource, init) =>
+              fetcher(resource, {
+                ...init,
+                signal:
+                  init?.signal === undefined || init.signal === null
+                    ? signal
+                    : AbortSignal.any([signal, init.signal]),
+              });
             return probeFreshnessUpstreamLatest({
               descriptor,
               manifest,
               artifactRoot,
-              fetcher: input.fetcher,
+              fetcher: abortableFetcher,
             });
           },
         }),

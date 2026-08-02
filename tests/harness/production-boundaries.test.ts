@@ -342,6 +342,9 @@ describe("production boundary harness", () => {
     expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
     expect(workflow).toContain("JOIN serving_release AS release ON release.release_id = active.release_id");
     expect(workflow).toContain("dataset.dataset_id = 'reviewed-serving'");
+    expect(workflow).toContain(
+      "identity.projection_sha256 = candidate.exact_identity_projection_sha256",
+    );
     expect(workflow).not.toContain(
       "SELECT batch.generated_at AS 'publishedAt', (SELECT MIN(month) FROM route_month_trend",
     );

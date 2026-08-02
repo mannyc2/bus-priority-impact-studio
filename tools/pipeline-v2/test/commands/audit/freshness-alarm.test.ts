@@ -177,4 +177,34 @@ describe("scheduled freshness alarm", () => {
       attentionReasons: [],
     });
   });
+
+  test("actively aborts an in-flight provider request at the advisory timeout", async () => {
+    const root = await mkdtemp(join(tmpdir(), "bp-freshness-alarm-abort-"));
+    roots.push(root);
+    let aborted = false;
+    const report = await runFreshnessAlarm({
+      artifactRoot: join(root, "artifacts"),
+      outputPath: join(root, "report.json"),
+      issueBodyPath: join(root, "issue.md"),
+      checkedAt: "2026-08-02T17:00:00.000Z",
+      descriptors: [descriptor("bus_hourly_ridership_2025")],
+      manifestText: await Bun.file("knowledge/raw/source_manifest.yaml").text(),
+      probeTimeoutMs: 10,
+      fetcher: async (_resource, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              reject(new DOMException("Aborted", "AbortError"));
+            },
+            { once: true },
+          );
+        }),
+      releaseResolver: async () => release,
+    });
+
+    expect(aborted).toBe(true);
+    expect(report.rows[0]?.attentionReasons).toEqual(["upstream_probe_unavailable"]);
+  });
 });
