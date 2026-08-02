@@ -87,7 +87,10 @@ export function pointedReleaseIdentity(env: StudioApiEnv): ReleaseIdentity | nul
     return decodeStrict(ReleaseIdentitySchema)({
       releaseId: context.release.releaseId,
       publishedAt: context.release.publishedAt,
-      coverage: reviewedServing.coverage,
+      coverage: {
+        start: reviewedServing.coverage.start,
+        end: reviewedServing.coverage.end,
+      },
     });
   }
   const monthDatasets = context.candidate.datasets.filter(

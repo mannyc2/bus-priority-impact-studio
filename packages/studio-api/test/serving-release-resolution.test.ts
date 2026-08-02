@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { StudioApiEnv } from "../src/env.js";
 import { handlePublicApiRoutes } from "../src/public-api.js";
+import { pointedReleaseIdentity } from "../src/serving-request-context.js";
 
 const releaseA = "pub_20260801T200000000Z";
 const candidateA = "a".repeat(64);
@@ -76,7 +77,15 @@ function pointedEnv(): StudioApiEnv {
         semanticInputFingerprint: "c".repeat(64),
         sourceCommit: "d".repeat(40),
         builderVersions: [],
-        datasets: [],
+        datasets: [
+          {
+            datasetId: "reviewed-serving",
+            grain: "month",
+            coverage: { start: "2023-04", end: "2026-06", missingIntervals: [] },
+            sourceIds: [],
+            sourceSnapshotIds: [releaseA],
+          },
+        ],
         artifacts: [
           {
             logicalId,
@@ -96,6 +105,14 @@ function pointedEnv(): StudioApiEnv {
 }
 
 describe("Plan 098 public artifact release resolution", () => {
+  test("projects gap-aware candidate coverage into the strict release identity", () => {
+    const identity = pointedReleaseIdentity(pointedEnv());
+    expect(identity?.releaseId).toBe(releaseA);
+    expect(identity?.publishedAt).toBe("2026-08-01T20:00:00.000Z");
+    expect(String(identity?.coverage.start)).toBe("2023-04");
+    expect(String(identity?.coverage.end)).toBe("2026-06");
+  });
+
   test("redirects legacy artifact paths to the one request-resolved release", async () => {
     const response = await handlePublicApiRoutes(
       new URL(`https://example.test/api/v1/artifacts/${logicalId}`),
