@@ -2,16 +2,14 @@
 
 ## Status
 
-- **State**: IN PROGRESS — steps 1-2 implemented and locally verified on
-  `codex/101-deterministic-demonth`; the reviewed June/July candidate and
-  protected Actions continuation are locally verified and await production
-  authorization, while steps 3-5 remain last in the sequence
+- **State**: IN PROGRESS — steps 1-2 are proved by the generation-5 production
+  catch-up; steps 3-5 remain last after Plans 100 and 099
 - **Priority**: P1 for steps 1-2 (land with or before Plan 098's stage B so
   the first pointer-published candidate is byte-deterministic); P2 for the
   rest
 - **Effort**: M
 - **Depends on**: steps 1-2: none (pure builder/uploader changes); steps 3-5:
-  Plan 098 activated in production
+  Plans 100 and 099 complete
 - **Original audit base**: `origin/main@ecf556a79e23b4b9374d08210a380754756f357b`
   (2026-07-22). Re-verify cited anchors against current main.
 - **Suggested branch**: `codex/101-deterministic-demonth`

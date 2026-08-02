@@ -273,6 +273,62 @@ describe("production boundary harness", () => {
     expect(workflow).toContain("workers/services/bus-priority-plan098-operator");
   });
 
+  test("the scheduled freshness alarm is advisory and can only reconcile its bot-owned issue", async () => {
+    const workflow = await Bun.file(".github/workflows/data-freshness.yml").text();
+    const actionUses = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)/gmu)].map(
+      (match) => match[1],
+    );
+
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("contents: read");
+    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("audit freshness-alarm");
+    expect(workflow).toContain("<!-- bp-data-freshness-alarm:v1 -->");
+    expect(workflow).toContain('.user.login == "github-actions[bot]"');
+    expect(workflow).toContain('if [[ "$count" -gt 1 ]]');
+    expect(workflow).not.toContain("secrets.");
+    expect(workflow).not.toContain("CLOUDFLARE");
+    expect(workflow).not.toContain("wrangler");
+    expect(workflow).not.toContain("--execute");
+    expect(workflow).not.toMatch(/\bpublish\s+(?:serving-release|recovery|r2-artifacts)\b/u);
+    expect(actionUses).toHaveLength(3);
+    for (const action of actionUses) {
+      expect(action).toMatch(/^[a-z0-9_.-]+\/[a-z0-9_.-]+@[a-f0-9]{40}$/u);
+    }
+  });
+
+  test("normal serving publication stays on protected main and activates last", async () => {
+    const workflow = await Bun.file(".github/workflows/publication.yml").text();
+    const script = await Bun.file(
+      "tools/pipeline-v2/scripts/run-serving-publication-production.ts",
+    ).text();
+    const classify = workflow.indexOf("--action classify");
+    const migrate = workflow.indexOf("--action migrate");
+    const blobs = workflow.indexOf("--action blobs");
+    const d1 = workflow.indexOf("--action d1");
+    const verify = workflow.indexOf("--action verify");
+    const finalize = workflow.indexOf("--action finalize");
+
+    expect(workflow).toContain("github.ref == 'refs/heads/main'");
+    expect(workflow).toContain("environment:\n      name: production");
+    expect(workflow).toContain("group: serving-production-publication");
+    expect(workflow).not.toContain("R2_ACCESS_KEY_ID");
+    expect(workflow).not.toContain("R2_SECRET_ACCESS_KEY");
+    expect(workflow).toContain("= \"$GITHUB_SHA\"");
+    expect(classify).toBeGreaterThan(0);
+    expect(migrate).toBeGreaterThan(classify);
+    expect(blobs).toBeGreaterThan(migrate);
+    expect(d1).toBeGreaterThan(blobs);
+    expect(verify).toBeGreaterThan(d1);
+    expect(finalize).toBeGreaterThan(verify);
+    expect(script).toContain('["bun", "--filter", "@bp/db", "db:migrate:d1:v2:remote"]');
+    expect(script).toContain("expectedGeneration: receipt.expected.generation");
+    expect(script).toContain('action: "read-receipt"');
+    expect(workflow).toContain("steps.finalize.outcome != 'success'");
+    expect(workflow).toContain("workers/services/bus-priority-plan098-operator");
+  });
+
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {
     const workflow = await Bun.file(".github/workflows/ci.yml").text();
     const productionWrangler = await Bun.file("apps/web/wrangler.jsonc").text();
@@ -293,7 +349,8 @@ describe("production boundary harness", () => {
     );
     expect(productionWrangler).not.toContain("PLAN097_RECOVERY_OPERATION_ENABLED");
     expect(productionWrangler).not.toContain("PLAN097_OPERATIONS");
-    expect(legacyPublisher).toContain("Remote execution is disabled during Plan 097");
+    expect(legacyPublisher).toContain("This month-selected publisher is retired");
+    expect(legacyPublisher).toContain("protected `publication.yml` workflow");
     expect(recoveryCli).not.toContain("wrangler");
     expect(recoveryCli).not.toContain("d1 execute");
     expect(operationHandler.match(/\.batch\(/g) ?? []).toHaveLength(1);

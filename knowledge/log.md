@@ -10104,3 +10104,28 @@ complete manifest, stages the replay-safe candidate D1 seed, activates only
 through the generation 4 CAS, smokes the June coverage plus Plans 090, 091,
 and 106 artifacts, records content-addressed evidence, and rolls back only
 after a failed finalize. No new Cloudflare mutation has occurred.
+
+## [2026-08-02] operations | Generation-17 June/July and Gen-18 catch-up activated
+
+Protected-main workflow run `30762362255` completed the reviewed catch-up and
+left production at generation 5 on release `pub_20260802T191030413Z`, candidate
+`afa266944bc3e85d13c0ffd3c9a012acd9e2d9f01d965942d7ebf3b805f82ccf`,
+manifest SHA-256
+`843892c29e371e287dde1e6e0b6ac46445304b1550e239115582f58a1862cd9e`,
+and 4,247 verified immutable artifacts. The candidate-scoped D1 projection and
+the 1,848 previously absent objects staged successfully; public smoke passed
+status, map, schema-3 routes, B44 history, and the retained Plans 090, 091, and
+106 artifact surfaces. Failure rollback was not invoked, and the temporary
+operator was deleted (its operation endpoint returned 404 afterward).
+
+The downloaded production artifact passed all three receipt checks. The
+canonical completion bytes and durable R2 receipt both have SHA-256
+`ead154871968e1494f078f43c9fcdd2cd860f61bffca07aa1b38d8269fc2112a` at
+`serving/operations/gen17-catchup-complete-afa266944bc3e85d13c0/completion.ead154871968e1494f078f43c9fcdd2cd860f61bffca07aa1b38d8269fc2112a.json`;
+the staging receipt SHA-256 is
+`9200a0510dd5d4e9e8c35a1963075b0e43e0f4b72e1668ac77e913059e4ab6d2`.
+An independent live status read reproduced smoke digest
+`85941c30b55e2d48cf44ce0c1b6bf1486ad3a4aabfd227f631f37259dd532089`
+and reported the exact generation-5 release. This is the remote proof for Plan
+101 steps 1-2; the final de-month vestige sweep remains last after Plans 100
+and 099.

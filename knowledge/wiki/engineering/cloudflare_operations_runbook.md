@@ -328,40 +328,53 @@ On success, leave the freshness-derived candidate active, persist the canonical 
 disable the one-time operation route/bindings, and record its immutable key/hash in Plan 097. Never
 use this recovery path for a later artifact/schema cutover; Plan 098's pointer must be active first.
 
-## One-Time Release Publish
+## Normal reviewed serving publication
 
-This legacy section is retained for historical/disposable empty-database workflows. Do not use it
-against the populated production database while Plan 097 or any successor control-plane recovery is
-in force; use [[#Plan 097 bounded recovery]].
+Plan 098's pointer is the only production activation boundary. Build a complete candidate locally,
+emit canonical bytes, verify the closed manifest and local workerd parity, and perform the R2
+read-only dry-run that GET/SHA-256 checks every reusable object. Publication identity is the
+candidate's semantic content; no month or publication timestamp selects the release.
 
-Build one coordinated local D1, Studio, and map release first. `--month` selects the covered data
-partition; it is not the release identity. The orchestrator captures one canonical publication
-timestamp and threads its `releaseId` and `publishedAt` through every output. Each dataset records
-its own coverage window, and every `coverage.end` must equal the selected partition.
+Create the plain immutable preparation receipt after the candidate archive has its final SHA-256:
 
 ```bash
-bun run pipeline map release --year 2026 --month 3 --context-source <reviewed-borough-boundary.csv>
-bun run check:publish-completeness -- --month 2026-03
+bun --filter @bp/pipeline-v2 cli -- publish serving-release \
+  --action prepare \
+  --candidate-root <candidate-root> \
+  --release-tag <immutable-github-release-tag> \
+  --archive-asset <candidate.tar.zst> \
+  --archive-sha256 <archive-sha256> \
+  --expected-release <active-release-id> \
+  --expected-candidate <active-candidate-id> \
+  --expected-generation <active-generation> \
+  --repo-sha <reviewed-main-sha> \
+  --workerd-parity \
+  --output <publication-preparation.json>
 ```
 
-Before any remote mutation, inspect the D1 export summary, Studio release payload, map manifest,
-and map catalog registration. Their `releaseId` and `publishedAt` must match exactly; their coverage
-windows must be valid and end at `2026-03`. The publish script validates these local outputs but
-does not build or repair them.
+Review the candidate ID, manifest/seed/archive hashes, per-dataset coverage, D1 counts, upload
+counts/bytes, active pointer tuple, resource identities, and preparation-receipt hash. Publish the
+archive and preparation receipt as immutable assets under the same GitHub release. Then dispatch
+`.github/workflows/publication.yml` on protected `main` with every exact value from that packet and
+approve the `production` environment.
 
-Dry-run the publish commands:
+The workflow strict-decodes the receipt and candidate, classifies semantic equality before any
+migration or content write, applies migrations only through
+`bun --filter @bp/db db:migrate:d1:v2:remote`, resumes from content-addressed phase receipts,
+uploads only absent verified objects, stages candidate-scoped D1, verifies the complete manifest,
+and activates last with one expected-release/generation CAS. It then smokes ordinary public traffic,
+checks protected live/current-signal fingerprints, records the canonical durable completion receipt,
+and always deletes the temporary authenticated operator.
 
-```bash
-bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2 bus-priority-artifacts
-```
+A semantic no-change produces a durable `no_op` completion with zero content PUTs, serving rows,
+release creation, or pointer movement. If smoke fails after activation, the same run performs one
+pointer-only CAS rollback to the exact prior release, verifies protected fingerprints, records the
+rollback receipt, and stops failed. Candidate bytes and D1 rows are retained for diagnosis; rollback
+never overwrites them. Any candidate, receipt, resource, migration, or pointer drift is a STOP that
+requires a new reviewed operation.
 
-Publish only after reviewing the generated D1 and R2 commands:
-
-```bash
-bun run publish:serving-release -- --month 2026-03 --d1 bus-priority-serving --r2 bus-priority-artifacts --execute
-```
-
-This is not a cron job. Run it when publishing a reviewed release or corrected artifact set.
+The legacy `scripts/publish-serving-release.sh` is a deliberate error message and has no remote
+execution path.
 
 ## Route intervention inventory export and publish
 
