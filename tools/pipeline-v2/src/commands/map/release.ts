@@ -1,4 +1,3 @@
-import { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -25,6 +24,7 @@ import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
 import { isoMonth } from "../../lib/dates.ts";
+import { exactServingRouteIdsFromD1 } from "../../lib/exact-serving-route-ids.ts";
 import { dbOptions, type OpenLocalPipelineDb } from "../../lib/local-db.ts";
 import {
   defaultArtifactRootPath,
@@ -198,43 +198,6 @@ function sourceContract(
   bytes: Uint8Array,
 ) {
   return { kind, sha256: sha256(bytes), byteLength: bytes.byteLength };
-}
-
-export async function exactServingRouteIdsFromD1(input: {
-  schemaPath: string;
-  seedPath: string;
-  expectedCount: number;
-}): Promise<string[]> {
-  const [schemaSql, seedSql] = await Promise.all([
-    Bun.file(input.schemaPath).text(),
-    Bun.file(input.seedPath).text(),
-  ]);
-  const database = new Database(":memory:");
-  try {
-    database.exec(`${schemaSql}\n${seedSql}`);
-    const rows = database
-      .query(
-        `
-          SELECT DISTINCT route_id AS routeId
-          FROM route_catalog_trip_type
-          ORDER BY route_id
-        `,
-      )
-      .all() as Array<{ routeId: string }>;
-    const routeIds = rows.map((row) => row.routeId);
-    if (
-      routeIds.length !== input.expectedCount ||
-      routeIds.some((routeId) => routeId.length === 0) ||
-      new Set(routeIds).size !== routeIds.length
-    ) {
-      throw new Error(
-        `Exact serving route universe has ${routeIds.length} routes; expected ${input.expectedCount}.`,
-      );
-    }
-    return routeIds;
-  } finally {
-    database.close();
-  }
 }
 
 export async function runMapRelease(

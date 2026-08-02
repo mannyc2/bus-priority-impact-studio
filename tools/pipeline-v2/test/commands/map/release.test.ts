@@ -7,10 +7,10 @@ import type { Plan097FreshnessMatrix } from "@bp/db/recovery/plan097";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   buildVerifiedMapRouteBatchProjection,
-  exactServingRouteIdsFromD1,
   type MapReleaseDependencies,
   runMapRelease,
 } from "../../../src/commands/map/release.ts";
+import { exactServingRouteIdsFromD1 } from "../../../src/lib/exact-serving-route-ids.ts";
 import type { OpenLocalPipelineDb } from "../../../src/lib/local-db.ts";
 
 function readyFreshnessMatrix(month: string): Plan097FreshnessMatrix {
