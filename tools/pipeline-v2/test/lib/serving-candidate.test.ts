@@ -1,6 +1,12 @@
+import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { canonicalServingJsonBytes } from "@bp/domain/studio/serving-release";
-import { buildServingCandidate } from "../../src/lib/serving-candidate.ts";
+import {
+  buildServingCandidate,
+  renderServingD1CandidateSeedSql,
+  servingD1ProjectionInventory,
+} from "../../src/lib/serving-candidate.ts";
 
 const hash = (character: string) => character.repeat(64);
 
@@ -44,6 +50,96 @@ describe("Plan 098 serving candidate builder", () => {
     expect(first.objects[0]?.key).toContain(first.objects[0]?.sha256 ?? "missing");
     expect(first.manifestKey).toContain(first.manifestSha256);
     expect(buildServingCandidate(input()).manifestBytes).toEqual(first.manifestBytes);
+  });
+
+  test("hashes D1 projections independently of insertion order and excludes future mixed rows", () => {
+    const makeDatabase = (reverse: boolean, includeFuture: boolean): Database => {
+      const database = new Database(":memory:");
+      for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+        if (table === "exact_route_identity_release") {
+          database.exec(
+            `CREATE TABLE "${table}" (
+              id TEXT PRIMARY KEY,
+              coverage_end TEXT NOT NULL,
+              projection_sha256 TEXT NOT NULL,
+              exact_route_count INTEGER NOT NULL
+            )`,
+          );
+          database
+            .query(
+              `INSERT INTO "${table}" (
+                id, coverage_end, projection_sha256, exact_route_count
+              ) VALUES (?, ?, ?, ?)`,
+            )
+            .run("release", "2026-06", hash("d"), 2);
+          continue;
+        }
+        const hasMonth =
+          table === "route_month_source_status" || table === "route_observed_reliability_summary";
+        database.exec(
+          `CREATE TABLE "${table}" (id TEXT PRIMARY KEY${hasMonth ? ", month TEXT NOT NULL" : ""})`,
+        );
+        const rows = reverse ? ["b", "a"] : ["a", "b"];
+        for (const id of rows) {
+          database
+            .query(
+              `INSERT INTO "${table}" (id${hasMonth ? ", month" : ""}) VALUES (?${hasMonth ? ", ?" : ""})`,
+            )
+            .run(...(hasMonth ? [id, "2026-06"] : [id]));
+        }
+        if (hasMonth && includeFuture) {
+          database
+            .query(`INSERT INTO "${table}" (id, month) VALUES (?, ?)`)
+            .run("future", "2026-07");
+        }
+      }
+      return database;
+    };
+    const firstDb = makeDatabase(false, false);
+    const reorderedDb = makeDatabase(true, true);
+    const first = servingD1ProjectionInventory(firstDb, "2026-06");
+    const reordered = servingD1ProjectionInventory(reorderedDb, "2026-06");
+    const candidateId = hash("f");
+    const seed = renderServingD1CandidateSeedSql(firstDb, candidateId, "2026-06");
+    expect(renderServingD1CandidateSeedSql(reorderedDb, candidateId, "2026-06")).toBe(seed);
+    const target = new Database(":memory:");
+    for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+      if (table === "exact_route_identity_release") {
+        target.exec(
+          `CREATE TABLE "${table}_v2" (
+            id TEXT,
+            coverage_end TEXT NOT NULL,
+            projection_sha256 TEXT NOT NULL,
+            exact_route_count INTEGER NOT NULL,
+            candidate_id TEXT NOT NULL
+          )`,
+        );
+        continue;
+      }
+      const hasMonth =
+        table === "route_month_source_status" || table === "route_observed_reliability_summary";
+      target.exec(
+        `CREATE TABLE "${table}_v2" (id TEXT${hasMonth ? ", month TEXT NOT NULL" : ""}, candidate_id TEXT NOT NULL)`,
+      );
+    }
+    target.exec(seed);
+    target.exec(seed);
+    for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+      const count = target
+        .query(`SELECT COUNT(*) AS count FROM "${table}_v2" WHERE candidate_id = ?`)
+        .get(candidateId) as { count: number };
+      expect(count.count).toBe(table === "exact_route_identity_release" ? 1 : 2);
+    }
+    firstDb.close();
+    reorderedDb.close();
+    target.close();
+
+    expect(reordered).toEqual(first);
+    expect(first.exactIdentityProjectionSha256).toBe(hash("d"));
+    expect(first.exactIdentityRouteCount).toBe(2);
+    const rowCounts = new Map(Object.entries(first.rowCounts));
+    expect(rowCounts.get("route_month_source_status")).toBe(2);
+    expect(rowCounts.get("route_observed_reliability_summary")).toBe(2);
   });
 
   test("changes candidate identity when semantic bytes change", () => {

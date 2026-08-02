@@ -1,3 +1,4 @@
+import { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -73,6 +74,7 @@ export type MapReleaseDependencies = {
   routeBrief: typeof runRouteBriefModel;
   speedSpines: typeof runRouteSpeedSpines;
   exportD1: typeof runExportD1Seed;
+  exactRouteIds: typeof exactServingRouteIdsFromD1;
   readD1Inputs: typeof readLocalD1Inputs;
   verifyD1: typeof runVerifyD1Export;
   context: typeof runMapContext;
@@ -86,6 +88,7 @@ const defaultDependencies: MapReleaseDependencies = {
   routeBrief: runRouteBriefModel,
   speedSpines: runRouteSpeedSpines,
   exportD1: runExportD1Seed,
+  exactRouteIds: exactServingRouteIdsFromD1,
   readD1Inputs: readLocalD1Inputs,
   verifyD1: runVerifyD1Export,
   context: runMapContext,
@@ -197,6 +200,43 @@ function sourceContract(
   return { kind, sha256: sha256(bytes), byteLength: bytes.byteLength };
 }
 
+export async function exactServingRouteIdsFromD1(input: {
+  schemaPath: string;
+  seedPath: string;
+  expectedCount: number;
+}): Promise<string[]> {
+  const [schemaSql, seedSql] = await Promise.all([
+    Bun.file(input.schemaPath).text(),
+    Bun.file(input.seedPath).text(),
+  ]);
+  const database = new Database(":memory:");
+  try {
+    database.exec(`${schemaSql}\n${seedSql}`);
+    const rows = database
+      .query(
+        `
+          SELECT DISTINCT route_id AS routeId
+          FROM route_catalog_trip_type
+          ORDER BY route_id
+        `,
+      )
+      .all() as Array<{ routeId: string }>;
+    const routeIds = rows.map((row) => row.routeId);
+    if (
+      routeIds.length !== input.expectedCount ||
+      routeIds.some((routeId) => routeId.length === 0) ||
+      new Set(routeIds).size !== routeIds.length
+    ) {
+      throw new Error(
+        `Exact serving route universe has ${routeIds.length} routes; expected ${input.expectedCount}.`,
+      );
+    }
+    return routeIds;
+  } finally {
+    database.close();
+  }
+}
+
 export async function runMapRelease(
   inputs: RunMapReleaseInputs,
   dependencies: MapReleaseDependencies = defaultDependencies,
@@ -264,6 +304,15 @@ export async function runMapRelease(
       "D1 export did not emit the candidate exact-route identity registration and receipt.",
     );
   }
+  // Plan 095 deliberately leaves catalog-only routes in the compatibility
+  // catalog while withholding exact trip types. Full Studio/map artifacts
+  // must use only the exact admitted projection and must never synthesize the
+  // unresolved routes into schema-v3 presentation rows.
+  const exactServingRouteIds = await dependencies.exactRouteIds({
+    schemaPath: preliminaryD1.schemaPath,
+    seedPath: preliminaryD1.seedPath,
+    expectedCount: preliminaryD1.exactRouteIdentity.exactRouteCount,
+  });
   const context = await dependencies.context({
     sourcePath: inputs.contextSourcePath,
     artifactRoot,
@@ -280,6 +329,7 @@ export async function runMapRelease(
     stopSnapshotPath,
     localDbPath: inputs.local.path,
     profile: "full",
+    routeIds: exactServingRouteIds,
     ...(inputs.routeSliceRawRoot === undefined
       ? {}
       : { routeSliceRawRoot: inputs.routeSliceRawRoot }),
@@ -326,6 +376,7 @@ export async function runMapRelease(
     contextPath: context.artifactPath,
     contextSourcePath: context.sourcePath,
     routeFactsPath: studio.mapRouteFactsPath,
+    routeIds: exactServingRouteIds,
   });
   const audit = await dependencies.audit({
     artifactRoot,

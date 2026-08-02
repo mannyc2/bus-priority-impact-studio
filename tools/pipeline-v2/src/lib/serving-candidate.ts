@@ -1,7 +1,10 @@
+import type { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
+import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { decodeStrict } from "@bp/domain/decode";
 import {
   canonicalServingCandidateSemanticJson,
+  canonicalServingJson,
   canonicalServingJsonBytes,
   type ServingCandidateManifestV1,
   ServingCandidateManifestV1Schema,
@@ -49,6 +52,143 @@ export type BuiltServingCandidate = {
     schemaId: string;
   }>;
 };
+
+export type ServingD1ProjectionInventory = {
+  projectionSha256: string;
+  rowCounts: Record<string, number>;
+  exactIdentityProjectionSha256: string;
+  exactIdentityRouteCount: number;
+};
+
+function quotedIdentifier(value: string): string {
+  if (!/^[a-z][a-z0-9_]*$/u.test(value)) {
+    throw new Error(`Unsafe SQLite identifier ${value}.`);
+  }
+  return `"${value}"`;
+}
+
+/**
+ * Hash the semantic candidate projection rendered in the legacy D1 tables.
+ *
+ * Candidate IDs are deliberately absent at this boundary. The resulting
+ * inventory can therefore be bound into a candidate manifest first and the
+ * same canonical rows can then be namespaced with that derived candidate ID.
+ */
+export function servingD1ProjectionInventory(
+  database: Database,
+  coverageEnd: string,
+): ServingD1ProjectionInventory {
+  const projection = createHash("sha256");
+  const rowCounts: Record<string, number> = {};
+  for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+    const columns = database.query(`PRAGMA table_info(${quotedIdentifier(table)})`).all() as Array<{
+      name: string;
+      pk: number;
+    }>;
+    if (columns.length === 0) throw new Error(`D1 export is missing ${table}.`);
+    const orderColumns = columns
+      .filter((column) => column.pk > 0)
+      .toSorted((left, right) => left.pk - right.pk);
+    const order = (orderColumns.length === 0 ? columns : orderColumns)
+      .map((column) => quotedIdentifier(column.name))
+      .join(", ");
+    const mixedReviewedFilter =
+      table === "route_month_source_status" || table === "route_observed_reliability_summary"
+        ? " WHERE month <= ?"
+        : "";
+    const statement = database.query(
+      `SELECT * FROM ${quotedIdentifier(table)}${mixedReviewedFilter} ORDER BY ${order}`,
+    );
+    const rows = (
+      mixedReviewedFilter.length === 0 ? statement.all() : statement.all(coverageEnd)
+    ) as Array<Record<string, unknown>>;
+    rowCounts[table] = rows.length;
+    for (const row of rows) {
+      const line = `${canonicalServingJson({ table, row })}\n`;
+      projection.update(line);
+    }
+  }
+  const exactRelease = database
+    .query(
+      `SELECT
+        projection_sha256 AS projectionSha256,
+        exact_route_count AS routeCount
+      FROM exact_route_identity_release
+      WHERE coverage_end = ?`,
+    )
+    .all(coverageEnd) as Array<{ projectionSha256: string; routeCount: number }>;
+  const exactIdentity = exactRelease[0];
+  if (
+    exactRelease.length !== 1 ||
+    exactIdentity === undefined ||
+    !/^[a-f0-9]{64}$/u.test(exactIdentity.projectionSha256) ||
+    !Number.isSafeInteger(exactIdentity.routeCount) ||
+    exactIdentity.routeCount <= 0
+  ) {
+    throw new Error(`D1 export has no unique exact-route receipt for ${coverageEnd}.`);
+  }
+  return {
+    projectionSha256: projection.digest("hex"),
+    rowCounts,
+    exactIdentityProjectionSha256: exactIdentity.projectionSha256,
+    exactIdentityRouteCount: exactIdentity.routeCount,
+  };
+}
+
+function servingSqlValue(value: unknown): string {
+  if (value === null) return "NULL";
+  if (typeof value === "string") return `'${value.replaceAll("'", "''")}'`;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "bigint") return String(value);
+  if (value instanceof Uint8Array) return `X'${Buffer.from(value).toString("hex")}'`;
+  throw new Error(`Unsupported D1 projection value ${Object.prototype.toString.call(value)}.`);
+}
+
+/** Render a full, idempotent candidate-scoped seed from one verified legacy projection. */
+export function renderServingD1CandidateSeedSql(
+  database: Database,
+  candidateId: string,
+  coverageEnd: string,
+): string {
+  if (!/^[a-f0-9]{64}$/u.test(candidateId)) {
+    throw new Error("Candidate seed requires a lowercase SHA-256 candidate ID.");
+  }
+  const statements: string[] = [];
+  for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+    const columns = database.query(`PRAGMA table_info(${quotedIdentifier(table)})`).all() as Array<{
+      name: string;
+      pk: number;
+    }>;
+    if (columns.length === 0) throw new Error(`D1 export is missing ${table}.`);
+    const orderColumns = columns
+      .filter((column) => column.pk > 0)
+      .toSorted((left, right) => left.pk - right.pk);
+    const order = (orderColumns.length === 0 ? columns : orderColumns)
+      .map((column) => quotedIdentifier(column.name))
+      .join(", ");
+    const mixedReviewedFilter =
+      table === "route_month_source_status" || table === "route_observed_reliability_summary"
+        ? " WHERE month <= ?"
+        : "";
+    const statement = database.query(
+      `SELECT * FROM ${quotedIdentifier(table)}${mixedReviewedFilter} ORDER BY ${order}`,
+    );
+    const rows = (
+      mixedReviewedFilter.length === 0 ? statement.all() : statement.all(coverageEnd)
+    ) as Array<Record<string, unknown>>;
+    statements.push(
+      `delete from ${quotedIdentifier(`${table}_v2`)} where "candidate_id" = '${candidateId}';`,
+    );
+    const columnSql = columns.map((column) => quotedIdentifier(column.name)).join(", ");
+    for (const row of rows) {
+      const values = columns.map((column) => servingSqlValue(row[column.name])).join(", ");
+      statements.push(
+        `insert into ${quotedIdentifier(`${table}_v2`)} (${columnSql}, "candidate_id") values (${values}, '${candidateId}');`,
+      );
+    }
+  }
+  return `${statements.join("\n")}\n`;
+}
 
 export function servingSha256(body: Uint8Array | string): string {
   return createHash("sha256").update(body).digest("hex");

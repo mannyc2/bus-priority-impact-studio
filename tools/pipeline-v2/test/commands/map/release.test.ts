@@ -7,6 +7,7 @@ import type { Plan097FreshnessMatrix } from "@bp/db/recovery/plan097";
 import { releaseIdFromPublishedAt } from "@bp/domain/studio/shared";
 import {
   buildVerifiedMapRouteBatchProjection,
+  exactServingRouteIdsFromD1,
   type MapReleaseDependencies,
   runMapRelease,
 } from "../../../src/commands/map/release.ts";
@@ -55,6 +56,33 @@ function readyFreshnessMatrix(month: string): Plan097FreshnessMatrix {
 }
 
 describe("runMapRelease", () => {
+  test("derives the exact serving universe from trip-type rows", async () => {
+    const root = mkdtempSync(join(tmpdir(), "map-release-exact-routes-"));
+    try {
+      const schemaPath = join(root, "schema.sql");
+      const seedPath = join(root, "seed.sql");
+      await Promise.all([
+        Bun.write(
+          schemaPath,
+          "CREATE TABLE route_catalog_trip_type (route_id TEXT, trip_type_rank INTEGER, trip_type TEXT);",
+        ),
+        Bun.write(
+          seedPath,
+          "INSERT INTO route_catalog_trip_type VALUES ('M2', 1, '1'); INSERT INTO route_catalog_trip_type VALUES ('M1', 1, '1');",
+        ),
+      ]);
+
+      await expect(
+        exactServingRouteIdsFromD1({ schemaPath, seedPath, expectedCount: 2 }),
+      ).resolves.toEqual(["M1", "M2"]);
+      await expect(
+        exactServingRouteIdsFromD1({ schemaPath, seedPath, expectedCount: 3 }),
+      ).rejects.toThrow("has 2 routes; expected 3");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test("derives deterministic pass rows only from a verified non-empty universe", () => {
     const projection = buildVerifiedMapRouteBatchProjection({
       month: "2026-04",
@@ -212,6 +240,9 @@ describe("runMapRelease", () => {
         async exportD1(input: unknown) {
           record("exportD1", input);
           return writeD1Output(input);
+        },
+        async exactRouteIds() {
+          return ["M1"];
         },
         async readD1Inputs(_db: unknown, _month: string, options: unknown) {
           record("readD1Inputs", options);
@@ -383,6 +414,7 @@ describe("runMapRelease", () => {
         routeShapeSnapshotPath,
         stopSnapshotPath,
         profile: "full",
+        routeIds: ["M1"],
       });
       expect(map).toMatchObject({
         artifactRoot,
@@ -394,6 +426,7 @@ describe("runMapRelease", () => {
         contextSourcePath,
         routeFactsPath: mapRouteFactsPath,
         releaseProfile: "full",
+        routeIds: ["M1"],
       });
       const mapReleaseIdentity = map?.releaseIdentity as
         | { publishedAt: string; coverage: { start: string | null; end: string } }

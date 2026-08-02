@@ -1,8 +1,6 @@
 import { Database } from "bun:sqlite";
-import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { extname, join } from "node:path";
-import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { Plan097RecoveryArtifactManifestSchema } from "@bp/db/recovery/plan097/artifacts";
 import { decodeStrict } from "@bp/domain/decode";
 import { canonicalServingJson } from "@bp/domain/studio/serving-release";
@@ -10,6 +8,7 @@ import { plan106ArchiveRelativePath } from "../src/lib/plan106-release-input.ts"
 import {
   buildServingCandidateFromDescriptors,
   type ServingCandidateArtifactDescriptor,
+  servingD1ProjectionInventory,
   servingSha256,
 } from "../src/lib/serving-candidate.ts";
 
@@ -60,69 +59,6 @@ function parseArgs(argv: readonly string[]): Args {
     artifactRoot: required("--artifact-root"),
     sourceCommit,
     output: required("--output"),
-  };
-}
-
-function quotedIdentifier(value: string): string {
-  if (!/^[a-z][a-z0-9_]*$/u.test(value)) throw new Error(`Unsafe SQLite identifier ${value}.`);
-  return `"${value}"`;
-}
-
-type ProjectionInventory = {
-  projectionSha256: string;
-  rowCounts: Record<string, number>;
-  exactIdentityProjectionSha256: string;
-  exactIdentityRouteCount: number;
-};
-
-function projectionInventory(database: Database, coverageEnd: string): ProjectionInventory {
-  const projection = createHash("sha256");
-  const exact = createHash("sha256");
-  const rowCounts: Record<string, number> = {};
-  const exactTables = new Set([
-    "exact_route_identity_release",
-    "route_catalog",
-    "route_catalog_trip_type",
-    "route_catalog_type",
-  ]);
-  for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
-    const columns = database.query(`PRAGMA table_info(${quotedIdentifier(table)})`).all() as Array<{
-      name: string;
-      pk: number;
-    }>;
-    if (columns.length === 0) throw new Error(`D1 export is missing ${table}.`);
-    const orderColumns = columns
-      .filter((column) => column.pk > 0)
-      .toSorted((left, right) => left.pk - right.pk);
-    const order = (orderColumns.length === 0 ? columns : orderColumns)
-      .map((column) => quotedIdentifier(column.name))
-      .join(", ");
-    const mixedReviewedFilter =
-      table === "route_month_source_status" || table === "route_observed_reliability_summary"
-        ? " WHERE month <= ?"
-        : "";
-    const statement = database.query(
-      `SELECT * FROM ${quotedIdentifier(table)}${mixedReviewedFilter} ORDER BY ${order}`,
-    );
-    const rows = (
-      mixedReviewedFilter.length === 0 ? statement.all() : statement.all(coverageEnd)
-    ) as Array<Record<string, unknown>>;
-    rowCounts[table] = rows.length;
-    for (const row of rows) {
-      const line = `${canonicalServingJson({ table, row })}\n`;
-      projection.update(line);
-      if (exactTables.has(table)) exact.update(line);
-    }
-  }
-  const exactIdentityRouteCount = Object.entries(rowCounts).find(
-    ([table]) => table === "route_catalog",
-  )?.[1];
-  if (exactIdentityRouteCount === undefined) throw new Error("route_catalog count is absent.");
-  return {
-    projectionSha256: projection.digest("hex"),
-    rowCounts,
-    exactIdentityProjectionSha256: exact.digest("hex"),
-    exactIdentityRouteCount,
   };
 }
 
@@ -198,7 +134,7 @@ async function main(): Promise<void> {
   const database = new Database(":memory:");
   database.exec(d1Sql);
   const coverage = { start: "2023-04", end: "2026-05" } as const;
-  const d1 = projectionInventory(database, coverage.end);
+  const d1 = servingD1ProjectionInventory(database, coverage.end);
   database.close();
   const baseline = decodeStrict(Plan097RecoveryArtifactManifestSchema)(baselineRaw);
   if (baseline.releaseId !== "pub_20260725T164123260Z" || baseline.entries.length !== 3002) {
