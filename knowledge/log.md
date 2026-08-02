@@ -10023,3 +10023,11 @@ pointer mutation, because the smoke expected the Plan 106 candidate ID at the do
 the strict public pack carries it under `candidate.candidateId`. The public bytes independently
 verified candidate `b647f0f1…`, 222 episodes, 188 route artifacts, and 268 route memberships. The
 drill now reads the candidate ID from that canonical envelope.
+
+Plan 098 retry `30724818361` passed that resume smoke and then atomically rejected rollback before
+the pointer update. Candidate A's semantic ID remained `b4156cd7…`, but a fresh build produced a
+new manifest byte hash; the ready candidate retains the immutable hash registered at its original
+staging. Activation and rollback now bind the registered candidate manifest returned by D1, while
+the completion receipt records both fresh-build and registered identities. The nonauthoritative
+prepared intent left by the rejected update is terminally marked failed before a uniquely named
+registered-manifest retry.

@@ -122,11 +122,13 @@ export type {
   LegacyServingReleaseContext,
   PointedServingReleaseContext,
   ServingActivationInput,
+  ServingActivationIntentFailure,
   ServingPointerTransition,
   ServingReleaseContext,
 } from "./serving-release.js";
 export {
   activateServingRelease,
+  failPreparedServingActivationIntent,
   isServingReleaseContextCurrent,
   resolveActiveServingRelease,
   resolvePublicArtifactForRelease,

@@ -2,6 +2,7 @@ import {
   activateServingRelease,
   D1_CANDIDATE_PROJECTION_TABLES,
   D1_SERVING_TABLE_OWNERSHIP,
+  failPreparedServingActivationIntent,
   markServingCandidateArtifactVerified,
   markServingCandidateReady,
   registerServingCandidate,
@@ -442,6 +443,9 @@ async function jsonAction(
       manifestSha256: stringField(payload, "manifestSha256"),
     });
   }
+  if (action === "fail-prepared-intent") {
+    return failPreparedServingActivationIntent(env.DB, stringField(payload, "operationId"));
+  }
   if (action === "status") {
     const context = await resolveActiveServingRelease(env.DB);
     return context.kind === "legacy"
@@ -495,12 +499,19 @@ async function jsonAction(
   if (action === "candidate-status") {
     const candidateId = stringField(payload, "candidateId");
     const candidate = await env.DB.prepare(
-      `SELECT state, ready_at AS readyAt, canonical_manifest_sha256 AS manifestSha256
+      `SELECT state, ready_at AS readyAt,
+        canonical_manifest_key AS manifestKey,
+        canonical_manifest_sha256 AS manifestSha256
       FROM serving_candidate
       WHERE candidate_id = ?`,
     )
       .bind(candidateId)
-      .first<{ state: string; readyAt: string | null; manifestSha256: string }>();
+      .first<{
+        state: string;
+        readyAt: string | null;
+        manifestKey: string;
+        manifestSha256: string;
+      }>();
     const artifacts = await env.DB.prepare(
       `SELECT COUNT(*) AS total,
         SUM(CASE WHEN verified_at IS NOT NULL THEN 1 ELSE 0 END) AS verified
