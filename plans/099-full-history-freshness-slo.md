@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State**: TODO
+- **State**: DONE (2026-08-02)
 - **Priority**: P2
 - **Effort**: M-L
 - **Depends on**: registry/backfill steps (1-3): none; serving/UI steps (4-6):
@@ -132,16 +132,46 @@ Primary suites: `tools/pipeline-v2/test/commands/audit/freshness.test.ts`,
 
 ## Acceptance criteria
 
-- [ ] Every public dataset's full trustworthy history is backfilled through
+- [x] Every public dataset's full trustworthy history is backfilled through
       resumable, hash-receipted adapters, or has an evidenced unavailable
       boundary; no global intersection truncates any dataset.
-- [ ] Per-dataset coverage and gaps are served and rendered honestly.
-- [ ] The advisory ledger compares all three stages, exits stably, and is
+- [x] Per-dataset coverage and gaps are served and rendered honestly.
+- [x] The advisory ledger compares all three stages, exits stably, and is
       consumable by Plan 100's scheduled alarm.
-- [ ] Fixed `2023-04` and current-year-minus-one defaults are replaced by
+- [x] Fixed `2023-04` and current-year-minus-one defaults are replaced by
       registry floors; explicit partition selectors remain legal.
-- [ ] The size sanity check is recorded before the first expanded-history
+- [x] The size sanity check is recorded before the first expanded-history
       activation.
+
+## Completion evidence (2026-08-02)
+
+The authorized live backfill captured 79 ridership partitions from 2020-01
+through 2026-07 (33,663 rows) and 138 wait/reliability partitions from
+2015-01 through 2026-06 (168,723 rows). An exact rerun skipped all 217
+hash-verified partitions and reproduced summary SHA-256
+`73c7807ed9077550618fc6811157d88464eed439da783f9ff4cc6cb171607d00`;
+no zero-row partition or hidden gap was accepted.
+
+Protected publication run `30768988711` activated candidate
+`67ae1b14fd57687ecb4c640b40bde7d8267b0f5ff13aad030d40fa5491dcd3d5`
+with manifest SHA-256
+`4de1cd01f9d0715cfcd23a0532e8b932bbf61c04b0d4ae67f7ea995b9e41de6e`
+at generation 6, release `pub_20260802T215956764Z`. Its durable completion
+receipt SHA-256 is
+`95eadb116e4ee9ca85d3a76f14abdfb9530623fafbb42af59b0d70a782c49617`;
+the independently downloaded state bytes hash to
+`6687059ccda59fdaf42c51ce2271a3dccc80cb8bf982cfd0b45556011e4cfa7c`.
+The pre-activation size receipt accepted a 41,112-byte largest route-history
+payload and a 7.352 ms local spot check. Public status and B44 history now
+show wait/reliability 2015-01..2026-06, ridership 2020-01..2026-07, and speed
+2023-04..2026-06 with the real 2026-04..2026-05 gap explicit.
+
+Semantic no-op run `30769204796` left generation 6 unchanged and recorded
+durable completion receipt SHA-256
+`87a5eb1f2130cc6041e5bc26d94d5479759053675e56a43cd576deb288d351a9`.
+Freshness-alarm run `30769269308` consumed the active candidate catalog,
+updated marker-owned issue #154, and uploaded report SHA-256
+`6986fd5988f5ad8b97354f69cec49549d933a9fee7d4d34ba9eacfa22ba250b7`.
 
 ## Verification
 
