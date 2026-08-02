@@ -1,6 +1,5 @@
 import {
   createD1ServingDb,
-  type RouteMonthTrend as D1RouteMonthTrend,
   type RouteObservedReliabilitySummary as D1RouteObservedReliabilitySummary,
   type SourceMonthCoverage as D1SourceMonthCoverage,
   findEarliestSpeedTrendMonth,
@@ -12,6 +11,7 @@ import {
   listPublicSnapshotSourceMonthCoverage,
   listRouteMonthTrends,
   listRouteObservedReliabilitySummaries,
+  listRouteWaitAssessments,
 } from "@bp/db/d1";
 import {
   buildRouteInsightsFromDetectorReadiness,
@@ -1671,16 +1671,70 @@ export async function buildStudioRoutesResponse(
   };
 }
 
-function buildRouteHistoryCoverage(points: readonly D1RouteMonthTrend[]) {
+function monthIndex(value: string): number {
+  const [year, month] = value.split("-").map(Number);
+  if (
+    year === undefined ||
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    month === undefined
+  ) {
+    throw new Error(`Invalid history month ${value}.`);
+  }
+  return year * 12 + month - 1;
+}
+
+function monthFromIndex(value: number): string {
+  const year = Math.floor(value / 12);
+  const month = (value % 12) + 1;
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function datasetHistoryCoverage(months: readonly string[]) {
+  const unique = [...new Set(months)].toSorted();
+  const startMonth = unique[0] ?? null;
+  const endMonth = unique.at(-1) ?? null;
+  const missingIntervals: Array<{ start: string; end: string }> = [];
+  if (startMonth !== null && endMonth !== null) {
+    const present = new Set(unique);
+    let gapStart: number | null = null;
+    for (let index = monthIndex(startMonth); index <= monthIndex(endMonth); index += 1) {
+      if (!present.has(monthFromIndex(index))) gapStart ??= index;
+      else if (gapStart !== null) {
+        missingIntervals.push({ start: monthFromIndex(gapStart), end: monthFromIndex(index - 1) });
+        gapStart = null;
+      }
+    }
+    if (gapStart !== null) {
+      missingIntervals.push({ start: monthFromIndex(gapStart), end: endMonth });
+    }
+  }
+  return { startMonth, endMonth, monthCount: unique.length, missingIntervals };
+}
+
+type RouteHistoryPoint = StudioRouteHistoryResponse["points"][number];
+
+export function buildRouteHistoryCoverage(points: readonly RouteHistoryPoint[]) {
+  const speedMonths = points
+    .filter((point) => point.hasSpeedTrend && point.averageSpeedMph !== null)
+    .map((point) => point.month);
+  const ridershipMonths = points
+    .filter((point) => point.hasRidershipTrend && point.ridership !== null)
+    .map((point) => point.month);
+  const waitMonths = points
+    .filter((point) => point.hasWaitAssessment && point.waitAssessment !== null)
+    .map((point) => point.month);
   return {
     startMonth: points[0]?.month ?? null,
     endMonth: points.length === 0 ? null : (points[points.length - 1]?.month ?? null),
     pointCount: points.length,
-    speedMonthCount: points.filter((point) => point.hasSpeedTrend && point.averageSpeedMph !== null)
-      .length,
-    ridershipMonthCount: points.filter(
-      (point) => point.hasRidershipTrend && point.ridership !== null,
-    ).length,
+    speedMonthCount: speedMonths.length,
+    ridershipMonthCount: ridershipMonths.length,
+    datasets: {
+      speed: datasetHistoryCoverage(speedMonths),
+      ridership: datasetHistoryCoverage(ridershipMonths),
+      waitAssessment: datasetHistoryCoverage(waitMonths),
+    },
   };
 }
 
@@ -1707,10 +1761,50 @@ export async function buildStudioRouteHistoryResponse(
     return { ok: false, response: errorResponse(404, "Studio route history was not found.") };
   }
 
-  const [points, observed] = await Promise.all([
+  const [trendPoints, waitRows, observed] = await Promise.all([
     listRouteMonthTrends(createD1ServingDb(env.DB), row.routeId),
+    listRouteWaitAssessments(createD1ServingDb(env.DB), row.routeId),
     findObservedReliabilityRow({ env, coverageEnd: release.coverage.end, routeId: row.routeId }),
   ]);
+  const pointsByMonth = new Map<string, RouteHistoryPoint>(
+    trendPoints.map((point) => [
+      point.month,
+      {
+        ...point,
+        waitAssessment: null,
+        waitTripsPassing: 0,
+        waitScheduledTrips: 0,
+        hasWaitAssessment: false,
+      },
+    ]),
+  );
+  for (const wait of waitRows) {
+    const point = pointsByMonth.get(wait.month) ?? {
+      routeId: row.routeId,
+      month: wait.month,
+      speedObservationCount: 0,
+      speedBusTripCount: 0,
+      averageSpeedMph: null,
+      ridership: null,
+      transfers: null,
+      hasSpeedTrend: false,
+      hasRidershipTrend: false,
+      waitAssessment: null,
+      waitTripsPassing: 0,
+      waitScheduledTrips: 0,
+      hasWaitAssessment: false,
+    };
+    pointsByMonth.set(wait.month, {
+      ...point,
+      waitAssessment: wait.waitAssessment,
+      waitTripsPassing: wait.tripsPassingWait,
+      waitScheduledTrips: wait.scheduledTrips,
+      hasWaitAssessment: wait.waitAssessment !== null,
+    });
+  }
+  const points = [...pointsByMonth.values()].toSorted((left, right) =>
+    left.month.localeCompare(right.month),
+  );
   const route = buildStudioRouteCardFromIndexRow(row, observed, null);
   const coverage = buildRouteHistoryCoverage(points);
   const speedCaveat =

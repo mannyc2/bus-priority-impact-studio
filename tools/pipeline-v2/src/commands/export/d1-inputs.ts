@@ -43,9 +43,10 @@ import {
 import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { Result, Schema } from "effect";
 import { readJsonArtifact } from "../../lib/json.ts";
+import { PRIMARY_ROUTE_SPEED_FLOOR } from "../../lib/logical-datasets.ts";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
 
-const DEFAULT_HISTORY_START_MONTH = "2023-04";
+const DEFAULT_HISTORY_START_MONTH = PRIMARY_ROUTE_SPEED_FLOOR;
 
 const SourceMonthCoverageMatrixSchema = Schema.Struct({
   generatedAt: Schema.String,

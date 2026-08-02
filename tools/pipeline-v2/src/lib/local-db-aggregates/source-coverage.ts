@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { PRIMARY_ROUTE_SPEED_FLOOR } from "../logical-datasets.ts";
 
 export type SourceRole =
   | "baseline"
@@ -104,7 +105,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_route_month_trend",
     dateExpression: "month",
     role: "baseline",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-03",
     requireRows: true,
     requiredCoverageColumns: [
@@ -117,7 +118,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_dot_street_permit",
     dateExpression: "COALESCE(issued_work_start_date, permit_issue_date)",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-04",
     geocodeColumn: "physical_id",
     joinTable: "local_context_event",
@@ -130,7 +131,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_nypd_collision",
     dateExpression: "crash_date",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-04",
     geocodeColumn: "physical_id",
     joinTable: "local_context_event",
@@ -143,7 +144,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_ace_violation_summary",
     dateExpression: "month",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-04",
     detectorEligibility: "automatic_primary",
   },
@@ -164,7 +165,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_route_observed_reliability_summary",
     dateExpression: "month",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-05",
     detectorEligibility: "automatic_primary",
   },
@@ -173,7 +174,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_bus_wait_assessment",
     dateExpression: "month",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-03",
     requireRows: true,
     detectorEligibility: "automatic_primary",
@@ -183,7 +184,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_311_service_request",
     dateExpression: "created_date",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-03",
     geocodeColumn: "physical_id",
     joinTable: "local_context_event",
@@ -239,7 +240,7 @@ export const SOURCE_COVERAGE_CONFIGS: readonly SourceConfig[] = [
     tableName: "local_weather_observation",
     dateExpression: "date",
     role: "historical",
-    targetStartMonth: "2023-04",
+    targetStartMonth: PRIMARY_ROUTE_SPEED_FLOOR,
     targetEndMonth: "2026-05",
     detectorEligibility: "manual_review_primary",
     automaticPromotionAllowed: false,

@@ -12,6 +12,7 @@ import { getSocrataSource, type SocrataManifestSource } from "@bp/sources/regist
 import { loadSourceManifestYaml } from "@bp/sources/registry/loaders/bun-yaml";
 import { Effect } from "effect";
 import { writeJson } from "../../lib/json.ts";
+import { PRIMARY_ROUTE_SPEED_FLOOR } from "../../lib/logical-datasets.ts";
 import { defaultArtifactRootPath, fromCliPath, fromRepoRoot } from "../../lib/paths.ts";
 import {
   fetchSoda3RowsForSource,
@@ -68,7 +69,7 @@ export async function runRouteSpeedAvailability(
 
   const now = new Date();
   const currentYear = now.getUTCFullYear();
-  const startYear = opts.startYear ?? currentYear - 1;
+  const startYear = opts.startYear ?? Number(PRIMARY_ROUTE_SPEED_FLOOR.slice(0, 4));
   const endYear = opts.endYear ?? currentYear;
   const minSpeedRoutes = opts.minSpeedRoutes ?? 1;
   const artifactRoot = opts.artifactRoot ?? defaultArtifactRootPath();
@@ -123,7 +124,7 @@ export default defineCommand({
   input: {
     options: Schema.Struct({
       startYear: Schema.optionalKey(arg.positiveInt()).annotate({
-        description: "Start of year range (defaults to last year)",
+        description: "Start of year range (defaults to the logical route-speed registry floor)",
       }),
       endYear: Schema.optionalKey(arg.positiveInt()).annotate({
         description: "End of year range (defaults to current year)",

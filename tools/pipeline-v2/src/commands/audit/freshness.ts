@@ -40,6 +40,7 @@ export type RunFreshnessAuditInputs = {
   readonly print?: boolean | undefined;
   readonly fetcher?: SocrataFetch | undefined;
   readonly manifestText?: string | undefined;
+  readonly candidateManifestPath?: string | undefined;
   readonly descriptors?: readonly FreshnessSourceDescriptor[] | undefined;
   readonly upstreamLatestResolver?: FreshnessLatestResolver | undefined;
   readonly ingestedLatestResolver?: FreshnessLatestResolver | undefined;
@@ -77,7 +78,7 @@ export async function probeFreshnessUpstreamLatest(input: {
   if (probe.kind === "route_speed") {
     const result = await runRouteSpeedAvailability({
       artifactRoot: input.artifactRoot,
-      source: getSocrataSource(input.manifest, input.descriptor.sourceId),
+      source: getSocrataSource(input.manifest, probe.sourceId),
       fetcher: input.fetcher,
     });
     return result.releaseDecision.latestCompleteMonth;
@@ -169,7 +170,7 @@ function printFreshnessLedger(ledger: FreshnessLedger): void {
     ].join("  "),
     ...ledger.rows.map((row) =>
       [
-        row.sourceId.padEnd(38),
+        row.datasetId.padEnd(38),
         row.status.padEnd(8),
         printable(row.upstreamLatest).padEnd(10),
         printable(row.ingestedLatest).padEnd(10),
@@ -190,6 +191,36 @@ export async function runFreshnessAudit(
   const descriptors = input.descriptors ?? FRESHNESS_SOURCE_DESCRIPTORS;
   const outputPath = input.outputPath ?? freshnessLedgerArtifactPath(artifactRoot);
   const checkedAt = input.checkedAt ?? new Date().toISOString();
+  const publishedDatasetCoverage = new Map<
+    string,
+    { end: string | null; gaps: readonly { start: string; end: string }[] }
+  >();
+  if (input.candidateManifestPath !== undefined) {
+    const raw = (await Bun.file(input.candidateManifestPath).json()) as {
+      datasets?: Array<{
+        datasetId?: unknown;
+        coverage?: { end?: unknown; missingIntervals?: unknown };
+      }>;
+    };
+    for (const dataset of raw.datasets ?? []) {
+      if (typeof dataset.datasetId !== "string" || typeof dataset.coverage?.end !== "string") {
+        continue;
+      }
+      const gaps = Array.isArray(dataset.coverage.missingIntervals)
+        ? dataset.coverage.missingIntervals.filter(
+            (gap): gap is { start: string; end: string } =>
+              typeof gap === "object" &&
+              gap !== null &&
+              typeof (gap as { start?: unknown }).start === "string" &&
+              typeof (gap as { end?: unknown }).end === "string",
+          )
+        : [];
+      publishedDatasetCoverage.set(dataset.datasetId, {
+        end: normalizeFreshnessValue(dataset.coverage.end, "month"),
+        gaps,
+      });
+    }
+  }
 
   const [d1Published, mapPublished, upstreamLatest, ingestedLatest] = await Promise.all([
     latestPublishedFreshness(join(exportRoot, "d1"), "export-summary.json"),
@@ -219,6 +250,7 @@ export async function runFreshnessAudit(
       ["map", mapPublished?.coverageEnd ?? null],
       ["none", null],
     ]),
+    publishedDatasetCoverage,
   });
 
   await mkdir(dirname(outputPath), { recursive: true });
@@ -227,12 +259,13 @@ export async function runFreshnessAudit(
 
   if (input.strict) {
     const blocked = ledger.rows.filter(
-      (row) => row.servingCritical && (row.status === "stale" || row.status === "unknown"),
+      (row) =>
+        row.servingCritical && (row.status === "unknown" || row.status.startsWith("behind(")),
     );
     if (blocked.length > 0) {
       throw new Error(
         `Freshness strict gate failed for serving-critical sources: ${blocked
-          .map((row) => `${row.sourceId} (${row.status})`)
+          .map((row) => `${row.datasetId} (${row.status})`)
           .join(", ")}`,
       );
     }
@@ -253,6 +286,9 @@ export default defineCommand({
       output: Schema.optionalKey(Schema.String).annotate({
         description: "Override path for freshness-ledger JSON",
       }),
+      candidateManifest: Schema.optionalKey(Schema.String).annotate({
+        description: "Active candidate manifest for per-dataset published coverage",
+      }),
       strict: arg
         .boolean()
         .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(false)))
@@ -271,6 +307,10 @@ export default defineCommand({
           : fromCliPath(input.options.artifactRoot),
       outputPath:
         input.options.output === undefined ? undefined : fromCliPath(input.options.output),
+      candidateManifestPath:
+        input.options.candidateManifest === undefined
+          ? undefined
+          : fromCliPath(input.options.candidateManifest),
       strict: input.options.strict,
     });
   },

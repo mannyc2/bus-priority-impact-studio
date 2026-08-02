@@ -35,16 +35,17 @@ freshness comparison (upstream available vs locally ingested vs published)
 runs from one read-only CLI with stable exit codes and feeds Plan 100's
 scheduled alarm. Detection never publishes.
 
-## Re-verified anchors (fetched `origin/main@e0c00aaf`, 2026-08-02)
+## Re-verified anchors (fetched `origin/main@bee86124`, 2026-08-02)
 
-- `tools/pipeline-v2/src/lib/freshness-ledger.ts` still models source
+- `tools/pipeline-v2/src/lib/freshness-ledger.ts:40-59` still models source
   descriptors while `knowledge/raw/source_manifest.yaml` splits
   historical/current IDs for speed and ridership — coalesce into logical
   datasets.
 - `tools/pipeline-v2/src/commands/check/route-speed-availability.ts` still
-  derives a default year range; `export/d1-inputs.ts:48` fixes
-  the start at `2023-04`; `backfill/socrata-range.ts` omits core
-  speed/ridership/wait data.
+  derives a default year range at line 71; `export/d1-inputs.ts:48` fixes
+  the start at `2023-04`; `backfill/socrata-range.ts:16-23` omits core
+  speed/ridership/wait data. The repeated fixed floor also remains at
+  `lib/local-db-aggregates/source-coverage.ts:107-242`.
 - `packages/domain/src/studio/shared.ts:32` exposes only one `{start,end}`
   coverage window; route History already renders ridership beyond speed
   coverage — reuse `packages/domain/src/studio/route-capability.ts` and

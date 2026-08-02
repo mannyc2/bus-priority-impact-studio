@@ -18,7 +18,7 @@ const expectedRegistry = {
     "source-coverage",
     "studio-coverage",
   ],
-  backfill: ["bus-observatory-range", "route-ridership-trends", "socrata-range"],
+  backfill: ["bus-observatory-range", "full-history", "route-ridership-trends", "socrata-range"],
   build: [
     "express-bus-capacity-context",
     "express-route-analysis",
@@ -122,7 +122,7 @@ const expectedRegistry = {
 describe("Effect CLI registry", () => {
   test("loads every pipeline command descriptor loudly", async () => {
     const commands = await discoverCommandDescriptors();
-    expect(commands).toHaveLength(106);
+    expect(commands).toHaveLength(107);
     expect(buildCommandRegistrySnapshot(commands)).toEqual(expectedRegistry);
   });
 

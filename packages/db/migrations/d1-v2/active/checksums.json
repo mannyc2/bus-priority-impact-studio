@@ -12,5 +12,6 @@
   "0011_atomic_serving_release_11.sql": "6f0485df6e25cf43ecb933bfad2856563a1a70573f568d06fa9ef2379c675588",
   "0012_atomic_serving_release_12.sql": "fc6ab62ed504021dd319e61b2cbbf263f9df9bb82ec26e578a2ea7ab7558b5a5",
   "0013_atomic_serving_release_13.sql": "cd20efcb3b233b1546fb579bb65a6c5f3199b81d7547ef11fb1809099f52b7c1",
-  "0014_atomic_serving_release_14.sql": "e09a63196e17cf5d741071d7d4787312baec3638e14bbeea5f3988d61595a07c"
+  "0014_atomic_serving_release_14.sql": "e09a63196e17cf5d741071d7d4787312baec3638e14bbeea5f3988d61595a07c",
+  "0015_logical_dataset_coverage.sql": "b527de74fd45377efd28653bf5b77fc03cbf0e42fead7624a3dd35a7ecd8d941"
 }

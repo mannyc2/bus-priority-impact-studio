@@ -504,6 +504,19 @@ export const routeMonthTrend = sqliteTable(
   (table) => [primaryKey({ columns: [table.routeId, table.month] })],
 );
 
+export const routeWaitAssessment = sqliteTable(
+  "route_wait_assessment",
+  {
+    routeId: text("route_id").notNull(),
+    month: text("month").notNull(),
+    assessmentRowCount: integer("assessment_row_count").notNull(),
+    tripsPassingWait: real("trips_passing_wait").notNull(),
+    scheduledTrips: real("scheduled_trips").notNull(),
+    waitAssessment: real("wait_assessment"),
+  },
+  (table) => [primaryKey({ columns: [table.routeId, table.month] })],
+);
+
 export const routeTimelineIndex = sqliteTable(
   "route_timeline_index",
   {

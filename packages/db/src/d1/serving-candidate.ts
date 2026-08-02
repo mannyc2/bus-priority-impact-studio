@@ -134,8 +134,8 @@ export async function registerServingCandidate(
         .prepare(
           `INSERT INTO serving_candidate_dataset(
             candidate_id, dataset_id, grain, coverage_start, coverage_end,
-            source_snapshot_ids_json
-          ) VALUES (?, ?, ?, ?, ?, ?)`,
+            source_snapshot_ids_json, source_ids_json, missing_intervals_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           manifest.candidateId,
@@ -144,6 +144,8 @@ export async function registerServingCandidate(
           dataset.coverage.start,
           dataset.coverage.end,
           JSON.stringify(dataset.sourceSnapshotIds),
+          JSON.stringify(dataset.sourceIds),
+          JSON.stringify(dataset.coverage.missingIntervals),
         ),
     ),
     ...manifest.artifacts.map((artifact) =>

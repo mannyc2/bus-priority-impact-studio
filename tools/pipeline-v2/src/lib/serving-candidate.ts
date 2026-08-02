@@ -23,17 +23,32 @@ export type ServingCandidateArtifactDescriptor = Omit<
   "body"
 >;
 
+type ServingCandidateDatasetInput = Omit<
+  ServingCandidateManifestV1["datasets"][number],
+  "sourceIds" | "coverage"
+> & {
+  readonly sourceIds?: readonly string[] | undefined;
+  readonly coverage: Omit<
+    ServingCandidateManifestV1["datasets"][number]["coverage"],
+    "missingIntervals"
+  > & {
+    readonly missingIntervals?: readonly { start: string; end: string }[] | undefined;
+  };
+};
+
 export type BuildServingCandidateInput = Omit<
   ServingCandidateManifestV1,
-  "candidateId" | "artifacts"
+  "candidateId" | "artifacts" | "datasets"
 > & {
+  datasets: readonly ServingCandidateDatasetInput[];
   artifacts: readonly ServingCandidateArtifactBody[];
 };
 
 export type BuildServingCandidateFromDescriptorsInput = Omit<
   ServingCandidateManifestV1,
-  "candidateId" | "artifacts"
+  "candidateId" | "artifacts" | "datasets"
 > & {
+  datasets: readonly ServingCandidateDatasetInput[];
   artifacts: readonly ServingCandidateArtifactDescriptor[];
 };
 
@@ -163,6 +178,100 @@ export function servingD1ProjectionInventory(
   };
 }
 
+/** Hash an already candidate-scoped v2 projection without relying on legacy tables. */
+export function servingD1ProjectionInventoryFromCandidate(
+  database: Database,
+  candidateId: string,
+): ServingD1ProjectionInventory {
+  const projection = createHash("sha256");
+  const rowCounts: Record<string, number> = {};
+  for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+    const v2Table = `${table}_v2`;
+    const columns = database
+      .query(`PRAGMA table_info(${quotedIdentifier(v2Table)})`)
+      .all() as Array<{
+      name: string;
+      pk: number;
+    }>;
+    if (columns.length === 0) throw new Error(`D1 export is missing ${v2Table}.`);
+    const payloadColumns = columns.filter((column) => column.name !== "candidate_id");
+    const orderColumns = payloadColumns
+      .filter((column) => column.pk > 0)
+      .toSorted((left, right) => left.pk - right.pk);
+    const order = (orderColumns.length === 0 ? payloadColumns : orderColumns)
+      .map((column) => quotedIdentifier(column.name))
+      .join(", ");
+    const names = payloadColumns.map((column) => quotedIdentifier(column.name)).join(", ");
+    const rows = database
+      .query(
+        `SELECT ${names} FROM ${quotedIdentifier(v2Table)} WHERE candidate_id = ? ORDER BY ${order}`,
+      )
+      .all(candidateId) as Array<Record<string, unknown>>;
+    rowCounts[table] = rows.length;
+    for (const row of rows) projection.update(`${canonicalServingJson({ table, row })}\n`);
+  }
+  const exactRows = database
+    .query(
+      `SELECT projection_sha256 AS projectionSha256, exact_route_count AS routeCount
+       FROM exact_route_identity_release_v2 WHERE candidate_id = ?`,
+    )
+    .all(candidateId) as Array<{ projectionSha256: string; routeCount: number }>;
+  const exact = exactRows[0];
+  if (exactRows.length !== 1 || exact === undefined) {
+    throw new Error(`Candidate ${candidateId} has no unique exact-route identity row.`);
+  }
+  return {
+    projectionSha256: projection.digest("hex"),
+    rowCounts,
+    exactIdentityProjectionSha256: exact.projectionSha256,
+    exactIdentityRouteCount: exact.routeCount,
+  };
+}
+
+/** Re-render complete candidate-scoped rows under a newly derived candidate ID. */
+export function renderServingD1CandidateSeedFromCandidate(
+  database: Database,
+  sourceCandidateId: string,
+  targetCandidateId: string,
+): string {
+  for (const value of [sourceCandidateId, targetCandidateId]) {
+    if (!/^[a-f0-9]{64}$/u.test(value)) throw new Error("Candidate seed requires SHA-256 IDs.");
+  }
+  const statements: string[] = [];
+  for (const table of D1_CANDIDATE_PROJECTION_TABLES) {
+    const v2Table = `${table}_v2`;
+    const columns = database
+      .query(`PRAGMA table_info(${quotedIdentifier(v2Table)})`)
+      .all() as Array<{
+      name: string;
+      pk: number;
+    }>;
+    const payloadColumns = columns.filter((column) => column.name !== "candidate_id");
+    const orderColumns = payloadColumns
+      .filter((column) => column.pk > 0)
+      .toSorted((left, right) => left.pk - right.pk);
+    const order = (orderColumns.length === 0 ? payloadColumns : orderColumns)
+      .map((column) => quotedIdentifier(column.name))
+      .join(", ");
+    const names = payloadColumns.map((column) => quotedIdentifier(column.name)).join(", ");
+    const rows = database
+      .query(
+        `SELECT ${names} FROM ${quotedIdentifier(v2Table)} WHERE candidate_id = ? ORDER BY ${order}`,
+      )
+      .all(sourceCandidateId) as Array<Record<string, unknown>>;
+    statements.push(
+      `delete from ${quotedIdentifier(v2Table)} where "candidate_id" = '${targetCandidateId}';`,
+    );
+    for (const row of rows) {
+      const values = payloadColumns.map((column) => servingSqlValue(row[column.name])).join(", ");
+      statements.push(
+        `insert into ${quotedIdentifier(v2Table)} (${names}, "candidate_id") values (${values}, '${targetCandidateId}');`,
+      );
+    }
+  }
+  return `${statements.join("\n")}\n`;
+}
+
 function servingSqlValue(value: unknown): string {
   if (value === null) return "NULL";
   if (typeof value === "string") return `'${value.replaceAll("'", "''")}'`;
@@ -271,7 +380,14 @@ export function buildServingCandidateFromDescriptors(
   const datasets = [...input.datasets]
     .map((dataset) => ({
       ...dataset,
+      sourceIds: [...(dataset.sourceIds ?? [])].toSorted(),
       sourceSnapshotIds: [...dataset.sourceSnapshotIds].toSorted(),
+      coverage: {
+        ...dataset.coverage,
+        missingIntervals: [...(dataset.coverage.missingIntervals ?? [])].toSorted((left, right) =>
+          `${left.start}\u0000${left.end}`.localeCompare(`${right.start}\u0000${right.end}`),
+        ),
+      },
     }))
     .toSorted((left, right) => left.datasetId.localeCompare(right.datasetId));
   const d1 = {

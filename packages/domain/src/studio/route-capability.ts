@@ -82,6 +82,11 @@ export function freshnessReferenceMonth(nowIso: string): string {
 export const RouteSurfaceDepthSchema = Schema.Struct({
   monthsCovered: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   grains: Schema.Array(Schema.String),
+  coverageStart: Schema.optionalKey(Schema.NullOr(MonthSchema)),
+  coverageEnd: Schema.optionalKey(Schema.NullOr(MonthSchema)),
+  missingIntervals: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ start: MonthSchema, end: MonthSchema })),
+  ),
 });
 export type RouteSurfaceDepth = typeof RouteSurfaceDepthSchema.Type;
 

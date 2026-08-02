@@ -77,6 +77,7 @@ export const D1_SERVING_TABLE_OWNERSHIP = {
     "Post-coverage source status is refreshed independently of immutable releases.",
   ),
   route_month_trend: generated("Reviewed route history projection."),
+  route_wait_assessment: generated("Reviewed full-history route wait-assessment projection."),
   route_timeline_index: generated("Reviewed route timeline projection."),
   route_speed_history_coverage: generated("Reviewed route-speed artifact coverage projection."),
   source_month_coverage: generated("Reviewed source coverage ledger projection."),

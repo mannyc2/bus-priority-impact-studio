@@ -251,7 +251,8 @@ function datasetCoverage(
     {
       datasetId: "reviewed-serving",
       grain: "month" as const,
-      coverage: reviewedServing.coverage,
+      coverage: { ...reviewedServing.coverage, missingIntervals: [] },
+      sourceIds: [],
       sourceSnapshotIds: [reviewedServing.releaseId],
     },
     ...freshness.datasets.map((dataset) => {
@@ -265,7 +266,9 @@ function datasetCoverage(
         coverage: {
           start: dataset.sourceId === "bus_segment_speeds_2025" ? "2023-04" : null,
           end: coverageEnd,
+          missingIntervals: [],
         },
+        sourceIds: [dataset.sourceId],
         sourceSnapshotIds: [
           dataset.evidence.rowsSha256,
           ...(dataset.evidence.sourceSnapshotSha256 === null

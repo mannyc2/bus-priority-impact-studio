@@ -98,25 +98,25 @@ describe("audit freshness", () => {
     });
 
     expect(ledger.publishedAt).toBe("2026-07-01T00:00:00.000Z");
-    expect(ledger.rows.map((row) => [row.sourceId, row.status])).toEqual([
-      ["stale_source", "stale"],
+    expect(ledger.rows.map((row) => [row.datasetId, row.status])).toEqual([
+      ["stale_source", "behind(4)"],
       ["unknown_source", "unknown"],
-      ["recent_source", "recent"],
+      ["recent_source", "behind(2)"],
       ["current_source", "current"],
     ]);
-    expect(ledger.rows.find((row) => row.sourceId === "current_source")).toMatchObject({
+    expect(ledger.rows.find((row) => row.datasetId === "current_source")).toMatchObject({
       ingestLagMonths: 0,
       publishLagMonths: 0,
     });
-    expect(ledger.rows.find((row) => row.sourceId === "recent_source")).toMatchObject({
+    expect(ledger.rows.find((row) => row.datasetId === "recent_source")).toMatchObject({
       ingestLagMonths: 2,
       publishLagMonths: 0,
     });
-    expect(ledger.rows.find((row) => row.sourceId === "stale_source")).toMatchObject({
+    expect(ledger.rows.find((row) => row.datasetId === "stale_source")).toMatchObject({
       ingestLagMonths: 4,
       publishLagMonths: 0,
     });
-    expect(ledger.rows.find((row) => row.sourceId === "unknown_source")).toMatchObject({
+    expect(ledger.rows.find((row) => row.datasetId === "unknown_source")).toMatchObject({
       upstreamLatest: null,
       ingestLagMonths: null,
       publishLagMonths: null,
@@ -143,7 +143,7 @@ describe("audit freshness", () => {
     ).rejects.toThrow("stale_source");
 
     const knownCriticalDescriptors = descriptors.filter(
-      (candidate) => !["stale_source", "unknown_source"].includes(candidate.sourceId),
+      (candidate) => candidate.sourceId === "current_source",
     );
     const ledger = await runFreshnessAudit({
       artifactRoot: paths.artifactRoot,
@@ -156,9 +156,9 @@ describe("audit freshness", () => {
       strict: true,
       print: false,
     });
-    expect(ledger.rows.every((row) => row.status !== "unknown" && row.status !== "stale")).toBe(
-      true,
-    );
+    expect(
+      ledger.rows.every((row) => row.status !== "unknown" && !row.status.startsWith("behind(")),
+    ).toBe(true);
 
     await expect(
       runFreshnessAudit({

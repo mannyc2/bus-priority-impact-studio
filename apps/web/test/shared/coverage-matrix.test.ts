@@ -99,4 +99,32 @@ describe("coverage matrix", () => {
     expect(coverageLatestSurfaceDataAsOf(manifest, ["reliability"])).toBeNull();
     expect(coverageLatestSurfaceDataAsOf(null, ["condition"])).toBeNull();
   });
+
+  test("renders each dataset range and middle gaps without implying continuity", () => {
+    const rows = coverageRows(
+      capability({
+        speedHistory: surface("partial", {
+          monthsCovered: 35,
+          grains: ["route_month"],
+          coverageStart: "2023-04",
+          coverageEnd: "2026-04",
+          missingIntervals: [{ start: "2024-02", end: "2024-03" }],
+        }),
+        ridership: surface("ready", {
+          monthsCovered: 51,
+          grains: ["route_month"],
+          coverageStart: "2020-01",
+          coverageEnd: "2026-03",
+          missingIntervals: [],
+        }),
+      }),
+    );
+
+    expect(rows.find((row) => row.key === "speedHistory")?.depthLabel).toBe(
+      "35 months / 2023-04–2026-04 / route_month / 1 gap: 2024-02–2024-03",
+    );
+    expect(rows.find((row) => row.key === "ridership")?.depthLabel).toBe(
+      "51 months / 2020-01–2026-03 / route_month",
+    );
+  });
 });

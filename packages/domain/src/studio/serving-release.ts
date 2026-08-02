@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { CanonicalPublishedAtSchema, ReleaseIdSchema } from "./shared.js";
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
@@ -24,13 +24,30 @@ export const ServingCandidateBuilderSchema = Schema.Struct({
   version: Schema.NonEmptyString,
 });
 
+export const ServingCoverageIntervalSchema = Schema.Struct({
+  start: Schema.NonEmptyString,
+  end: Schema.NonEmptyString,
+}).check(
+  Schema.makeFilter((interval) =>
+    interval.start <= interval.end
+      ? []
+      : [{ path: [], issue: "Coverage interval start cannot be later than its end." }],
+  ),
+);
+
 export const ServingCandidateDatasetSchema = Schema.Struct({
   datasetId: ServingDatasetIdSchema,
   grain: Schema.Literals(["month", "day", "snapshot", "realtime"]),
   coverage: Schema.Struct({
     start: Schema.NullOr(Schema.String),
     end: Schema.NonEmptyString,
+    missingIntervals: Schema.Array(ServingCoverageIntervalSchema).pipe(
+      Schema.withDecodingDefaultType(Effect.succeed([])),
+    ),
   }),
+  sourceIds: Schema.Array(Schema.NonEmptyString).pipe(
+    Schema.withDecodingDefaultType(Effect.succeed([])),
+  ),
   sourceSnapshotIds: Schema.Array(Schema.NonEmptyString),
 });
 
@@ -76,7 +93,15 @@ function duplicateValues(values: readonly string[]): string[] {
 }
 
 function candidateManifestIssues(candidate: {
-  datasets: readonly { datasetId: string; coverage: { start: string | null; end: string } }[];
+  datasets: readonly {
+    datasetId: string;
+    coverage: {
+      start: string | null;
+      end: string;
+      missingIntervals: readonly { start: string; end: string }[];
+    };
+    sourceIds: readonly string[];
+  }[];
   artifacts: readonly {
     logicalId: string;
     key: string;
@@ -96,6 +121,23 @@ function candidateManifestIssues(candidate: {
         path: ["datasets", dataset.datasetId, "coverage"],
         issue: "Dataset coverage start cannot be later than its end.",
       });
+    }
+    for (const duplicate of duplicateValues(dataset.sourceIds)) {
+      issues.push({
+        path: ["datasets", dataset.datasetId, "sourceIds"],
+        issue: `Duplicate source ID ${duplicate}.`,
+      });
+    }
+    for (const gap of dataset.coverage.missingIntervals) {
+      if (
+        (dataset.coverage.start !== null && gap.start < dataset.coverage.start) ||
+        gap.end > dataset.coverage.end
+      ) {
+        issues.push({
+          path: ["datasets", dataset.datasetId, "coverage", "missingIntervals"],
+          issue: "Missing interval must be contained by the dataset coverage bounds.",
+        });
+      }
     }
   }
   for (const duplicate of duplicateValues(
@@ -191,7 +233,14 @@ export function servingCandidateSemanticPayload(
     datasets: [...semantic.datasets]
       .map((dataset) => ({
         ...dataset,
+        sourceIds: [...dataset.sourceIds].toSorted(),
         sourceSnapshotIds: [...dataset.sourceSnapshotIds].toSorted(),
+        coverage: {
+          ...dataset.coverage,
+          missingIntervals: [...dataset.coverage.missingIntervals].toSorted((left, right) =>
+            `${left.start}\u0000${left.end}`.localeCompare(`${right.start}\u0000${right.end}`),
+          ),
+        },
       }))
       .toSorted((left, right) => left.datasetId.localeCompare(right.datasetId)),
     artifacts: [...semantic.artifacts].toSorted((left, right) =>

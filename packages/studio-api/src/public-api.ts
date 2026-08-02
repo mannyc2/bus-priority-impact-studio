@@ -211,6 +211,12 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
   const db = createD1ServingDb(env.DB);
   const currentSignalDb = createD1ServingDb(env.SERVING_UNSCOPED_DB ?? env.DB);
   const pointed = env.SERVING_RELEASE_CONTEXT !== undefined;
+  const datasets =
+    env.SERVING_RELEASE_CONTEXT?.candidate.datasets.map((dataset) => ({
+      datasetId: dataset.datasetId,
+      grain: dataset.grain,
+      coverage: dataset.coverage,
+    })) ?? [];
   const release = await resolvePublicServingRelease(db, env);
   if (release === null) {
     return errorJson(503, NO_PUBLISHED_SERVING_DATA_MESSAGE);
@@ -264,6 +270,7 @@ async function buildReleaseStatusResponse(env: StudioApiEnv): Promise<Response> 
       schemaVersion: 1,
       generatedAt: batchStatus.generatedAt,
       ...release,
+      datasets,
       currentSignalMonth: currentObservedSignal?.month ?? null,
       release: {
         ...release,

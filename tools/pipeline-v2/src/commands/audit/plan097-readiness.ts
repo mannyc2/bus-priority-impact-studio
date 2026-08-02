@@ -121,7 +121,9 @@ export async function runPlan097ReadinessAudit(input: {
   const routeSpeedAvailability = decodeStrict(RouteSpeedAvailabilityResultSchema)(
     await Bun.file(input.routeSpeedAvailabilityPath).json(),
   );
-  const ledgerBySource = new Map(freshness.rows.map((row) => [row.sourceId, row]));
+  const ledgerBySource = new Map(
+    freshness.rows.flatMap((row) => row.sourceIds.map((sourceId) => [sourceId, row] as const)),
+  );
   const selectedPartitions = new Map<string, string | null>([
     ["bus_segment_speeds_2025", routeSpeedAvailability.releaseDecision.latestCompleteMonth],
     ...(["bus_hourly_ridership_2025", "bus_wait_assessment", "ace_violations"] as const).map(

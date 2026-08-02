@@ -467,6 +467,18 @@ export const StudioRouteHistoryPointSchema = Schema.Struct({
   transfers: Schema.NullOr(Schema.Number),
   hasSpeedTrend: Schema.Boolean,
   hasRidershipTrend: Schema.Boolean,
+  waitAssessment: Schema.optionalKey(Schema.NullOr(Schema.Number)).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed(null)),
+  ),
+  waitTripsPassing: Schema.optionalKey(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed(0)),
+  ),
+  waitScheduledTrips: Schema.optionalKey(
+    Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
+  ).pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
+  hasWaitAssessment: Schema.optionalKey(Schema.Boolean).pipe(
+    Schema.withDecodingDefaultTypeKey(Effect.succeed(false)),
+  ),
 });
 
 export const StudioRouteHistoryCoverageSchema = Schema.Struct({
@@ -475,6 +487,43 @@ export const StudioRouteHistoryCoverageSchema = Schema.Struct({
   pointCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   speedMonthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
   ridershipMonthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+  datasets: Schema.optionalKey(
+    Schema.Struct({
+      speed: Schema.Struct({
+        startMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        endMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        missingIntervals: Schema.Array(
+          Schema.Struct({
+            start: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+            end: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+          }),
+        ),
+      }),
+      ridership: Schema.Struct({
+        startMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        endMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        missingIntervals: Schema.Array(
+          Schema.Struct({
+            start: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+            end: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+          }),
+        ),
+      }),
+      waitAssessment: Schema.Struct({
+        startMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        endMonth: Schema.NullOr(Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/))),
+        monthCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
+        missingIntervals: Schema.Array(
+          Schema.Struct({
+            start: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+            end: Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}$/)),
+          }),
+        ),
+      }),
+    }),
+  ),
 });
 
 export const StudioRouteHistoryResponseSchema = Schema.Struct({
