@@ -1,3 +1,4 @@
+error: Can't create the symlink for multishells at "/run/user/1000/fnm_multishells/6_1785697529634". Maybe there are some issues with permissions for the directory? Read-only file system (os error 30)
 import { describe, expect, test } from "bun:test";
 
 const forbiddenRuntimeImports = [
@@ -271,6 +272,31 @@ describe("production boundary harness", () => {
     expect(workflow).toContain("rollback-gen17-catchup-production.ts");
     expect(workflow).toContain("steps.finalize.outcome != 'success'");
     expect(workflow).toContain("workers/services/bus-priority-plan098-operator");
+  });
+
+  test("the scheduled freshness alarm is advisory and can only reconcile its bot-owned issue", async () => {
+    const workflow = await Bun.file(".github/workflows/data-freshness.yml").text();
+    const actionUses = [...workflow.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)/gmu)].map(
+      (match) => match[1],
+    );
+
+    expect(workflow).toContain("schedule:");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).toContain("contents: read");
+    expect(workflow).toContain("issues: write");
+    expect(workflow).toContain("audit freshness-alarm");
+    expect(workflow).toContain("<!-- bp-data-freshness-alarm:v1 -->");
+    expect(workflow).toContain('.user.login == "github-actions[bot]"');
+    expect(workflow).toContain('if [[ "$count" -gt 1 ]]');
+    expect(workflow).not.toContain("secrets.");
+    expect(workflow).not.toContain("CLOUDFLARE");
+    expect(workflow).not.toContain("wrangler");
+    expect(workflow).not.toContain("--execute");
+    expect(workflow).not.toMatch(/\bpublish\s+(?:serving-release|recovery|r2-artifacts)\b/u);
+    expect(actionUses).toHaveLength(3);
+    for (const action of actionUses) {
+      expect(action).toMatch(/^[a-z0-9_.-]+\/[a-z0-9_.-]+@[a-f0-9]{40}$/u);
+    }
   });
 
   test("Plan 097 keeps production mutation behind the protected atomic transport", async () => {

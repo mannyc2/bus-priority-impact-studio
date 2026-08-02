@@ -58,13 +58,15 @@ function publishedAt(
   return d1.publishedAt >= map.publishedAt ? d1.publishedAt : map.publishedAt;
 }
 
-async function sourceManifest(manifestText: string | undefined): Promise<SourceManifest> {
+export async function loadFreshnessSourceManifest(
+  manifestText: string | undefined,
+): Promise<SourceManifest> {
   const text =
     manifestText ?? (await Bun.file(fromRepoRoot("knowledge/raw/source_manifest.yaml")).text());
   return loadSourceManifestYaml(text);
 }
 
-async function defaultUpstreamLatestResolver(input: {
+export async function probeFreshnessUpstreamLatest(input: {
   readonly descriptor: FreshnessSourceDescriptor;
   readonly manifest: SourceManifest;
   readonly artifactRoot: string;
@@ -107,9 +109,9 @@ async function resolveUpstreamLatest(input: {
     return values;
   }
 
-  const manifest = await sourceManifest(input.manifestText);
+  const manifest = await loadFreshnessSourceManifest(input.manifestText);
   for (const descriptor of input.descriptors) {
-    const value = await defaultUpstreamLatestResolver({
+    const value = await probeFreshnessUpstreamLatest({
       descriptor,
       manifest,
       artifactRoot: input.artifactRoot,

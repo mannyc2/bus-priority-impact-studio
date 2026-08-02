@@ -1,3 +1,4 @@
+error: Can't create the symlink for multishells at "/run/user/1000/fnm_multishells/6_1785697529127". Maybe there are some issues with permissions for the directory? Read-only file system (os error 30)
 # Implementation Plans
 
 This is the execution index for numbered implementation plans. Each plan
@@ -269,7 +270,7 @@ it via selective serving-data recovery rather than replacing the database;
 | 097 | Safe production catch-up without migration forgery | P0 | M-L | 085-087, 095 (DONE) | DONE (2026-07-26; production serves `pub_20260725T164123260Z`, 375 exact routes; no rollback invoked) |
 | 098 | Atomic serving releases with immutable artifacts | P0 | XL | 097 | DONE (2026-08-02; Candidate B active at generation 4 after production rollback drill) |
 | 099 | Full dataset history and honest per-dataset coverage (kernel) | P2 | M-L | backfill: none; serving ships through normal publication | TODO |
-| 100 | One publish state machine and scheduled freshness alarm (kernel) | P1 | S-M | publisher: 098; alarm: advisory ledger | TODO |
+| 100 | One publish state machine and scheduled freshness alarm (kernel) | P1 | S-M | publisher: catch-up active; alarm: advisory ledger | IN PROGRESS (alarm locally implemented/live-read verified; normal publisher pending catch-up receipt) |
 | 101 | Deterministic artifacts, verified skip, de-month vestige sweep (kernel) | P1 steps 1-2; P2 rest | M | steps 1-2: none; sweep: 098 active and 099/100 complete | IN PROGRESS (steps 1-2 locally verified; catch-up remote proof and steps 3-5 pending) |
 
 ## Notes (gen 17)

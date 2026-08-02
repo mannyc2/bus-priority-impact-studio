@@ -1,14 +1,18 @@
+error: Can't create the symlink for multishells at "/run/user/1000/fnm_multishells/6_1785697528830". Maybe there are some issues with permissions for the directory? Read-only file system (os error 30)
 # Plan 100: One publish command and a scheduled freshness alarm
 
 ## Status
 
-- **State**: TODO
+- **State**: IN PROGRESS — the scheduled advisory alarm is implemented and
+  live-read verified; the reusable normal publisher follows the catch-up
+  activation and its real receipt
 - **Priority**: P1
 - **Effort**: S-M
 - **Depends on**: steps 1-4 and 6: Plan 098 active; step 5 (the alarm) has no
   dependency beyond the existing advisory freshness command and may land first
 - **Original audit base**: `origin/main@ecf556a79e23b4b9374d08210a380754756f357b`
   (2026-07-22). Re-verify cited anchors against current main.
+- **Re-anchored base**: `origin/main@7bd35a3b778b8a45071f6d557e3d175c377c2560`
 - **Suggested branch**: `codex/100-publication-control-plane`
 
 ## Descope provenance (2026-08-02)
@@ -130,6 +134,15 @@ workflow has no serving credentials: it cannot stage, publish, migrate, or
 touch the pointer. It must not create one issue per day or close a
 human-authored issue.
 
+Implemented on 2026-08-02 as `audit freshness-alarm` and
+`.github/workflows/data-freshness.yml`. The command strict-decodes public
+status, reuses the cheap upstream probes without a local corpus, emits
+canonical report bytes and a deterministic marker-owned issue body, and keeps
+unavailable evidence explicitly `not_assessed`. The action is commit-pinned,
+least-privilege, contains no Cloudflare secret or publish command, and refuses
+multiple owned issues. A live read selected `attention` for the then-active
+generation-4 release; no issue API mutation was performed during local proof.
+
 ### 6. Generalize the protected-main continuation and rewrite the runbook
 
 `scripts/publish-serving-release.sh` becomes a thin error pointing at the new
@@ -185,8 +198,9 @@ remotely; one drift marker maps to one issue.
       rows, creates no release, and does not move the pointer.
 - [ ] Production schema changes flow only through the v2 wrapper; the harness
       scan forbids remote SQL bypasses.
-- [ ] The scheduled alarm maintains exactly one deduplicated issue and has no
-      publish capability.
+- [x] The scheduled alarm maintains exactly one deduplicated issue and has no
+      publish capability; a real scheduled/manual Actions receipt remains part
+      of final Plan 100 completion.
 - [ ] The shell script is a deprecation error and the runbook matches the
       real command sequence.
 
@@ -197,7 +211,9 @@ bun --filter @bp/pipeline-v2 test
 bun --filter @bp/db test
 bun run test:worker
 bun --filter @bp/db db:migrate:d1:v2:local
-bun run check:types
+bun --filter @bp/pipeline-v2 typecheck
+bun --filter @bp/db typecheck
+bun --filter @bp/web typecheck
 bun run check:architecture
 ```
 
