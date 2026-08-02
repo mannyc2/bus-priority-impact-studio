@@ -340,6 +340,11 @@ describe("production boundary harness", () => {
     const workerFiles = await readFiles("apps/web/src/worker");
 
     expect(workflow).not.toMatch(/wrangler d1 execute[^\n]*--file/);
+    expect(workflow).toContain("JOIN serving_release AS release ON release.release_id = active.release_id");
+    expect(workflow).toContain("dataset.dataset_id = 'reviewed-serving'");
+    expect(workflow).not.toContain(
+      "SELECT batch.generated_at AS 'publishedAt', (SELECT MIN(month) FROM route_month_trend",
+    );
     expect(productionWrangler).toContain('"PLAN097_RECOVERY_ENABLED": "true"');
     expect(productionWrangler).toContain('"binding": "CF_VERSION_METADATA"');
     expect(productionWrangler).toContain('"preview_urls": false');

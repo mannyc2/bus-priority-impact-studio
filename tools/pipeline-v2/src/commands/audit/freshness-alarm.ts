@@ -25,6 +25,7 @@ import {
 const COMMAND = "audit.freshness-alarm";
 const DEFAULT_STATUS_URL =
   "https://bus-priority-impact-studio.c20carroll.workers.dev/api/v1/status";
+const DEFAULT_PROBE_TIMEOUT_MS = 45_000;
 
 export type RunFreshnessAlarmInputs = {
   readonly publicStatusUrl?: string | undefined;
@@ -37,7 +38,34 @@ export type RunFreshnessAlarmInputs = {
   readonly upstreamLatestResolver?: FreshnessLatestResolver | undefined;
   readonly releaseResolver?: (() => Promise<FreshnessAlarmRelease>) | undefined;
   readonly fetcher?: SocrataFetch | undefined;
+  readonly probeTimeoutMs?: number | undefined;
 };
+
+async function resolveAdvisoryProbe(input: {
+  readonly descriptor: FreshnessSourceDescriptor;
+  readonly resolve: () => Promise<string | null> | string | null;
+  readonly timeoutMs: number;
+}): Promise<readonly [string, string | null]> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const latest = await Promise.race([
+      Promise.resolve().then(input.resolve),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error(`Freshness probe timed out for ${input.descriptor.sourceId}.`)),
+          input.timeoutMs,
+        );
+      }),
+    ]);
+    return [input.descriptor.sourceId, latest] as const;
+  } catch {
+    // A failed advisory probe becomes an attention row without persisting
+    // provider diagnostics, request bodies, or credentials in the report.
+    return [input.descriptor.sourceId, null] as const;
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
 
 async function fetchPublicRelease(
   url: string,
@@ -66,28 +94,34 @@ export async function runFreshnessAlarm(
     input.upstreamLatestResolver === undefined
       ? await loadFreshnessSourceManifest(input.manifestText)
       : undefined;
-  const upstreamLatest = new Map<string, string | null>();
-  for (const descriptor of descriptors) {
-    let latest: string | null = null;
-    try {
-      if (input.upstreamLatestResolver !== undefined) {
-        latest = await input.upstreamLatestResolver(descriptor);
-      } else {
-        if (manifest === undefined) throw new Error("Freshness source manifest is unavailable.");
-        latest = await probeFreshnessUpstreamLatest({
-          descriptor,
-          manifest,
-          artifactRoot,
-          fetcher: input.fetcher,
-        });
-      }
-    } catch {
-      // A failed advisory probe becomes an attention row without persisting
-      // provider diagnostics, request bodies, or credentials in the report.
-      latest = null;
-    }
-    upstreamLatest.set(descriptor.sourceId, latest);
+  const probeTimeoutMs = input.probeTimeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
+  if (!Number.isFinite(probeTimeoutMs) || probeTimeoutMs <= 0) {
+    throw new Error("Freshness probe timeout must be a positive number of milliseconds.");
   }
+  const upstreamLatest = new Map(
+    await Promise.all(
+      descriptors.map((descriptor) =>
+        resolveAdvisoryProbe({
+          descriptor,
+          timeoutMs: probeTimeoutMs,
+          resolve: () => {
+            if (input.upstreamLatestResolver !== undefined) {
+              return input.upstreamLatestResolver(descriptor);
+            }
+            if (manifest === undefined) {
+              throw new Error("Freshness source manifest is unavailable.");
+            }
+            return probeFreshnessUpstreamLatest({
+              descriptor,
+              manifest,
+              artifactRoot,
+              fetcher: input.fetcher,
+            });
+          },
+        }),
+      ),
+    ),
+  );
   const release = await (input.releaseResolver?.() ??
     fetchPublicRelease(input.publicStatusUrl ?? DEFAULT_STATUS_URL));
   const report = decodeSchemaStrict(
