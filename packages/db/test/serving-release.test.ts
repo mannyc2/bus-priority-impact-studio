@@ -14,6 +14,7 @@ import {
 } from "../src/d1/serving-candidate.js";
 import {
   activateServingRelease,
+  failPreparedServingActivationIntent,
   resolveActiveServingRelease,
   ServingReleaseResolutionError,
 } from "../src/d1/serving-release.js";
@@ -291,6 +292,57 @@ describe("Plan 098 serving release pointer", () => {
       database.query("SELECT COUNT(*) AS count FROM serving_release").get() as { count: number },
     ).toEqual({ count: 2 });
     expect(protectedSentinels(database)).toBe(sentinelsBefore);
+  });
+
+  test("terminally fails only an uncommitted prepared activation intent", async () => {
+    const database = await migratedDatabase();
+    const d1 = asD1(database);
+    const candidateA = hash("1");
+    const candidateB = hash("2");
+    const manifestA = hash("3");
+    const manifestB = hash("4");
+    stageReadyCandidate(database, candidateA, manifestA);
+    stageReadyCandidate(database, candidateB, manifestB);
+    const releaseA = release(candidateA, "2026-08-01T20:00:00.000Z", "2026-08-01T20:00:00.000Z");
+    const releaseB = release(candidateB, "2026-08-01T20:00:00.001Z", "2026-08-01T20:00:00.001Z");
+    await activateServingRelease(d1, {
+      operationId: "activate-a",
+      expectedReleaseId: null,
+      expectedGeneration: 0,
+      release: releaseA,
+      manifestSha256: manifestA,
+    });
+    await expect(
+      activateServingRelease(d1, {
+        operationId: "activate-b-wrong-manifest",
+        expectedReleaseId: releaseA.releaseId,
+        expectedGeneration: 1,
+        release: releaseB,
+        manifestSha256: hash("9"),
+      }),
+    ).rejects.toThrow("serving activation intent is invalid");
+
+    expect(
+      database
+        .query("SELECT state FROM serving_activation_intent WHERE operation_id = ?")
+        .get("activate-b-wrong-manifest"),
+    ).toEqual({ state: "prepared" });
+    await expect(
+      failPreparedServingActivationIntent(d1, "activate-b-wrong-manifest"),
+    ).resolves.toEqual({ operationId: "activate-b-wrong-manifest", outcome: "failed" });
+    await expect(
+      failPreparedServingActivationIntent(d1, "activate-b-wrong-manifest"),
+    ).resolves.toEqual({ operationId: "activate-b-wrong-manifest", outcome: "already_failed" });
+    await expect(failPreparedServingActivationIntent(d1, "missing-intent")).resolves.toEqual({
+      operationId: "missing-intent",
+      outcome: "absent",
+    });
+    await expect(failPreparedServingActivationIntent(d1, "activate-a")).rejects.toThrow(
+      "cannot be marked failed",
+    );
+    const context = await resolveActiveServingRelease(d1);
+    expect(context.kind).toBe("pointed");
+    expect(context.generation).toBe(1);
   });
 
   test("makes ready candidate metadata and projection rows immutable", async () => {

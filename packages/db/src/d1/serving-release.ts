@@ -296,6 +296,11 @@ export type ServingPointerTransition = {
   committedAt: string;
 };
 
+export type ServingActivationIntentFailure = {
+  operationId: string;
+  outcome: "absent" | "failed" | "already_failed";
+};
+
 type TransitionRow = {
   operationId: string;
   fromReleaseId: string | null;
@@ -339,6 +344,63 @@ async function findTransition(
     )
     .bind(operationId)
     .first<TransitionRow>();
+}
+
+/** Terminally closes a prepared intent that never changed the active pointer. */
+export async function failPreparedServingActivationIntent(
+  database: D1Database,
+  operationId: string,
+): Promise<ServingActivationIntentFailure> {
+  const intent = await database
+    .prepare(
+      `SELECT
+        intent.state,
+        EXISTS(
+          SELECT 1 FROM serving_pointer_transition AS transition
+          WHERE transition.operation_id = intent.operation_id
+        ) AS transitioned,
+        EXISTS(
+          SELECT 1 FROM serving_active_release AS active
+          WHERE active.last_operation_id = intent.operation_id
+        ) AS active
+      FROM serving_activation_intent AS intent
+      WHERE intent.operation_id = ?`,
+    )
+    .bind(operationId)
+    .first<{ state: "prepared" | "committed" | "failed"; transitioned: number; active: number }>();
+  if (intent === null) return { operationId, outcome: "absent" };
+  if (intent.state === "failed") return { operationId, outcome: "already_failed" };
+  if (intent.state !== "prepared" || intent.transitioned !== 0 || intent.active !== 0) {
+    throw new ServingReleaseResolutionError(
+      "operation_collision",
+      "A committed or active serving intent cannot be marked failed.",
+    );
+  }
+  const failed = await database
+    .prepare(
+      `UPDATE serving_activation_intent
+      SET state = 'failed'
+      WHERE operation_id = ?
+        AND state = 'prepared'
+        AND NOT EXISTS(
+          SELECT 1 FROM serving_pointer_transition
+          WHERE operation_id = ?
+        )
+        AND NOT EXISTS(
+          SELECT 1 FROM serving_active_release
+          WHERE last_operation_id = ?
+        )
+      RETURNING operation_id AS operationId`,
+    )
+    .bind(operationId, operationId, operationId)
+    .first<{ operationId: string }>();
+  if (failed?.operationId !== operationId) {
+    throw new ServingReleaseResolutionError(
+      "stale_pointer",
+      "Serving intent changed before it could be marked failed.",
+    );
+  }
+  return { operationId, outcome: "failed" };
 }
 
 export async function activateServingRelease(

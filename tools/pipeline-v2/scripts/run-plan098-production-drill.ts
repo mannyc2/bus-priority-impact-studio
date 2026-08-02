@@ -54,7 +54,11 @@ type PointerStatus =
 
 type CandidateStatus = {
   candidateId: string;
-  candidate: { state: "staging" | "ready" | "rejected" } | null;
+  candidate: {
+    state: "staging" | "ready" | "rejected";
+    manifestKey: string;
+    manifestSha256: string;
+  } | null;
   artifacts: { total: number; verified: number };
   releases: Array<{ releaseId: string; publishedAt: string; activatedAt: string }>;
 };
@@ -116,6 +120,26 @@ async function main(): Promise<void> {
     operatorJson<CandidateStatus>({ action: "candidate-status", candidateId });
   const pointerStatus = () => operatorJson<PointerStatus>({ action: "status" });
   const phaseReceipts: unknown[] = [];
+
+  const registeredManifest = async (
+    name: "a" | "b",
+    candidateId: string,
+    expectedArtifactCount: number,
+  ) => {
+    const status = await candidateStatus(candidateId);
+    if (
+      status.candidate?.state !== "ready" ||
+      !/^[0-9a-f]{64}$/u.test(status.candidate.manifestSha256) ||
+      status.artifacts.total !== expectedArtifactCount ||
+      status.artifacts.verified !== status.artifacts.total
+    ) {
+      throw new Error(`Candidate ${name} registered manifest is not exactly ready.`);
+    }
+    return {
+      manifestKey: status.candidate.manifestKey,
+      manifestSha256: status.candidate.manifestSha256,
+    };
+  };
 
   const recordReceipt = async (operationId: string, receiptKind: string, receipt: unknown) => {
     const result = await operatorJson({
@@ -301,6 +325,16 @@ async function main(): Promise<void> {
 
   let pointer = await pointerStatus();
   const startingGeneration = pointer.generation;
+  const supersededRollbackIntent =
+    pointer.generation === 2
+      ? await operatorJson<{
+          operationId: string;
+          outcome: "absent" | "failed" | "already_failed";
+        }>({
+          action: "fail-prepared-intent",
+          operationId: `plan098-rollback-a-${manifestB.candidateId.slice(0, 16)}`,
+        })
+      : null;
   if (pointer.generation === 0) {
     await stageCandidate({
       name: "a",
@@ -331,7 +365,9 @@ async function main(): Promise<void> {
         publishedAt: "2026-07-25T16:41:23.260Z",
         activatedAt: now(),
       },
-      manifestSha256: stagePlan.candidateA.manifestSha256,
+      manifestSha256: (
+        await registeredManifest("a", manifestA.candidateId, stagePlan.candidateA.artifactCount)
+      ).manifestSha256,
     });
     await smoke("adopt-a", stagePlan.baselineReleaseId, manifestA.candidateId);
     pointer = await pointerStatus();
@@ -359,7 +395,9 @@ async function main(): Promise<void> {
         publishedAt,
         activatedAt: publishedAt,
       },
-      manifestSha256: stagePlan.candidateB.manifestSha256,
+      manifestSha256: (
+        await registeredManifest("b", manifestB.candidateId, stagePlan.candidateB.artifactCount)
+      ).manifestSha256,
     });
     await smoke("activate-b", releaseId, manifestB.candidateId);
     pointer = await pointerStatus();
@@ -367,13 +405,17 @@ async function main(): Promise<void> {
   const candidateBStatus = await candidateStatus(manifestB.candidateId);
   const releaseB = candidateBStatus.releases[0];
   if (releaseB === undefined) throw new Error("Candidate B has no immutable release event.");
+  const [registeredManifestA, registeredManifestB] = await Promise.all([
+    registeredManifest("a", manifestA.candidateId, stagePlan.candidateA.artifactCount),
+    registeredManifest("b", manifestB.candidateId, stagePlan.candidateB.artifactCount),
+  ]);
   if (pointer.generation === 2 && startingGeneration === 2) {
     await smoke("activate-b-resume", releaseB.releaseId, manifestB.candidateId);
   }
   if (pointer.generation === 2) {
     await operatorJson({
       action: "activate",
-      operationId: `plan098-rollback-a-${manifestB.candidateId.slice(0, 16)}`,
+      operationId: `plan098-rollback-a-r${registeredManifestA.manifestSha256.slice(0, 16)}`,
       expectedReleaseId: releaseB.releaseId,
       expectedGeneration: 2,
       release: {
@@ -383,7 +425,7 @@ async function main(): Promise<void> {
         publishedAt: "2026-07-25T16:41:23.260Z",
         activatedAt: now(),
       },
-      manifestSha256: stagePlan.candidateA.manifestSha256,
+      manifestSha256: registeredManifestA.manifestSha256,
     });
     await smoke("rollback-a", stagePlan.baselineReleaseId, manifestA.candidateId);
     pointer = await pointerStatus();
@@ -394,7 +436,7 @@ async function main(): Promise<void> {
   if (pointer.generation === 3) {
     await operatorJson({
       action: "activate",
-      operationId: `plan098-reactivate-b-${manifestB.candidateId.slice(0, 16)}`,
+      operationId: `plan098-reactivate-b-r${registeredManifestB.manifestSha256.slice(0, 16)}`,
       expectedReleaseId: stagePlan.baselineReleaseId,
       expectedGeneration: 3,
       release: {
@@ -404,10 +446,13 @@ async function main(): Promise<void> {
         publishedAt: releaseB.publishedAt,
         activatedAt: now(),
       },
-      manifestSha256: stagePlan.candidateB.manifestSha256,
+      manifestSha256: registeredManifestB.manifestSha256,
     });
     await smoke("reactivate-b", releaseB.releaseId, manifestB.candidateId);
     pointer = await pointerStatus();
+  }
+  if (pointer.generation === 4 && startingGeneration === 4) {
+    await smoke("reactivate-b-resume", releaseB.releaseId, manifestB.candidateId);
   }
   if (
     pointer.generation !== 4 ||
@@ -430,9 +475,10 @@ async function main(): Promise<void> {
     schemaVersion: 1,
     completedAt: now(),
     pointer,
-    candidateA: stagePlan.candidateA,
-    candidateB: stagePlan.candidateB,
+    candidateA: { ...stagePlan.candidateA, registeredManifest: registeredManifestA },
+    candidateB: { ...stagePlan.candidateB, registeredManifest: registeredManifestB },
     releaseB,
+    supersededRollbackIntent,
     protectedFingerprints: fingerprintsAfter,
     phaseReceipts,
   };
