@@ -2,10 +2,9 @@
 
 ## Status
 
-- **State**: IN PROGRESS — the scheduled advisory alarm is implemented and
-  live-read verified; the generation-5 catch-up receipt is verified and the
-  reusable normal publisher is locally implemented pending protected-main
-  no-op proof
+- **State**: DONE (2026-08-02) — protected-main publication, semantic no-op,
+  durable receipt/resume, bounded scheduled alarm, zero-traffic Worker proof,
+  and production smoke all have real Actions receipts
 - **Priority**: P1
 - **Effort**: S-M
 - **Depends on**: steps 1-4 and 6: Plan 098 active; step 5 (the alarm) has no
@@ -13,6 +12,7 @@
 - **Original audit base**: `origin/main@ecf556a79e23b4b9374d08210a380754756f357b`
   (2026-07-22). Re-verify cited anchors against current main.
 - **Re-anchored base**: `origin/main@7bd35a3b778b8a45071f6d557e3d175c377c2560`
+- **Completion base**: `origin/main@259b426f4695c570cf51ea8368c77a13c9c16d66`
 - **Suggested branch**: `codex/100-publication-control-plane`
 
 ## Descope provenance (2026-08-02)
@@ -142,6 +142,11 @@ unavailable evidence explicitly `not_assessed`. The action is commit-pinned,
 least-privilege, contains no Cloudflare secret or publish command, and refuses
 multiple owned issues. A live read selected `attention` for the then-active
 generation-4 release; no issue API mutation was performed during local proof.
+Production run `30764716896` then completed in one minute against generation 5,
+opened the single marker-owned issue #154, and uploaded a canonical report with
+SHA-256 `0318e61a9f7e5ae133041d9d2fd0ca8b36e56965b5d3f0031792aea59a8502e5`.
+Provider requests run concurrently, actively abort after 45 seconds, and become
+honest unavailable rows instead of holding the scheduled job indefinitely.
 
 ### 6. Generalize the protected-main continuation and rewrite the runbook
 
@@ -188,21 +193,46 @@ remotely; one drift marker maps to one issue.
 
 ## Acceptance criteria
 
-- [ ] One state machine owns validation, migrations, staging, verification,
+- [x] One state machine owns validation, migrations, staging, verification,
       activation (last, CAS), smoke, receipt, resume, and rollback across the
       local prepare and protected-main continuation profiles.
-- [ ] A plain durable receipt binds candidate, resources, stage evidence, and
+- [x] A plain durable receipt binds candidate, resources, stage evidence, and
       pointer generations; resume refuses drift and never repeats verified
       writes.
-- [ ] A semantic no-change run uploads zero content bytes, writes no serving
+- [x] A semantic no-change run uploads zero content bytes, writes no serving
       rows, creates no release, and does not move the pointer.
-- [ ] Production schema changes flow only through the v2 wrapper; the harness
+- [x] Production schema changes flow only through the v2 wrapper; the harness
       scan forbids remote SQL bypasses.
 - [x] The scheduled alarm maintains exactly one deduplicated issue and has no
       publish capability; a real scheduled/manual Actions receipt remains part
       of final Plan 100 completion.
 - [x] The shell script is a deprecation error and the runbook matches the
       real command sequence.
+
+## Production completion evidence (2026-08-02)
+
+- Protected publication run `30763938747`, on merge commit
+  `4b9c7c6e4ee5fb731a8c47a7b8243afc3971c051`, strict-verified preparation
+  SHA-256 `afdffe7fb571f879bf5972e6918e26ad2d6324c7e0179c9ddb2eda3251c477e9`
+  and classified the already-active candidate as `no_op` before migration or
+  data writes. Production remained generation 5 on release
+  `pub_20260802T191030413Z`; no content blob, serving row, release, or pointer
+  mutation occurred. The only remote write was the required durable operations
+  receipt at
+  `serving/operations/serving-publication-afa266944bc3e85d13c0-6/completion.fb6d63633bd01c69135972dfe7f38618724403b7e6d4c1eb0ea1d1021504ae08.json`.
+  Downloaded state bytes independently verified as
+  `4b75472f38cdbb73d0892bc02ab05b160dd28bcd5b76b4034d41a951682f6839`.
+- Freshness run `30764716896` reconciled exactly one bot-owned issue (#154).
+  Downloaded report and issue hashes independently verified as
+  `0318e61a9f7e5ae133041d9d2fd0ca8b36e56965b5d3f0031792aea59a8502e5`
+  and `bd8f3981516323ce5994c5c5884c4eb6a86645cd8d187dc0ef2eb3cd47795ba8`.
+- Protected-main run `30765086626` audited the active candidate-scoped v2
+  projection, staged Worker version `ae183f22-e2c4-43b2-84a6-12fc3adb0c8b`
+  at zero traffic, proved the exact version, promoted it, proved ordinary
+  traffic, and passed the postdeploy D1/public smoke. Rollback was not invoked.
+  The independently hashed deploy and production-smoke receipts are
+  `cc524bacd1ddffa58324d48770b8de53aa6589536babad800124bace0eacb376`
+  and `49fa29944a4c741571457a8e5686d09435e463ba96eed23de6b359c12960c35d`.
 
 ## Verification
 

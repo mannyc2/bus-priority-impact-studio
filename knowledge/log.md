@@ -10129,3 +10129,38 @@ An independent live status read reproduced smoke digest
 and reported the exact generation-5 release. This is the remote proof for Plan
 101 steps 1-2; the final de-month vestige sweep remains last after Plans 100
 and 099.
+
+## [2026-08-02] operations | Plan 100 protected publisher and freshness alarm complete
+
+Plan 100 is complete on protected main. Publication workflow run `30763938747`
+strict-verified preparation receipt
+`afdffe7fb571f879bf5972e6918e26ad2d6324c7e0179c9ddb2eda3251c477e9`,
+classified candidate
+`afa266944bc3e85d13c0ffd3c9a012acd9e2d9f01d965942d7ebf3b805f82ccf`
+as a semantic no-op before migrations or candidate data writes, and left the
+generation-5 pointer and release `pub_20260802T191030413Z` unchanged. It wrote
+only the required content-addressed operations receipt, SHA-256
+`fb6d63633bd01c69135972dfe7f38618724403b7e6d4c1eb0ea1d1021504ae08`,
+under operation `serving-publication-afa266944bc3e85d13c0-6`; downloaded state
+bytes independently verified as
+`4b75472f38cdbb73d0892bc02ab05b160dd28bcd5b76b4034d41a951682f6839`.
+The temporary operator was removed and returned 404 afterward.
+
+The first two read-only alarm attempts (`30763997216`, `30764458131`) were
+cancelled without issue or receipt after exposing sequential/unbounded provider
+latency and then a non-aborting promise timeout. The final implementation runs
+probes concurrently and actively aborts provider fetches after 45 seconds.
+Run `30764716896` completed in one minute, opened the single marker-owned bot
+issue #154, and uploaded independently verified report and issue hashes
+`0318e61a9f7e5ae133041d9d2fd0ca8b36e56965b5d3f0031792aea59a8502e5`
+and `bd8f3981516323ce5994c5c5884c4eb6a86645cd8d187dc0ef2eb3cd47795ba8`.
+The alarm has no Cloudflare credential and cannot publish.
+
+Protected-main deployment run `30765086626` then audited the active
+candidate-scoped v2 serving projection, staged Worker version
+`ae183f22-e2c4-43b2-84a6-12fc3adb0c8b` at zero traffic, proved the exact
+version, promoted it, proved ordinary traffic, and passed postdeploy D1 and
+public smoke. Rollback was not invoked. Downloaded deploy and smoke receipt
+SHA-256 values are
+`cc524bacd1ddffa58324d48770b8de53aa6589536babad800124bace0eacb376` and
+`49fa29944a4c741571457a8e5686d09435e463ba96eed23de6b359c12960c35d`.
