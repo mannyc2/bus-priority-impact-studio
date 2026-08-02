@@ -6,10 +6,8 @@ import {
   type RouteCapabilityInputRow,
   type RouteCapabilitySourceStatus,
 } from "@bp/analytics/evaluation";
-import { decodePreserve } from "@bp/domain/decode";
 import { STUDIO_ROUTE_CAPABILITY_MANIFEST_KEY } from "@bp/domain/studio";
 import type { CoverageWindow } from "@bp/domain/studio/shared";
-import { Effect, Schema } from "effect";
 import type { D1CanonicalInputs } from "./d1-inputs";
 
 /**
@@ -19,91 +17,7 @@ import type { D1CanonicalInputs } from "./d1-inputs";
  * The pure state machine lives in `@bp/analytics/evaluation`; this module is the join.
  */
 
-// Reliability-family detectors — their readiness drives the `reliability` surface.
-const RELIABILITY_DETECTOR_IDS = new Set(["observed_reliability", "headway_reliability_ewt"]);
-
-const DetectorCountsSchema = Schema.Struct({
-  public_finding_candidate: Schema.Number.check(Schema.isInt())
-    .check(Schema.isGreaterThanOrEqualTo(0))
-    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
-  route_context: Schema.Number.check(Schema.isInt())
-    .check(Schema.isGreaterThanOrEqualTo(0))
-    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
-  review_queue: Schema.Number.check(Schema.isInt())
-    .check(Schema.isGreaterThanOrEqualTo(0))
-    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
-  suppressed: Schema.Number.check(Schema.isInt())
-    .check(Schema.isGreaterThanOrEqualTo(0))
-    .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(0))),
-});
-
-const DetectorReadinessRouteSummariesSchema = Schema.Struct({
-  releaseMonth: Schema.String.check(Schema.isMinLength(1)),
-  routes: Schema.Array(
-    Schema.Struct({
-      routeId: Schema.String.check(Schema.isMinLength(1)),
-      counts: DetectorCountsSchema,
-      byDetector: Schema.Record(Schema.String, DetectorCountsSchema).pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed({})),
-      ),
-      sourceMonths: Schema.Array(Schema.Struct({ month: Schema.String })).pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
-      ),
-      caveats: Schema.Array(Schema.String).pipe(
-        Schema.withDecodingDefaultTypeKey(Effect.succeed([])),
-      ),
-    }),
-  ),
-});
-
 export type DetectorReadinessRouteSummary = RouteCapabilityInputRow["detector"];
-
-export async function readDetectorReadinessRouteSummaries(input: {
-  manifestPath?: string | undefined;
-  month: string;
-}): Promise<Map<string, DetectorReadinessRouteSummary>> {
-  const summaries = new Map<string, DetectorReadinessRouteSummary>();
-  if (input.manifestPath === undefined) return summaries;
-  const file = Bun.file(input.manifestPath);
-  if (!(await file.exists())) return summaries;
-
-  const manifest = decodePreserve(DetectorReadinessRouteSummariesSchema)(
-    JSON.parse(await file.text()),
-  );
-  const manifestMonth = manifest.releaseMonth;
-  if (manifest.releaseMonth > input.month) {
-    throw new Error(
-      `Detector readiness manifest month ${manifestMonth} is later than export month ${input.month}.`,
-    );
-  }
-  const compatibilityCaveat =
-    manifestMonth < input.month
-      ? `Detector readiness data is from ${manifestMonth}; release coverage ends ${input.month}.`
-      : undefined;
-
-  for (const route of manifest.routes) {
-    let reliabilityFindingCount = 0;
-    let reliabilityContextCount = 0;
-    for (const [detectorId, counts] of Object.entries(route.byDetector)) {
-      if (!RELIABILITY_DETECTOR_IDS.has(detectorId)) continue;
-      reliabilityFindingCount += counts.public_finding_candidate;
-      reliabilityContextCount += counts.route_context;
-    }
-    summaries.set(route.routeId, {
-      present: true,
-      findingCandidateCount: route.counts.public_finding_candidate,
-      contextCount: route.counts.route_context,
-      reviewQueueCount: route.counts.review_queue,
-      suppressedCount: route.counts.suppressed,
-      reliabilityFindingCount,
-      reliabilityContextCount,
-      months: [...new Set(route.sourceMonths.map((entry) => entry.month))].sort(),
-      caveats:
-        compatibilityCaveat === undefined ? route.caveats : [...route.caveats, compatibilityCaveat],
-    });
-  }
-  return summaries;
-}
 
 const ABSENT_DETECTOR: DetectorReadinessRouteSummary = {
   present: false,

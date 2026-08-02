@@ -373,8 +373,8 @@ rollback receipt, and stops failed. Candidate bytes and D1 rows are retained for
 never overwrites them. Any candidate, receipt, resource, migration, or pointer drift is a STOP that
 requires a new reviewed operation.
 
-The legacy `scripts/publish-serving-release.sh` is a deliberate error message and has no remote
-execution path.
+The retired month-selected shell publisher has been deleted. The protected publication workflow is
+the only production serving-release mutation path.
 
 ## Route intervention inventory export and publish
 
@@ -463,19 +463,19 @@ For local Worker testing, seed the complete Studio tree recursively:
 bun run seed:local-studio-r2
 ```
 
-For remote publication, the generic publisher already walks the full `studio` prefix recursively.
-Dry-run it as part of release review; the month selects the coordinated release partition rather
-than inventory identity:
+For remote publication, include these objects in the reviewed candidate manifest and preparation
+receipt. The publisher enumerates that manifest only; it never recursively walks a local prefix:
 
 ```bash
-bun run pipeline publish r2-artifacts \
-  --month <coverage-end-YYYY-MM> \
-  --bucket bus-priority-artifacts \
-  --dry-run
+bun --filter @bp/pipeline-v2 cli -- publish serving-release \
+  --candidate-root <candidate-root> \
+  --repo-sha <reviewed-main-sha> \
+  --workerd-parity \
+  --output <publication-preparation.json>
 ```
 
-Use the normal reviewed `publish:serving-release --execute` flow for the actual coordinated remote
-mutation.
+Dispatch the protected `.github/workflows/publication.yml` workflow with the exact reviewed packet
+values for the coordinated remote mutation.
 
 If a new consumer literal is unmapped, stop the publish, run `--check-vocabulary`, and add an
 explicit reviewed disposition plus fixture; never add a catch-all. A producer `unresolved` record
@@ -676,10 +676,10 @@ bun run plan:source-refresh -- --start-year 2026 --end-year 2026 --year <YYYY> -
 bun run finalize:pipeline-v1 -- --year <YYYY> --month <M> --run-id <matching-gtfs-rt-run-id>
 bun run check:pipeline-v1 -- --year <YYYY> --month <M>
 bun run pipeline map release --year <YYYY> --month <M> --context-source <reviewed-borough-boundary.csv>
-bun run publish:serving-release -- --month <YYYY-MM> --d1 bus-priority-serving --r2 bus-priority-artifacts
+bun --filter @bp/pipeline-v2 cli -- publish serving-release --candidate-root <candidate-root> --repo-sha <reviewed-main-sha> --workerd-parity --output <publication-preparation.json>
 ```
 
-Only run the final publish with `--execute` after QA passes and the new month is approved.
+Only dispatch and approve `.github/workflows/publication.yml` after QA and candidate review pass.
 
 After publication, confirm `/api/v1/status` reports the new `releaseId`, `publishedAt`, and coverage
 window. Data publication does not require a Worker month variable or a code redeploy.
@@ -690,7 +690,8 @@ The deployed serving and capture path is smoke-proven when all of these are true
 
 1. `apps/web/wrangler.jsonc` or deployment environment contains real `DB`, `ARTIFACTS`, and `GTFS_RT_RAW` bindings.
 2. `MTA_BUS_TIME_API_KEY` is set as a Worker secret.
-3. `publish:serving-release --execute` has loaded D1 and uploaded R2 artifacts.
+3. The protected publication workflow has loaded candidate-scoped D1 rows, verified R2 objects,
+   and recorded a durable activation or no-op receipt.
 4. Deployed `/api/v1/status`, `/api/v1/routes`, and `/api/v1/map/manifest` return real production payloads.
 5. Scheduled capture writes GTFS-RT protobuf and manifest objects to `GTFS_RT_RAW`.
 6. `pull:gtfs-rt-r2-run --execute` mirrors a real deployed capture run.

@@ -22,7 +22,7 @@ describe("Plan 098 serving decode policy", () => {
     expect(
       SERVING_DECODE_POLICY_INVENTORY.filter((entry) => entry.disposition === "corrupt_fail_closed")
         .length,
-    ).toBe(9);
+    ).toBe(10);
   });
 
   test("allows legacy degradation only without a resolved pointer", () => {
@@ -67,9 +67,10 @@ describe("Plan 098 serving decode policy", () => {
   });
 
   test("keeps the server, D1, locator, and browser boundaries fail closed", async () => {
-    const [handlers, pointer, resolver, browser] = await Promise.all([
+    const [handlers, pointer, requestContext, resolver, browser] = await Promise.all([
       Bun.file(new URL("../src/studio/read-handlers.ts", import.meta.url)).text(),
       Bun.file(new URL("../../db/src/d1/serving-release.ts", import.meta.url)).text(),
+      Bun.file(new URL("../src/serving-request-context.ts", import.meta.url)).text(),
       Bun.file(new URL("../src/artifact-resolver.ts", import.meta.url)).text(),
       Bun.file(new URL("../../../apps/web/src/studio/api-client.ts", import.meta.url)).text(),
     ]);
@@ -77,6 +78,9 @@ describe("Plan 098 serving decode policy", () => {
       handlers.match(/servingArtifactCorruptionOrLegacyAbsence/g)?.length ?? 0,
     ).toBeGreaterThan(10);
     expect(pointer).toContain('new ServingReleaseResolutionError("catalog_corrupt"');
+    expect(requestContext).toContain('"active_pointer_required"');
+    expect(requestContext).not.toContain("SERVING_POINTER_ENABLED");
+    expect(requestContext).not.toContain("bounded legacy resolver");
     expect(resolver).toContain("metadataSha256 !== artifact.sha256");
     expect(browser).toContain('status: "integrity_mismatch"');
     expect(browser).toContain('status: "invalid_contract"');

@@ -22,6 +22,7 @@ import {
   StudioSnapshotResponseSchema,
 } from "@bp/domain/studio/snapshots";
 import { handleStudioApiRequest, type StudioApiEnv } from "@bp/studio-api/server";
+import { handlePreparedStudioApiRequest } from "../src/api.js";
 
 type D1Value = string | number | boolean | null;
 
@@ -1311,7 +1312,10 @@ function createSparseStudioRouteDb(
 }
 
 async function fetchApi(path: string, env: StudioApiEnv = {}): Promise<Response> {
-  const response = await handleStudioApiRequest(new Request(`https://example.test${path}`), env);
+  const response = await handlePreparedStudioApiRequest(
+    new Request(`https://example.test${path}`),
+    { context: null, env },
+  );
   if (response === null) {
     throw new Error(`Expected API response for ${path}`);
   }

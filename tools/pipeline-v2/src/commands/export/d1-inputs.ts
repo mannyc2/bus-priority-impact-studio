@@ -1,10 +1,6 @@
 import type { Database } from "bun:sqlite";
-import { createHash } from "node:crypto";
-import type { Dirent } from "node:fs";
-import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { RouteSpeedSpineReadiness } from "@bp/analytics/feature-history";
-import type { D1RouteTimelineIndexInput } from "@bp/db/d1/seed";
 import {
   getRouteBatchStatus,
   type LocalPipelineDb,
@@ -35,13 +31,12 @@ import {
   listRouteReliabilityGapWindows,
   listRouteScorecards,
 } from "@bp/db/local";
-import { decodeEitherPreserve, decodePreserve } from "@bp/domain/decode";
+import { decodePreserve } from "@bp/domain/decode";
 import {
   STUDIO_ROUTE_EVIDENCE_ARTIFACT_NAME,
   StudioRouteEvidenceIndexSchema,
 } from "@bp/domain/studio/route-evidence";
-import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
-import { Result, Schema } from "effect";
+import { Schema } from "effect";
 import { readJsonArtifact } from "../../lib/json.ts";
 import { PRIMARY_ROUTE_SPEED_FLOOR } from "../../lib/logical-datasets.ts";
 import { defaultArtifactRootPath } from "../../lib/paths.ts";
@@ -72,98 +67,6 @@ const SourceMonthCoverageMatrixSchema = Schema.Struct({
   ),
 });
 
-const RouteTimelineSupportLevelSchema = Schema.Literals([
-  "timeline_ready",
-  "timeline_sparse",
-  "timeline_review_only",
-  "invalid",
-]);
-
-const RouteTimelineServingProjectionSchema = Schema.Struct({
-  releaseMonth: Schema.String,
-  generatedAt: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
-  routeTimelineIndexRows: Schema.Array(
-    Schema.Struct({
-      routeId: Schema.String.check(Schema.isMinLength(1)),
-      month: Schema.String.check(Schema.isMinLength(1)),
-      supportLevel: RouteTimelineSupportLevelSchema,
-      qualityFlags: Schema.Array(Schema.String),
-      defaultEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      secondaryEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      reviewOnlyEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      eventCount: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-      sourceBackedEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      dateAssertionBackedEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      unresolvedDateEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      lowConfidenceEventCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      unaccountedCandidateCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      validationErrorCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      validationWarningCount: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      totalTokens: Schema.NullOr(
-        Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-      ),
-      defaultEvents: Schema.Array(Schema.Unknown),
-      bundleArtifactKey: Schema.String.check(Schema.isMinLength(1)),
-      bundleArtifactSha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
-      bundleArtifactByteLength: Schema.Number.check(Schema.isInt()).check(
-        Schema.isGreaterThanOrEqualTo(0),
-      ),
-      sourceBundlePath: Schema.String.check(Schema.isMinLength(1)),
-      generatedAt: Schema.String.check(Schema.isMinLength(1)),
-    }),
-  ),
-  routeArtifactRows: Schema.Array(
-    Schema.Struct({
-      routeId: Schema.String.check(Schema.isMinLength(1)),
-      month: Schema.String.check(Schema.isMinLength(1)),
-      artifactName: Schema.String.check(Schema.isMinLength(1)),
-      artifactKey: Schema.String.check(Schema.isMinLength(1)),
-      contentType: Schema.String.check(Schema.isMinLength(1)),
-      byteLength: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-      sha256: Schema.String.check(Schema.isLengthBetween(64, 64)),
-    }),
-  ),
-});
-
-const DetectorReadinessServingManifestSchema = Schema.Struct({
-  artifactKind: Schema.Literal("detector_readiness_serving_manifest"),
-  schemaVersion: Schema.Literal(1),
-  releaseMonth: Schema.String.check(Schema.isMinLength(1)),
-  routes: Schema.Array(
-    Schema.Struct({
-      routeId: Schema.String.check(Schema.isMinLength(1)),
-      counts: Schema.Struct({
-        public_finding_candidate: Schema.Number.check(Schema.isInt()).check(
-          Schema.isGreaterThanOrEqualTo(0),
-        ),
-        route_context: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-        review_queue: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-        suppressed: Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)),
-      }),
-    }),
-  ),
-});
-
 export type D1CanonicalInputs = Awaited<ReturnType<typeof readLocalD1Inputs>>;
 export type D1AppendixInputs = Awaited<ReturnType<typeof readLocalD1AppendixInputs>>;
 
@@ -171,8 +74,6 @@ type ReadLocalD1InputOptions = {
   sqlite?: Database | undefined;
   artifactRoot?: string | undefined;
   historyStartMonth?: string | undefined;
-  routeTimelineProjectionPath?: string | undefined;
-  detectorReadinessManifestPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
 };
 
@@ -416,159 +317,12 @@ function completeInterventionEventsForComparisons(
   );
 }
 
-async function readRouteTimelineProjectionRows(input: {
-  projectionPath?: string | undefined;
-  artifactRoot: string;
-  month: string;
-}): Promise<{
-  routeTimelineIndex: D1RouteTimelineIndexInput[];
-  routeArtifacts: RouteArtifactLike[];
-}> {
-  const projectionPath =
-    input.projectionPath ??
-    (await findDefaultRouteTimelineProjectionPath({
-      artifactRoot: input.artifactRoot,
-      month: input.month,
-    }));
-  if (projectionPath === undefined) {
-    return { routeTimelineIndex: [], routeArtifacts: [] };
-  }
-  const file = Bun.file(projectionPath);
-  if (!(await file.exists())) {
-    throw new Error(`Route timeline serving projection not found: ${projectionPath}`);
-  }
-  const projection = decodePreserve(RouteTimelineServingProjectionSchema)(await file.json());
-  if (projection.releaseMonth !== input.month) {
-    throw new Error(
-      `Route timeline serving projection month ${projection.releaseMonth} does not match export month ${input.month}.`,
-    );
-  }
-  const offMonthTimelineRow = projection.routeTimelineIndexRows.find(
-    (row) => row.month !== input.month,
-  );
-  if (offMonthTimelineRow !== undefined) {
-    throw new Error(
-      `Route timeline index row ${offMonthTimelineRow.routeId} has month ${offMonthTimelineRow.month}, expected ${input.month}.`,
-    );
-  }
-  const offMonthArtifactRow = projection.routeArtifactRows.find((row) => row.month !== input.month);
-  if (offMonthArtifactRow !== undefined) {
-    throw new Error(
-      `Route timeline artifact row ${offMonthArtifactRow.routeId} has month ${offMonthArtifactRow.month}, expected ${input.month}.`,
-    );
-  }
-  return {
-    routeTimelineIndex: projection.routeTimelineIndexRows.map((row) => ({
-      ...row,
-      qualityFlags: [...row.qualityFlags],
-      defaultEvents: [...row.defaultEvents],
-    })),
-    routeArtifacts: [...projection.routeArtifactRows],
-  };
-}
-
-async function findFilesNamed(root: string, fileName: string): Promise<string[]> {
-  let entries: Dirent<string>[];
-  try {
-    entries = await readdir(root, { withFileTypes: true });
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") return [];
-    throw error;
-  }
-
-  const files: string[] = [];
-  for (const entry of entries) {
-    const path = join(root, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await findFilesNamed(path, fileName)));
-      continue;
-    }
-    if (entry.isFile() && entry.name === fileName) {
-      files.push(path);
-    }
-  }
-  return files;
-}
-
-async function findDefaultRouteTimelineProjectionPath(input: {
-  artifactRoot: string;
-  month: string;
-}): Promise<string | undefined> {
-  const candidates = await findFilesNamed(
-    join(input.artifactRoot, "docs"),
-    "route-timeline-serving-projection.json",
-  );
-  const matching: Array<{ path: string; generatedAt: string }> = [];
-  for (const path of candidates) {
-    const projection = decodeEitherPreserve(RouteTimelineServingProjectionSchema)(
-      await Bun.file(path).json(),
-    );
-    if (Result.isFailure(projection) || projection.success.releaseMonth !== input.month) continue;
-    matching.push({
-      path,
-      generatedAt: projection.success.generatedAt ?? "",
-    });
-  }
-  return matching.sort(
-    (left, right) =>
-      right.generatedAt.localeCompare(left.generatedAt) || right.path.localeCompare(left.path),
-  )[0]?.path;
-}
-
-async function readDetectorReadinessManifestRouteArtifacts(input: {
-  manifestPath?: string | undefined;
-  month: string;
-}): Promise<{ routeArtifacts: RouteArtifactLike[]; manifestAvailable: boolean }> {
-  if (input.manifestPath === undefined) {
-    return { routeArtifacts: [], manifestAvailable: false };
-  }
-
-  const file = Bun.file(input.manifestPath);
-  if (!(await file.exists())) {
-    return { routeArtifacts: [], manifestAvailable: false };
-  }
-
-  const body = await file.text();
-  const manifest = decodePreserve(DetectorReadinessServingManifestSchema)(JSON.parse(body));
-  const manifestMonth = manifest.releaseMonth;
-  if (manifest.releaseMonth > input.month) {
-    throw new Error(
-      `Detector readiness serving manifest month ${manifestMonth} is later than export month ${input.month}.`,
-    );
-  }
-
-  const byteLength = new TextEncoder().encode(body).byteLength;
-  const sha256 = createHash("sha256").update(body).digest("hex");
-  const routeArtifacts = manifest.routes
-    .filter(
-      (route) =>
-        route.counts.public_finding_candidate > 0 ||
-        route.counts.route_context > 0 ||
-        route.counts.review_queue > 0 ||
-        route.counts.suppressed > 0,
-    )
-    .map(
-      (route): RouteArtifactLike => ({
-        routeId: route.routeId,
-        month: manifestMonth,
-        artifactName: "detector_readiness_manifest",
-        artifactKey: STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY,
-        contentType: "application/json",
-        byteLength,
-        sha256,
-      }),
-    );
-
-  return { routeArtifacts, manifestAvailable: true };
-}
-
 async function readRouteEvidenceIndexRouteArtifacts(input: {
   indexPath?: string | undefined;
-  artifactRoot: string;
   month: string;
 }): Promise<{ routeArtifacts: RouteArtifactLike[]; indexAvailable: boolean }> {
-  const indexPath =
-    input.indexPath ?? join(input.artifactRoot, "studio", "v2", "wiki", "index.json");
+  const indexPath = input.indexPath;
+  if (indexPath === undefined) return { routeArtifacts: [], indexAvailable: false };
   const file = Bun.file(indexPath);
   if (!(await file.exists())) {
     return { routeArtifacts: [], indexAvailable: false };
@@ -596,9 +350,6 @@ export async function readLocalD1Inputs(
   month: string,
   options: ReadLocalD1InputOptions = {},
 ) {
-  const readLegacyRouteTimelineProjection =
-    options.routeEvidenceIndexPath === undefined ||
-    options.routeTimelineProjectionPath !== undefined;
   const [
     routeCatalog,
     routeCoverage,
@@ -628,8 +379,6 @@ export async function readLocalD1Inputs(
     routeBatchBuiltRoutes,
     routeBatchIssues,
     sourceMonthCoverage,
-    routeTimelineProjection,
-    detectorReadinessManifest,
     routeEvidenceIndex,
   ] = await Promise.all([
     listRouteCatalog(db),
@@ -664,20 +413,8 @@ export async function readLocalD1Inputs(
       historyStartMonth: options.historyStartMonth ?? DEFAULT_HISTORY_START_MONTH,
       releaseMonth: month,
     }),
-    readLegacyRouteTimelineProjection
-      ? readRouteTimelineProjectionRows({
-          projectionPath: options.routeTimelineProjectionPath,
-          artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
-          month,
-        })
-      : Promise.resolve({ routeTimelineIndex: [], routeArtifacts: [] }),
-    readDetectorReadinessManifestRouteArtifacts({
-      manifestPath: options.detectorReadinessManifestPath,
-      month,
-    }),
     readRouteEvidenceIndexRouteArtifacts({
       indexPath: options.routeEvidenceIndexPath,
-      artifactRoot: options.artifactRoot ?? defaultArtifactRootPath(),
       month,
     }),
   ]);
@@ -696,11 +433,7 @@ export async function readLocalD1Inputs(
       routeInterventionComparisons,
     ),
     routeInterventionComparisons,
-    routeArtifacts: mergeRouteArtifacts(routeArtifacts, [
-      ...routeTimelineProjection.routeArtifacts,
-      ...detectorReadinessManifest.routeArtifacts,
-      ...routeEvidenceIndex.routeArtifacts,
-    ]),
+    routeArtifacts: mergeRouteArtifacts(routeArtifacts, routeEvidenceIndex.routeArtifacts),
     corridors,
     corridorArtifacts,
     corridorRouteMembers,
@@ -709,7 +442,7 @@ export async function readLocalD1Inputs(
     corridorHotspots,
     routeMonthSourceStatuses,
     routeMonthTrends,
-    routeTimelineIndex: routeTimelineProjection.routeTimelineIndex,
+    routeTimelineIndex: [],
     routeEquityContext,
     routeScorecards,
     routeBriefSummaries,
@@ -721,7 +454,7 @@ export async function readLocalD1Inputs(
     routeBatchIssues,
     routeSpeedHistoryCoverage,
     sourceMonthCoverage,
-    detectorReadinessManifestAvailable: detectorReadinessManifest.manifestAvailable,
+    detectorReadinessManifestAvailable: false,
   };
 }
 

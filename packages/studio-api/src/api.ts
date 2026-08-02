@@ -11,7 +11,11 @@ import { withServerTiming } from "./http/timing.js";
 import { handleObservabilityRoutes } from "./observability.js";
 import { handlePublicApiRoutes } from "./public-api.js";
 import { handleSchemaRoutes } from "./schema-routes.js";
-import { prepareServingRequest, servingRequestStillCurrent } from "./serving-request-context.js";
+import {
+  type PreparedServingRequest,
+  prepareServingRequest,
+  servingRequestStillCurrent,
+} from "./serving-request-context.js";
 import { handleStudioReadRequest } from "./studio/read-handlers.js";
 
 function cacheControlForRoute(route: RouteSpec): string {
@@ -76,6 +80,7 @@ export async function handleStudioApiRequest(
   request: Request,
   env: StudioApiEnv,
   _ctx?: ExecutionContext,
+  preparedRequest?: PreparedServingRequest,
 ): Promise<Response | null> {
   const url = new URL(request.url);
   if (!isApiPath(url.pathname)) {
@@ -85,7 +90,7 @@ export async function handleStudioApiRequest(
   const requestId = crypto.randomUUID();
 
   try {
-    const servingRequest = await prepareServingRequest(env, requestId);
+    const servingRequest = preparedRequest ?? (await prepareServingRequest(env));
     const requestEnv = servingRequest.env;
     const finalizeServingResponse = async (response: Response): Promise<Response> => {
       if (await servingRequestStillCurrent(servingRequest)) return response;
@@ -173,4 +178,13 @@ export async function handleStudioApiRequest(
     });
     return withRequestId(errorResponse(500, "Internal error.", "INTERNAL"), requestId);
   }
+}
+
+/** Runs the API facade with an already resolved request environment. */
+export function handlePreparedStudioApiRequest(
+  request: Request,
+  preparedRequest: PreparedServingRequest,
+  ctx?: ExecutionContext,
+): Promise<Response | null> {
+  return handleStudioApiRequest(request, preparedRequest.env, ctx, preparedRequest);
 }

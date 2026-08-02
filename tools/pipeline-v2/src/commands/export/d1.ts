@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import {
   buildD1CurrentSignalAppendixSeedSql,
   buildD1SeedSql,
@@ -13,7 +13,6 @@ import {
   ReleaseIdentitySchema,
   releaseIdFromPublishedAt,
 } from "@bp/domain/studio/shared";
-import { STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY } from "@bp/domain/studio/snapshots";
 import { arg, defineCommand, Schema } from "@bp/pipeline-v2/cli/compat";
 import { Effect } from "effect";
 import { runLocalDbCommandBoundary } from "../../effect/local-db-command.ts";
@@ -29,10 +28,7 @@ import {
   readLocalD1Inputs,
 } from "./d1-inputs.ts";
 import { readD1MigrationSql } from "./d1-migrations.ts";
-import {
-  buildAndWriteRouteCapabilityManifest,
-  readDetectorReadinessRouteSummaries,
-} from "./route-capability-manifest.ts";
+import { buildAndWriteRouteCapabilityManifest } from "./route-capability-manifest.ts";
 import { buildAndWriteRouteDossierSummaries } from "./route-dossier-summaries.ts";
 
 type D1FileContract = {
@@ -173,18 +169,6 @@ function fileContract(path: string, content: string): D1FileContract {
   };
 }
 
-async function stageDetectorReadinessManifest(input: {
-  manifestPath?: string | undefined;
-  artifactRoot: string;
-}): Promise<void> {
-  if (input.manifestPath === undefined) return;
-  const file = Bun.file(input.manifestPath);
-  if (!(await file.exists())) return;
-  const outputPath = join(input.artifactRoot, STUDIO_ROUTE_DETECTOR_READINESS_MANIFEST_KEY);
-  await mkdir(dirname(outputPath), { recursive: true });
-  await Bun.write(outputPath, await file.text());
-}
-
 function countMatches(sql: string, pattern: RegExp): number {
   return sql.match(pattern)?.length ?? 0;
 }
@@ -270,8 +254,6 @@ export type ExportD1Inputs = {
   releaseIdentity?: ReleaseIdentity | undefined;
   exportRoot?: string | undefined;
   artifactRoot?: string | undefined;
-  routeTimelineProjectionPath?: string | undefined;
-  detectorReadinessManifestPath?: string | undefined;
   routeEvidenceIndexPath?: string | undefined;
   inputs?: D1CanonicalInputs | undefined;
 };
@@ -285,18 +267,11 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const plan097RecoverySeedPath = join(exportDir, "seed.plan097-recovery.sql");
   const artifactRoot = inputs.artifactRoot ?? defaultArtifactRootPath();
 
-  await stageDetectorReadinessManifest({
-    manifestPath: inputs.detectorReadinessManifestPath,
-    artifactRoot,
-  });
-
   let d1Inputs =
     inputs.inputs ??
     (await readLocalD1Inputs(inputs.local.db, month, {
       sqlite: inputs.local.sqlite,
       artifactRoot,
-      routeTimelineProjectionPath: inputs.routeTimelineProjectionPath,
-      detectorReadinessManifestPath: inputs.detectorReadinessManifestPath,
       routeEvidenceIndexPath: inputs.routeEvidenceIndexPath,
     }));
   const generatedAt = inputs.publishedAt;
@@ -406,10 +381,7 @@ export async function runExportD1Seed(inputs: ExportD1Inputs): Promise<D1SeedOut
   const seed = buildD1SeedSql({ month, ...d1Inputs });
   const plan097RecoverySeed = buildPlan097RecoverySeedSql({ month, ...d1Inputs });
 
-  const readinessSummaries = await readDetectorReadinessRouteSummaries({
-    manifestPath: inputs.detectorReadinessManifestPath,
-    month,
-  });
+  const readinessSummaries = new Map();
   const capabilityManifest = await buildAndWriteRouteCapabilityManifest({
     d1Inputs,
     readinessSummaries,
@@ -552,14 +524,8 @@ export default defineCommand({
     options: Schema.Struct({
       ...dbOptions.fields,
       ...{
-        year: arg
-          .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(2026)))
-          .annotate({ description: "Calendar year" }),
-        month: arg
-          .positiveInt()
-          .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(3)))
-          .annotate({ description: "Calendar month, 1-12" }),
+        year: arg.positiveInt().annotate({ description: "Calendar year" }),
+        month: arg.positiveInt().annotate({ description: "Calendar month, 1-12" }),
         mode: Schema.Literals(["canonical", "appendix"])
           .pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed("canonical")))
           .annotate({ description: "Canonical full export or observed-reliability appendix" }),
@@ -568,14 +534,6 @@ export default defineCommand({
         }),
         artifactRoot: Schema.optionalKey(Schema.String).annotate({
           description: "Override generated artifact root directory",
-        }),
-        routeTimelineProjectionPath: Schema.optionalKey(Schema.String).annotate({
-          description:
-            "Optional route timeline serving projection JSON to fold into D1 seed output",
-        }),
-        detectorReadinessManifestPath: Schema.optionalKey(Schema.String).annotate({
-          description:
-            "Optional detector readiness serving manifest JSON to fold into D1 route artifact refs",
         }),
         routeEvidenceIndexPath: Schema.optionalKey(Schema.String).annotate({
           description:
@@ -596,14 +554,6 @@ export default defineCommand({
       input.options.artifactRoot === undefined
         ? undefined
         : fromCliPath(input.options.artifactRoot);
-    const routeTimelineProjectionPath =
-      input.options.routeTimelineProjectionPath === undefined
-        ? undefined
-        : fromCliPath(input.options.routeTimelineProjectionPath);
-    const detectorReadinessManifestPath =
-      input.options.detectorReadinessManifestPath === undefined
-        ? undefined
-        : fromCliPath(input.options.detectorReadinessManifestPath);
     const routeEvidenceIndexPath =
       input.options.routeEvidenceIndexPath === undefined
         ? undefined
@@ -633,8 +583,6 @@ export default defineCommand({
           publishedAt,
           exportRoot,
           artifactRoot,
-          routeTimelineProjectionPath,
-          detectorReadinessManifestPath,
           routeEvidenceIndexPath,
         });
       },

@@ -270,7 +270,7 @@ it via selective serving-data recovery rather than replacing the database;
 | 098 | Atomic serving releases with immutable artifacts | P0 | XL | 097 | DONE (2026-08-02; Candidate B active at generation 4 after production rollback drill) |
 | 099 | Full dataset history and honest per-dataset coverage (kernel) | P2 | M-L | backfill: none; serving ships through normal publication | DONE (2026-08-02; generation-6 full-history candidate active, honest dataset gaps public, durable publish + no-op receipts verified) |
 | 100 | One publish state machine and scheduled freshness alarm (kernel) | P1 | S-M | publisher: catch-up active; alarm: advisory ledger | DONE (2026-08-02; protected no-op, durable receipt, alarm issue #154, and staged Worker production smoke verified) |
-| 101 | Deterministic artifacts, verified skip, de-month vestige sweep (kernel) | P1 steps 1-2; P2 rest | M | steps 1-2: none; sweep: 098 active and 099/100 complete | IN PROGRESS (steps 1-2 proved by generation-5 catch-up; steps 3-5 pending) |
+| 101 | Deterministic artifacts, verified skip, de-month vestige sweep (kernel) | P1 steps 1-2; P2 rest | M | steps 1-2: none; sweep: 098 active and 099/100 complete | IN PROGRESS (implementation verified; protected-main deployment and receipt verification pending) |
 
 ## Notes (gen 17)
 
