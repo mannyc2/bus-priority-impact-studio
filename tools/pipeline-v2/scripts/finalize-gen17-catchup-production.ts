@@ -39,8 +39,8 @@ function sha256(body: Uint8Array | string): string {
 
 const root = option("--candidate-root");
 const output = option("--output");
-const endpoint = process.env.PLAN098_ENDPOINT;
-const token = process.env.PLAN098_TOKEN;
+const endpoint = process.env["PLAN098_ENDPOINT"];
+const token = process.env["PLAN098_TOKEN"];
 if (endpoint === undefined || token === undefined) {
   throw new Error("PLAN098_ENDPOINT and PLAN098_TOKEN are required.");
 }
@@ -135,14 +135,14 @@ for (const path of paths) {
   });
   const json = JSON.parse(body) as Record<string, unknown>;
   if (path === "/api/v1/status" || path === "/api/v1/map/manifest") {
-    const coverage = json.coverage as { end?: string } | undefined;
-    if (json.releaseId !== release.releaseId || coverage?.end !== "2026-06") {
+    const coverage = json["coverage"] as { end?: string } | undefined;
+    if (json["releaseId"] !== release.releaseId || coverage?.end !== "2026-06") {
       throw new Error(`Release envelope drifted for ${path}.`);
     }
   }
   if (path.includes("public-episodes")) {
-    const candidate = json.candidate as { candidateId?: string } | undefined;
-    const episodes = json.episodes as unknown[] | undefined;
+    const candidate = json["candidate"] as { candidateId?: string } | undefined;
+    const episodes = json["episodes"] as unknown[] | undefined;
     if (
       episodes?.length !== 222 ||
       candidate?.candidateId !== "b647f0f12a5dc037e0e9776e03c0cf9a4f78081728b7f4470e58e4558e4e77ef"
@@ -151,11 +151,11 @@ for (const path of paths) {
     }
   }
   if (path.endsWith("route-inventory-index.json")) {
-    const routes = json.routes as unknown[] | undefined;
+    const routes = json["routes"] as unknown[] | undefined;
     if (routes?.length !== 375) throw new Error("Plan 091 smoke failed.");
   }
   if (path.endsWith("observation-index.json")) {
-    const events = json.events as unknown[] | undefined;
+    const events = json["events"] as unknown[] | undefined;
     if (events?.length !== 456) throw new Error("Plan 090 smoke failed.");
   }
   evidence.push({

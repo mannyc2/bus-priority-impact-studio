@@ -164,7 +164,7 @@ function makeBunDriver(options: PublishR2Options): S3Driver {
           "Content-Type": contentType,
           "If-None-Match": "*",
         },
-        body,
+        body: new Blob([Uint8Array.from(body)]),
       });
       if (response.status === 412) return false;
       if (!response.ok) {

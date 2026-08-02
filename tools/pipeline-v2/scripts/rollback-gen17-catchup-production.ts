@@ -32,8 +32,8 @@ function sha256(body: Uint8Array | string): string {
 const root = option("--candidate-root");
 const output = option("--output");
 const finalizeLog = option("--finalize-log");
-const endpoint = process.env.PLAN098_ENDPOINT;
-const token = process.env.PLAN098_TOKEN;
+const endpoint = process.env["PLAN098_ENDPOINT"];
+const token = process.env["PLAN098_TOKEN"];
 if (endpoint === undefined || token === undefined) {
   throw new Error("PLAN098_ENDPOINT and PLAN098_TOKEN are required.");
 }
