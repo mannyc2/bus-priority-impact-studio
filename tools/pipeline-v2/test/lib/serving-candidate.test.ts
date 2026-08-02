@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { D1_CANDIDATE_PROJECTION_TABLES } from "@bp/db/d1";
 import { canonicalServingJsonBytes } from "@bp/domain/studio/serving-release";
 import {
+  bindCandidateMapManifestLogicalKey,
   buildServingCandidate,
   renderServingD1CandidateSeedSql,
   servingD1ProjectionInventory,
@@ -42,6 +43,37 @@ function input(sourceCommit = "a".repeat(40)) {
 }
 
 describe("Plan 098 serving candidate builder", () => {
+  test("rebinds a recovery physical map key only to its hash-matched logical ID", () => {
+    const database = new Database(":memory:");
+    const manifestSha256 = hash("a");
+    database.exec(`
+      CREATE TABLE map_release_catalog (
+        release_id TEXT PRIMARY KEY,
+        manifest_key TEXT NOT NULL,
+        manifest_sha256 TEXT NOT NULL,
+        verification_status TEXT NOT NULL
+      );
+      INSERT INTO map_release_catalog VALUES (
+        'release-a',
+        'operations/plan097/blobs/sha256/aa/${manifestSha256}.json',
+        '${manifestSha256}',
+        'pass'
+      );
+    `);
+    const logicalKey = `map/2026-06/manifest.${manifestSha256}.json`;
+    expect(bindCandidateMapManifestLogicalKey(database, logicalKey)).toEqual({
+      releaseId: "release-a",
+      manifestSha256,
+    });
+    expect(
+      database.query("SELECT manifest_key AS manifestKey FROM map_release_catalog").get(),
+    ).toEqual({ manifestKey: logicalKey });
+    expect(() =>
+      bindCandidateMapManifestLogicalKey(database, `map/2026-06/manifest.${hash("b")}.json`),
+    ).toThrow("does not uniquely match");
+    database.close();
+  });
+
   test("derives immutable physical keys and a deterministic semantic candidate ID", () => {
     const first = buildServingCandidate(input());
     const second = buildServingCandidate(input("e".repeat(40)));

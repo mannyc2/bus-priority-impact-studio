@@ -60,6 +60,34 @@ export type ServingD1ProjectionInventory = {
   exactIdentityRouteCount: number;
 };
 
+/** Rebind a recovery-era physical map key to its candidate logical ID. */
+export function bindCandidateMapManifestLogicalKey(
+  database: Database,
+  logicalKey: string,
+): { releaseId: string; manifestSha256: string } {
+  const match = /^map\/\d{4}-\d{2}\/manifest\.([a-f0-9]{64})\.json$/u.exec(logicalKey);
+  const manifestSha256 = match?.[1];
+  if (manifestSha256 === undefined) {
+    throw new Error("Candidate map manifest logical key is invalid.");
+  }
+  const rows = database
+    .query(
+      `SELECT
+        release_id AS releaseId,
+        manifest_sha256 AS manifestSha256
+      FROM map_release_catalog
+      WHERE verification_status = 'pass'`,
+    )
+    .all() as Array<{ releaseId: string; manifestSha256: string }>;
+  if (rows.length !== 1 || rows[0]?.manifestSha256 !== manifestSha256) {
+    throw new Error("Candidate map catalog does not uniquely match the logical manifest hash.");
+  }
+  database
+    .query("UPDATE map_release_catalog SET manifest_key = ? WHERE release_id = ?")
+    .run(logicalKey, rows[0].releaseId);
+  return rows[0];
+}
+
 function quotedIdentifier(value: string): string {
   if (!/^[a-z][a-z0-9_]*$/u.test(value)) {
     throw new Error(`Unsafe SQLite identifier ${value}.`);

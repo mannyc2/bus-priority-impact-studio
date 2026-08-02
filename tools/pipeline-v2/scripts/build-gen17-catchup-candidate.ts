@@ -12,6 +12,7 @@ import {
 import { buildPlan097RecoveryArtifactInventory } from "../src/lib/plan097-recovery-artifacts.ts";
 import { plan106ArchiveRelativePath } from "../src/lib/plan106-release-input.ts";
 import {
+  bindCandidateMapManifestLogicalKey,
   buildServingCandidateFromDescriptors,
   renderServingD1CandidateSeedSql,
   type ServingCandidateArtifactDescriptor,
@@ -361,6 +362,7 @@ async function main(): Promise<void> {
   const d1Sql = `${await Bun.file(args.schema).text()}\n${await Bun.file(args.seed).text()}\n${await Bun.file(args.exactRegistration).text()}\n${await Bun.file(args.mapRegistration).text()}`;
   const projectionDb = new Database(":memory:");
   projectionDb.exec(d1Sql);
+  bindCandidateMapManifestLogicalKey(projectionDb, args.finalMapManifestKey);
   const d1 = servingD1ProjectionInventory(projectionDb, args.month);
   const artifactDescriptors = [...artifacts.values()].toSorted((left, right) =>
     left.logicalId.localeCompare(right.logicalId),
