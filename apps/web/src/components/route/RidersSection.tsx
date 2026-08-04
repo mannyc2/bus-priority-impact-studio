@@ -33,9 +33,7 @@ export function RidersSection({
   onOpenSegment?: ((spineSegmentId: string | null) => void) | undefined;
 }) {
   const { route, segments } = data;
-  // biome-ignore lint/complexity/useLiteralKeys: surfaces is index-signature typed.
-  const capability = data.capability?.surfaces["ridership"] ?? null;
-  const summary = riderImpactSummary({ route, segments, dossier: data.dossier, capability });
+  const summary = riderImpactSummary({ route, segments, dossier: data.dossier });
   const topSegment = summary.topSegment;
   const hourlyProfile = useRouteHourlyProfile(route.slug);
   const ridershipHistory = dossierRidershipSeries(data.dossier);

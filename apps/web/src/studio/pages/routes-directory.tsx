@@ -70,7 +70,14 @@ export function RouteIndexRow({ route }: { route: StudioRoute }) {
         </div>
       </div>
       <div className="max-md:hidden">
-        {route.spark === null ? null : (
+        {/* A labelled column with an invisible cell reads as a rendering bug.
+            The dash says "no series"; the status label beside it says why. Never
+            a flat fake sparkline. */}
+        {route.spark === null ? (
+          <span aria-hidden className="text-[12px] text-[var(--bp-color-ink-40)]">
+            —
+          </span>
+        ) : (
           <Spark data={route.spark} width={104} height={22} color={toneColor[tone]} fill />
         )}
       </div>
@@ -157,7 +164,7 @@ export function RoutesDirectoryPage({
               onChange={(event) => setRouteFilter(event.target.value)}
               placeholder="Filter by route, corridor, or borough"
               aria-label="Filter routes"
-              className="w-full border-[1px] px-3.5 py-2 shadow-none"
+              className="w-full"
             />
           </div>
         </div>

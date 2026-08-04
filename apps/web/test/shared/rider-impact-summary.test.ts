@@ -5,18 +5,9 @@ import {
 } from "../../src/components/route/rider-impact-summary";
 import type {
   RouteDossierSummaryForDetail,
-  RouteSurfaceCapability,
   StudioRouteInsight,
 } from "../../src/studio/api-contract";
 import { isoMonthFixture } from "./schema-fixtures";
-
-const ridershipCapability = {
-  state: "ready",
-  reason: "Ridership history is available.",
-  depth: { monthsCovered: 4, grains: ["route_month"] },
-  dataAsOf: "2026-03",
-  freshness: "current",
-} satisfies RouteSurfaceCapability;
 
 const dossier = {
   artifactKind: "studio_route_dossier_summary",
@@ -84,7 +75,6 @@ describe("riderImpactSummary", () => {
         },
       ],
       dossier,
-      capability: ridershipCapability,
     });
     expect(summary).toMatchObject({
       dailyRidersLabel: "30.0K",
@@ -103,7 +93,7 @@ describe("riderImpactSummary", () => {
     });
   });
 
-  test("falls back to current projection wording without dossier history", () => {
+  test("never states a pipeline reason where rider copy belongs", () => {
     expect(
       riderImpactSummary({
         route: {
@@ -112,10 +102,6 @@ describe("riderImpactSummary", () => {
           riderHoursLost: 0,
         },
         dossier: null,
-        capability: {
-          ...ridershipCapability,
-          reason: "Monthly ridership history has not been built for this route.",
-        },
       }),
     ).toMatchObject({
       dailyRidersLabel: "980",
@@ -123,7 +109,7 @@ describe("riderImpactSummary", () => {
       trendDetail: "YoY in current projection",
       burdenDetail: "no rider-hour loss in projection",
       historyLabel: "current",
-      historyDetail: "Monthly ridership history has not been built for this route.",
+      historyDetail: "Monthly ridership not attached yet.",
       topSegment: null,
     });
   });
@@ -147,7 +133,6 @@ describe("riderImpactSummary", () => {
           },
         ],
         dossier: null,
-        capability: ridershipCapability,
       }),
     ).toMatchObject({
       trendLabel: "not measured",

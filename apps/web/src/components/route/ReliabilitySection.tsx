@@ -9,15 +9,13 @@ import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 export function ReliabilitySection({ data }: { data: StudioRouteDetailResponse }) {
   const observed = data.route.observedReliability;
-  // biome-ignore lint/complexity/useLiteralKeys: capability surfaces are typed as an index signature.
-  const capability = data.capability?.surfaces["reliability"] ?? null;
-
   if (observed === null) {
     return (
       <Alert variant="info">
         <AlertTitle variant="info">Reliability not yet measured</AlertTitle>
         <AlertDescription>
-          {capability?.reason ?? "Observed headway data is not yet available for this route."}
+          {/* The capability reason is a pipeline diagnostic, not public copy. */}
+          Observed headway data is not yet available for this route.
         </AlertDescription>
       </Alert>
     );

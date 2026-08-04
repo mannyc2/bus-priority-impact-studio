@@ -10378,3 +10378,29 @@ param any more. The map note reads as three lines (what the colour means, what
 the numbers are, what you can do) instead of one run-on, with one standing
 interaction hint per encoding. A legend whose every band reads `(0)` asserts
 nothing, so it does not render at all; it returns as soon as facts do.
+
+## [2026-08-04] engineering | Capability diagnostics stop rendering as public copy; §8.2 checked_clean reworded
+
+Plan 124. Three surfaces rendered a pipeline capability `reason` verbatim to
+readers — the literal "speed months present, history artifact not built"
+travelled from `build-route-capability-manifest.ts` to the public route page
+untouched. The reason is a useful internal diagnostic and stays in the
+manifest; it now renders in dev builds only (`HonestEmptySection`) or not at
+all (`rider-impact-summary`, `ReliabilitySection`, both of which already had
+product-copy fallbacks sitting behind a `??`). The audit named two sites; the
+sweep found the third.
+
+§8.2 `checked_clean` public copy reworded (operator 2026-08-02): tab badge
+"Checked" → "None"; title "Checked clean" → "Nothing on record"; body
+"Detectors ran; no publishable signal." → "We checked this release and found
+nothing to report for this route." The credibility claim — we looked and found
+nothing — is the whole point of the state and survives intact, along with its
+affirmative icon and tone. Building / Thin data / Blocked copy stays verbatim.
+Detector vocabulary remains sanctioned on the About-this-data provenance
+surface (`coverage-matrix.ts`), where check internals belong.
+
+Also: the /routes "12-mo trend" column rendered nothing at all for routes with
+a null spark — which today is every route on the active release — so a
+labelled column read as a rendering bug. It now shows an em dash beside the
+existing "No trend" label. No fabricated flat sparkline: the data half is
+Plan 116's gate, not a client workaround.

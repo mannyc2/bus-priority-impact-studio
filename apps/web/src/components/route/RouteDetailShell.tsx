@@ -103,7 +103,7 @@ export function RouteDetailShell({
 function emptyStateLabel(state: HonestEmptyState): string {
   switch (state) {
     case "checked_clean":
-      return "Checked";
+      return "None";
     case "building":
       return "Building";
     case "insufficient_data":
