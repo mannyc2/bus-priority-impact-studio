@@ -569,13 +569,54 @@ describe("public chronology helpers", () => {
 describe("consumer markup", () => {
   test("uses neutral unknown copy, exact route links, and no false current claim", async () => {
     const html = await renderWithRouter(createElement(PublicInterventions, { artifact }));
-    expect(html).toContain("Action not established: Service pattern");
-    expect(html).toContain("b44-sbs");
+    /* An unreviewed action gets a neutral lead, never an invented verb. */
+    expect(html).toContain("Recorded change: Service pattern");
     expect(html).toContain("/routes/b44-sbs");
-    expect(html).toContain("this is not a confirmed-current claim");
+    expect(html).toContain("none is a confirmed-current claim");
     expect(html).not.toContain("New service");
     expect(html).not.toContain("Kept running");
     expect(html).not.toContain("currently active");
+  });
+
+  test("speaks product rather than schema", async () => {
+    const html = await renderWithRouter(createElement(PublicInterventions, { artifact }));
+    const text = html.replaceAll(/<[^>]*>/gu, " ");
+    expect(text).not.toContain("Resolved MTA source pack");
+    expect(text).not.toContain("Tracker camera-enforcement enrichment");
+    expect(text).not.toContain("Tracker-owned MTA camera-enforcement registry event.");
+    expect(text).toMatch(/Automated camera enforcement on BX12\+/u);
+    for (const pattern of [
+      /route incidence/iu,
+      /activationRoute/u,
+      /last confirmed active as of 20\d\d-/u,
+      /\breplaceAll\b/u,
+    ]) {
+      expect(pattern.test(text), text.slice(0, 400)).toBe(false);
+    }
+    /* The badge already names the route; its lowercase join key never renders. */
+    expect(text).not.toMatch(/\bb44-sbs\b/u);
+  });
+
+  test("states the placement disclaimer once and counts repeated states", async () => {
+    const [b44] = artifact.episodes;
+    if (b44 === undefined || b44.authority !== "producer") throw new Error("fixture missing");
+    const repeated = {
+      ...b44,
+      placements: [
+        b44.placements[0],
+        { ...b44.placements[0], placementKey: "b44-sbs-second-placement" },
+        { ...b44.placements[0], placementKey: "b44-sbs-third-placement" },
+      ],
+    } as PublicInterventionEpisode;
+    const html = await renderWithRouter(
+      createElement(PublicInterventions, {
+        artifact: { ...artifact, episodes: [repeated] },
+      }),
+    );
+    const text = html.replaceAll(/<[^>]*>/gu, " ");
+    expect(text.match(/none is a confirmed-current claim/gu)).toHaveLength(1);
+    expect(text).toContain("Last confirmed active as of July 27, 2026 (×3)");
+    expect(text).toContain("3 historical placement records");
   });
 
   test("renders route history from the same exact episode", async () => {

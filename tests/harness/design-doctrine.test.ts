@@ -11,8 +11,11 @@ import { describe, expect, test } from "bun:test";
 const SRC_ROOT = "apps/web/src";
 
 const INTERPUNCT = /·|&middot;/; // the raw char AND the HTML entity (RPubSlowCard uses &middot;)
+// Gen-21: the /interventions provenance eyebrow reappeared at 0.04em, under
+// the tracking the rule matched. Other uppercase sites are 0.06-0.08em column
+// and stat labels, not eyebrows — do not widen past 0.05em.
 const KICKER_CLASS =
-  /uppercase[^"'`]*tracking-\[0\.1[246]em\]|tracking-\[0\.1[246]em\][^"'`]*uppercase/;
+  /uppercase[^"'`]*tracking-\[(?:0\.1[246]|0\.0[45])em\]|tracking-\[(?:0\.1[246]|0\.0[45])em\][^"'`]*uppercase/;
 const BANNED_PHRASES = [
   /civic data project/i,
   /feed generated/i,
@@ -23,6 +26,10 @@ const BANNED_PHRASES = [
   // Approved study-card copy (075 comp D16): display copy is "No clear change";
   // the artifact enum stays no_detectable_change and does not match this prose form.
   /no detectable change/i,
+  // Gen-21: producer and tracker vocabulary rendered as public copy.
+  /resolved mta source pack/i,
+  /camera-enforcement enrichment/i,
+  /route incidence/i,
 ];
 
 // Ratchet allowlist (paths relative to apps/web/src). Filled by the Step 2
