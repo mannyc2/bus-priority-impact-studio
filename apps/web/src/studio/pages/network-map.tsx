@@ -115,6 +115,39 @@ export function networkMapReleaseKey(manifest: MapManifestResponse): string {
   ]);
 }
 
+/**
+ * Which surface the desktop rail shows.
+ *
+ * Clicking a route used to open two things at once: the anchored popup AND a
+ * rail card restating the same metrics. The popup is the click surface; the
+ * rail opens only for a shared `?segment=` link, whose evidence list and
+ * canonicalization notice have nowhere else to render.
+ */
+export function networkMapRailSurface(input: {
+  browseOpen: boolean;
+  segmentParam: string | undefined;
+  hasSelection: boolean;
+}): "browse" | "segment-evidence" | "closed" {
+  if (input.browseOpen) return "browse";
+  if (input.segmentParam !== undefined && input.hasSelection) return "segment-evidence";
+  return "closed";
+}
+
+/** Per-route evidence is fetched only where a surface will actually read it. */
+export function selectedEvidenceWanted(input: {
+  pinnedRouteId: string | null;
+  segmentParam: string | undefined;
+  mobileInspectorOpen: boolean;
+}): boolean {
+  if (input.pinnedRouteId === null) return false;
+  return input.segmentParam !== undefined || input.mobileInspectorOpen;
+}
+
+/** The pinned route's ordinal under the lens on screen; null when unranked. */
+export function popupRankLine(rank: number | null, routeCount: number): string | null {
+  return rank === null ? null : `#${rank} of ${routeCount} in this view`;
+}
+
 export function selectedRouteEvidenceKey(manifest: MapManifestResponse, routeId: string): string {
   const segmentObjects = manifest.artifacts
     .filter(
@@ -323,8 +356,17 @@ export function NetworkMapPage({
       ? null
       : selectedRouteEvidenceKey(manifest, rawPinnedRouteId);
 
+  /* Segment evidence has exactly two render surfaces: the mobile sheet and a
+     shared ?segment= link on desktop. A plain desktop click shows the anchored
+     popup, which never reads it — so it must not fetch it either. */
+  const evidenceWanted = selectedEvidenceWanted({
+    pinnedRouteId: rawPinnedRouteId,
+    segmentParam: search.segment,
+    mobileInspectorOpen: mobileViewport && mobileSheetOpen,
+  });
+
   useEffect(() => {
-    if (rawPinnedRouteId === null) {
+    if (rawPinnedRouteId === null || !evidenceWanted) {
       setSelectedEvidence(null);
       return;
     }
@@ -368,7 +410,7 @@ export function NetworkMapPage({
         });
       });
     return () => controller.abort();
-  }, [manifest, rawPinnedRouteId]);
+  }, [evidenceWanted, manifest, rawPinnedRouteId]);
 
   const currentSelectedEvidence =
     selectedEvidence?.routeId === rawPinnedRouteId &&
@@ -736,6 +778,11 @@ export function NetworkMapPage({
     );
   }
 
+  const selectedRankIndex =
+    selectedRouteId === null
+      ? -1
+      : rankedForView.findIndex((feature) => feature.properties.routeId === selectedRouteId);
+  const selectedRank = selectedRankIndex < 0 ? null : selectedRankIndex + 1;
   const popup: NetworkMapPopupState | null =
     selectedFeature === null || selectedAnchor === null
       ? null
@@ -749,6 +796,8 @@ export function NetworkMapPage({
               studies={studiesByRouteId.get(selectedFeature.properties.routeId) ?? []}
               view={view}
               coverage={delayCoverage}
+              rank={selectedRank}
+              routeCount={filteredFeatures.length}
               onClose={() => clearPin()}
             />
           ),
@@ -758,11 +807,11 @@ export function NetworkMapPage({
     currentSelectedEvidence?.routeId === selectedRouteId
       ? currentSelectedEvidence
       : ({ status: "loading" } as const);
-  const selectedRankIndex =
-    selectedRouteId === null
-      ? -1
-      : rankedForView.findIndex((feature) => feature.properties.routeId === selectedRouteId);
-  const selectedRank = selectedRankIndex < 0 ? null : selectedRankIndex + 1;
+  const railSurface = networkMapRailSurface({
+    browseOpen,
+    segmentParam: effectiveSearch.segment,
+    hasSelection: selectedFeature !== null,
+  });
   const mapSummary = `${filteredFeatures.length} routes shown${
     borough === undefined ? " citywide" : ` serving ${borough}`
   }. ${view.lens === "delay" ? "Route-slice rider delay exposure" : "Bus speed"}, ${periodLabel(
@@ -888,10 +937,14 @@ export function NetworkMapPage({
           </div>
         )}
         {legend === null ? null : <LegendStrip legend={legend} />}
-        {browseOpen || selectedFeature !== null ? (
+        {/* The anchored popup is the click surface. The rail must not swap
+            into a second card restating the same metrics — it opens only for a
+            shared ?segment= link, whose evidence list has nowhere else to
+            render. Operator ruling 2026-08-02. */}
+        {railSurface === "closed" ? null : (
           <div
             role="dialog"
-            aria-label={browseOpen ? "Find a route" : "Selected route inspector"}
+            aria-label={browseOpen ? "Find a route" : "Segment evidence"}
             className="absolute bottom-4 right-4 top-4 z-20 flex w-[344px] max-w-[calc(100%-32px)] flex-col rounded-[3px] bg-[var(--bp-color-card)] shadow-[0_0_0_1px_var(--bp-color-rule),0_10px_30px_rgba(16,20,24,0.2)] max-md:hidden"
           >
             <div className="flex items-baseline gap-2 px-3 pb-0.5 pt-2.5">
@@ -929,7 +982,7 @@ export function NetworkMapPage({
                 </p>
               }
             >
-              {browseOpen || selectedFeature === null ? (
+              {railSurface === "browse" || selectedFeature === null ? (
                 <NetworkMapBrowse
                   ranked={ranked}
                   routeById={routeById}
@@ -967,7 +1020,7 @@ export function NetworkMapPage({
               )}
             </Suspense>
           </div>
-        ) : null}
+        )}
       </div>
       {mobileViewport && mobileSheetOpen ? (
         <Suspense fallback={null}>
@@ -1160,6 +1213,8 @@ function NetworkMapPopup({
   studies,
   view,
   coverage,
+  rank,
+  routeCount,
   onClose,
 }: {
   feature: NetworkMapFeature;
@@ -1168,6 +1223,9 @@ function NetworkMapPopup({
   studies: readonly StudyIndexRow[];
   view: NetworkView;
   coverage: string | null;
+  /** Position under the current lens, or null when the route is unranked. */
+  rank: number | null;
+  routeCount: number;
   onClose: () => void;
 }) {
   const slug = route?.slug ?? null;
@@ -1220,6 +1278,13 @@ function NetworkMapPopup({
           {pct.pre}
           <b>{pct.strong}</b>
           {pct.post}
+        </div>
+      )}
+      {/* The one thing the retired rail card said that nothing else does: where
+          this route sits under the lens on screen. */}
+      {popupRankLine(rank, routeCount) === null ? null : (
+        <div className="mt-0.5 text-[11px] text-[var(--bp-color-ink-55)]">
+          {popupRankLine(rank, routeCount)}
         </div>
       )}
       <div className="mt-2.5">
