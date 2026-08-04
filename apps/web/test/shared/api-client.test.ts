@@ -895,11 +895,108 @@ describe("Studio API client", () => {
     expect(result.message).toContain("2026-04");
   });
 
-  test("requires exact publication identity for network and manifest reference joins", () => {
-    const shiftedPublication = {
+  test("joins byte-reused artifacts whose bodies carry the previous release stamp", () => {
+    // Plan 098 re-points deduplicated, byte-identical artifacts at a new
+    // release; their bodies still embed the release that first published
+    // them. Hashes match the manifest and coverage is identical, so the
+    // artifacts are the ones this release intends.
+    const previousPublication = {
       ...mapReleaseIdentity,
-      releaseId: "pub_20260401T000000124Z",
-      publishedAt: "2026-04-01T00:00:00.124Z",
+      releaseId: "pub_20260325T000000000Z",
+      publishedAt: "2026-03-25T00:00:00.000Z",
+    } as const;
+    const networkFeature = (routeId: string) => ({
+      type: "Feature",
+      geometry: {
+        type: "MultiLineString",
+        coordinates: [
+          [
+            [-73.99, 40.75],
+            [-73.98, 40.76],
+          ],
+        ],
+      },
+      properties: {
+        routeId,
+        month: "2026-03",
+        hourlySpeedMph: new Array(24).fill(null),
+        hourlyTraversalCount: new Array(24).fill(0),
+        servedBoroughs: ["Manhattan"],
+        servedBoroughsStatus: "verified",
+      },
+    });
+    const routeFact = (routeId: string) => ({
+      route: {
+        routeId,
+        label: routeId,
+        borough: "Manhattan",
+        sbs: false,
+        speedMph: 7.1,
+        movement6mPct: null,
+        dailyRiders: 9_000,
+      },
+      delayExposure: {
+        status: "available",
+        valueRiderHours: 12_000,
+        coverage: { start: "2026-03", end: "2026-03" },
+      },
+      provenance: {
+        lane: { status: "unavailable", valuePct: null },
+        ace: { status: "unknown" },
+      },
+    });
+    const result = joinNetworkMapBundle({
+      manifest: {
+        ...mapReleaseIdentity,
+        routeFacts: mapRouteFactsReference(previousPublication),
+      },
+      network: {
+        status: "ready",
+        path: "/network.json",
+        expectedSha256: "a".repeat(64),
+        actualSha256: "a".repeat(64),
+        data: {
+          schemaVersion: 2,
+          ...previousPublication,
+          type: "FeatureCollection",
+          features: [networkFeature("M1"), networkFeature("M2")],
+        },
+      },
+      context: { status: "unavailable", reason: "fixture" },
+      routeFacts: {
+        status: "ready",
+        path: "/facts.json",
+        expectedSha256: "b".repeat(64),
+        actualSha256: "b".repeat(64),
+        data: {
+          schemaVersion: 2,
+          ...previousPublication,
+          routes: [routeFact("M1"), routeFact("M2")],
+        },
+      },
+    } as never);
+
+    expect(result.factsStatus).toBe("ready");
+    expect(result.message).toBeNull();
+    expect(result.completeFactCount).toBe(2);
+    expect(result.routeCount).toBe(2);
+    // The legend bands and the delay lens both read off these.
+    expect(result.delayCoverageEnd).toBe("2026-03");
+    expect(result.collection?.features.map((feature) => feature.properties.currentMph)).toEqual([
+      7.1, 7.1,
+    ]);
+    expect(result.collection?.features.map((feature) => feature.properties.riderHoursLost)).toEqual([
+      12_000, 12_000,
+    ]);
+    expect(
+      result.collection?.features.every((feature) => feature.properties.factsStatus === "ready"),
+    ).toBe(true);
+  });
+
+  test("reports a coverage contrast without raw release identifiers", () => {
+    const shiftedCoverage = {
+      ...mapReleaseIdentity,
+      coverage: { start: null, end: isoMonthFixture("2026-04") },
     } as const;
     const networkMismatch = joinNetworkMapBundle({
       manifest: {
@@ -913,7 +1010,7 @@ describe("Studio API client", () => {
         actualSha256: "a".repeat(64),
         data: {
           schemaVersion: 2,
-          ...shiftedPublication,
+          ...shiftedCoverage,
           type: "FeatureCollection",
           features: [],
         },
@@ -923,13 +1020,14 @@ describe("Studio API client", () => {
     } as never);
     expect(networkMismatch.factsStatus).toBe("coverage_mismatch");
     expect(networkMismatch.collection).toEqual({ type: "FeatureCollection", features: [] });
-    expect(networkMismatch.message).toContain(mapReleaseIdentity.releaseId);
-    expect(networkMismatch.message).toContain(shiftedPublication.releaseId);
+    expect(networkMismatch.message).toContain("2026-03");
+    expect(networkMismatch.message).toContain("2026-04");
+    expect(networkMismatch.message).not.toMatch(/pub_/);
 
     const referenceMismatch = joinNetworkMapBundle({
       manifest: {
         ...mapReleaseIdentity,
-        routeFacts: mapRouteFactsReference(shiftedPublication),
+        routeFacts: mapRouteFactsReference(shiftedCoverage),
       },
       network: {
         status: "ready",
@@ -953,8 +1051,9 @@ describe("Studio API client", () => {
       },
     } as never);
     expect(referenceMismatch.factsStatus).toBe("coverage_mismatch");
-    expect(referenceMismatch.message).toContain("manifest reference");
-    expect(referenceMismatch.message).toContain(shiftedPublication.releaseId);
+    expect(referenceMismatch.message).toContain("2026-03");
+    expect(referenceMismatch.message).toContain("2026-04");
+    expect(referenceMismatch.message).not.toMatch(/pub_/);
   });
 
   test("does not request unavailable lanes and rejects malformed lane payloads", async () => {
