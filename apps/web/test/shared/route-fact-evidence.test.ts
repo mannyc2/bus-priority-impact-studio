@@ -138,6 +138,27 @@ describe("resolveRouteFactEvidence", () => {
     expect(mismatchFields(result)).toContain("release.coverage.start");
   });
 
+  test("accepts byte-reused facts stamped with the previous release", () => {
+    // A release may re-point deduplicated artifacts whose bodies still carry
+    // the identity of the release that first published them. Coverage and
+    // values agree, so the facts are the ones this release intends.
+    const result = resolveRouteFactEvidence(detail, identity, {
+      ...response(),
+      releaseId: "pub_20260325T000000000Z",
+      publishedAt: "2026-03-25T00:00:00.000Z",
+    } as unknown as MapRouteFactsResponse);
+    expect(result.status).toBe("available");
+  });
+
+  test("still rejects a value disagreement under a reused release stamp", () => {
+    const result = resolveRouteFactEvidence(detail, identity, {
+      ...response(routeFact({ route: { speedMph: 7.1 } })),
+      releaseId: "pub_20260325T000000000Z",
+      publishedAt: "2026-03-25T00:00:00.000Z",
+    } as unknown as MapRouteFactsResponse);
+    expect(mismatchFields(result)).toContain("route.speedMph");
+  });
+
   test("rejects every compact summary-field mismatch", () => {
     const summaryMismatches: Array<
       [keyof MapRouteFact["route"], MapRouteFact["route"][keyof MapRouteFact["route"]], string]
