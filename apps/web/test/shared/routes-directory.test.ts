@@ -11,6 +11,7 @@ import type { StudioRoute } from "../../src/studio/api-contract";
 import { filterRoutesForIndex, ROUTE_INDEX_ALL_BOROUGHS } from "../../src/studio/home-route-index";
 import { HomePage } from "../../src/studio/pages/home";
 import {
+  RouteIndexRow,
   RoutesDirectoryLoadingPage,
   RoutesDirectoryPage,
 } from "../../src/studio/pages/routes-directory";
@@ -157,5 +158,30 @@ describe("HomePage", () => {
     expect(html).not.toContain("civic data project");
     expect(html).not.toContain("generated");
     expect(html).not.toContain("·");
+  });
+});
+
+describe("the 12-mo trend cell", () => {
+  const base = route({ slug: "bx20", label: "BX20", borough: "Bronx", dailyRiders: 4_200 });
+
+  test("says nothing rather than showing an invisible cell", async () => {
+    /* The active release serves spark: null for every route, so a labelled
+       column rendered as blank space and read as a rendering bug. */
+    const html = await renderWithRouter(
+      createElement(RouteIndexRow, { route: { ...base, spark: null, movement6mPct: null } }),
+    );
+    expect(html).toContain("—");
+    expect(html).toContain("No trend");
+    /* Never a fabricated flat line — not even the chart's reserved slot. */
+    expect(html).not.toContain("width:104px");
+  });
+
+  test("draws the series when there is one", async () => {
+    const html = await renderWithRouter(
+      createElement(RouteIndexRow, { route: { ...base, spark: [7, 7.4, 7.9], movement6mPct: 1.4 } }),
+    );
+    /* Spark is the lazy two-file chart pair, so SSR renders its reserved slot. */
+    expect(html).toContain("width:104px");
+    expect(html).not.toContain("—");
   });
 });

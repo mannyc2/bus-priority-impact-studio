@@ -5,7 +5,6 @@ import {
 } from "@/components/route/route-derived";
 import type {
   RouteDossierSummaryForDetail,
-  RouteSurfaceCapability,
   StudioRoute,
   StudioRouteInsight,
   StudioSegment,
@@ -41,12 +40,10 @@ export function riderImpactSummary({
   route,
   segments = [],
   dossier,
-  capability,
 }: {
   route: RiderImpactRoute;
   segments?: readonly RiderImpactSegment[];
   dossier: RouteDossierSummaryForDetail | null;
-  capability: RouteSurfaceCapability | null;
 }): RiderImpactSummary {
   const ridership = dossier?.ridership;
   const monthCount = dossierMetricMonthCount(ridership);
@@ -68,7 +65,8 @@ export function riderImpactSummary({
   const historyDetail =
     monthCount > 0
       ? `${historyWindow ?? "monthly ridership history"}`
-      : (capability?.reason ?? "Monthly ridership not attached yet.");
+      : /* Never the raw capability reason: it is a pipeline diagnostic. */
+        "Monthly ridership not attached yet.";
   const burdenLabel =
     route.riderHoursLost === null ? "not measured" : formatRiderHours(route.riderHoursLost);
 

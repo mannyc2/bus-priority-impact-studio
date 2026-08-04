@@ -13,8 +13,10 @@ const EMPTY_COPY: Record<
   checked_clean: {
     icon: CircleCheck,
     tone: "var(--bp-color-good)",
-    title: "Checked clean",
-    body: "Detectors ran; no publishable signal.",
+    // Reworded for riders (operator 2026-08-02): the claim survives, the
+    // detector vocabulary does not. "We looked" is still the point.
+    title: "Nothing on record",
+    body: "We checked this release and found nothing to report for this route.",
   },
   building: {
     icon: CircleDashed,
@@ -50,7 +52,9 @@ export function HonestEmptySection({
       <Icon size={28} strokeWidth={1.5} style={{ color: copy.tone }} aria-hidden />
       <div className="text-[15px] font-semibold">{copy.title}</div>
       <p className="m-0 text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-55)]">{copy.body}</p>
-      {reason ? (
+      {/* The capability reason is a pipeline diagnostic — useful while working
+          on the page, never public copy. It stays in dev builds only. */}
+      {import.meta.env.DEV && reason !== null ? (
         <p className="m-0 font-mono text-[11px] text-[var(--bp-color-ink-55)]">{reason}</p>
       ) : null}
     </div>
