@@ -11,13 +11,8 @@ import {
   type MapRouteSegmentFeatureCollection,
   MapRouteSegmentFeatureCollectionSchema,
 } from "@bp/domain/maps";
-import { interventionCorpusKey } from "@bp/domain/studio/intervention-corpus-key";
 import { interventionObservationBundleKey } from "@bp/domain/studio/intervention-observations-key";
-import {
-  interventionFacetIndexKey,
-  interventionsEvidenceIndexKey,
-  routeInterventionInventoryBundleKey,
-} from "@bp/domain/studio/route-intervention-inventory-key";
+import { routeInterventionInventoryBundleKey } from "@bp/domain/studio/route-intervention-inventory-key";
 import {
   StudioRouteDetailResponseSchema,
   StudioRoutesResponseSchema,
@@ -30,9 +25,6 @@ import {
 } from "@bp/studio-api/client";
 import type {
   RouteStudiesArtifact,
-  StudioInterventionCorpus,
-  StudioInterventionFacetIndex,
-  StudioInterventionsEvidenceResponse,
   StudioRouteDetailResponse,
   StudioRouteEvidenceBundle,
   StudioRouteHourlyProfileResponse,
@@ -159,25 +151,11 @@ export async function fetchStudioRouteIndex(options?: StudioQueryOptions) {
   );
 }
 
-export function fetchStudioInterventionsEvidence(options?: StudioQueryOptions) {
-  return loadStudioJson<StudioInterventionsEvidenceResponse>(
-    publicArtifactPath(interventionsEvidenceIndexKey()),
-    options,
-  );
-}
-
 export function publicArtifactPath(key: string): string {
   return `/api/v1/artifacts/${key
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
-}
-
-export function fetchStudioInterventionCorpus(options?: StudioQueryOptions) {
-  return loadNullableStudioJson<StudioInterventionCorpus>(
-    publicArtifactPath(interventionCorpusKey()),
-    options,
-  );
 }
 
 export function fetchStudioRouteInterventionInventory(
@@ -196,13 +174,6 @@ export function fetchStudioRouteInterventionObservations(
 ): Promise<StudioRouteInterventionObservationBundle | null> {
   return loadNullableStudioJson<StudioRouteInterventionObservationBundle>(
     publicArtifactPath(interventionObservationBundleKey(routeSlug)),
-    options,
-  );
-}
-
-export function fetchStudioInterventionFacetIndex(options?: StudioQueryOptions) {
-  return loadNullableStudioJson<StudioInterventionFacetIndex>(
-    publicArtifactPath(interventionFacetIndexKey()),
     options,
   );
 }

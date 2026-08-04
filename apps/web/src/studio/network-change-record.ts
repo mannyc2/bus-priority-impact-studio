@@ -14,13 +14,7 @@
  * and none carries a mileage figure.
  */
 
-import type {
-  StudioInterventionCorpus,
-  StudioInterventionCorpusRecord,
-  StudioRoute,
-  StudyIndexArtifact,
-  StudyIndexRow,
-} from "./api-contract.js";
+import type { StudioRoute } from "./api-contract.js";
 import { parseChangeDate } from "./change-date.js";
 
 /** Records earlier than this fold into the opening value rather than stretching
@@ -34,7 +28,6 @@ const STALLED_YEARS = 5;
 const RECENT_YEARS = 3;
 
 /** Bars in a route row's changes-per-year sparkline. */
-const SPARK_YEARS = 7;
 
 export type BuildoutFamilyKey =
   | "bus_lane"
@@ -86,7 +79,6 @@ type BuildoutFamilyDefinition = {
   /** Completes "Routes that …", e.g. "run on a street with a bus lane". */
   reach: string;
   /** Completes a route row headline, e.g. "Bus lane opened October 2025". */
-  changeHeadline: string;
   color: string;
 };
 
@@ -103,7 +95,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Bus lanes",
     subjectIsPlural: true,
     reach: "run on a street with a bus lane",
-    changeHeadline: "Bus lane opened",
     color: "var(--bp-color-accent)",
   },
   {
@@ -113,7 +104,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Camera enforcement",
     subjectIsPlural: false,
     reach: "have camera enforcement",
-    changeHeadline: "Camera enforcement began",
     color: "var(--bp-route-queens)",
   },
   {
@@ -123,7 +113,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Select Bus Service",
     subjectIsPlural: false,
     reach: "run Select Bus Service",
-    changeHeadline: "Select Bus Service began",
     color: "var(--bp-route-si)",
   },
   {
@@ -133,7 +122,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Signal priority",
     subjectIsPlural: false,
     reach: "have signal priority",
-    changeHeadline: "Signal priority began",
     color: "var(--bp-color-ink-55)",
   },
   {
@@ -143,7 +131,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Busways",
     subjectIsPlural: true,
     reach: "run on a busway",
-    changeHeadline: "Busway opened",
     color: "var(--bp-route-express)",
   },
   {
@@ -153,7 +140,6 @@ export const BUILDOUT_FAMILIES: readonly BuildoutFamilyDefinition[] = [
     subject: "Other documented changes",
     subjectIsPlural: true,
     reach: "carry another documented change",
-    changeHeadline: "Change documented",
     color: "var(--bp-route-bronx)",
   },
 ];
@@ -511,360 +497,4 @@ export function buildoutDescription(buildout: NetworkBuildout): string {
       `${entry.label} reaches ${entry.endValue} ${plural(entry.endValue, "route", "routes")}`,
   );
   return `Routes reached by each treatment, ${span}. ${parts.join(". ")}.`;
-}
-
-export const ROUTE_CHANGE_GROUPS = ["recent", "most", "measured", "proposed", "never"] as const;
-
-export type RouteChangeGroup = (typeof ROUTE_CHANGE_GROUPS)[number];
-
-export const ROUTE_CHANGE_GROUP_LABELS = {
-  recent: "Changed recently",
-  most: "Most changed",
-  measured: "Measured",
-  proposed: "Proposed",
-  never: "Never changed",
-} satisfies Record<RouteChangeGroup, string>;
-
-export type RouteChangeResult =
-  | { kind: "study"; label: string; magnitude: string | null; tone: "good" | "bad" | "neutral" }
-  | { kind: "state"; label: string };
-
-export type RouteChangeRow = {
-  slug: string;
-  routeId: string;
-  displayLabel: string;
-  sbs: boolean;
-  /** Sentence for the most recent change, e.g. "Camera enforcement began". */
-  headline: string;
-  /** Display date at the source's own precision, e.g. "April 2026". */
-  date: string | null;
-  changeCount: number;
-  proposedCount: number;
-  spark: readonly { year: number; count: number }[];
-  result: RouteChangeResult;
-};
-
-export type RouteChangeIndex = {
-  group: RouteChangeGroup;
-  rows: readonly RouteChangeRow[];
-  /** Routes in the selected group before the display bound. */
-  totalRoutes: number;
-};
-
-const STUDY_DIRECTION_DISPLAY = {
-  improved: { label: "Speeds rose", tone: "good" },
-  worsened: { label: "Speeds fell", tone: "bad" },
-  no_detectable_change: { label: "No clear change", tone: "neutral" },
-  not_estimable: { label: "Not estimable", tone: "neutral" },
-} satisfies Record<StudyIndexRow["direction"], { label: string; tone: "good" | "bad" | "neutral" }>;
-
-/** Latest published study per route, joined on exact case-sensitive identity. */
-function studiesByRouteId(index: StudyIndexArtifact | null): ReadonlyMap<string, StudyIndexRow> {
-  const latest = new Map<string, StudyIndexRow>();
-  for (const study of index?.studies ?? []) {
-    const known = latest.get(study.routeId);
-    if (known === undefined || study.implementationMonth > known.implementationMonth) {
-      latest.set(study.routeId, study);
-    }
-  }
-  return latest;
-}
-
-function proposedCountsByRouteId(
-  corpus: StudioInterventionCorpus | null,
-): ReadonlyMap<string, number> {
-  const counts = new Map<string, number>();
-  for (const record of corpus?.records ?? []) {
-    if (record.recordKind !== "proposed") continue;
-    for (const routeId of record.routes) counts.set(routeId, (counts.get(routeId) ?? 0) + 1);
-  }
-  return counts;
-}
-
-function latestChange(route: StudioRoute): {
-  start: string;
-  display: string;
-  year: number;
-  familyKey: BuildoutFamilyKey;
-} | null {
-  let best: { start: string; display: string; year: number; familyKey: BuildoutFamilyKey } | null =
-    null;
-  for (const event of route.interventions) {
-    const parsed = parseChangeDate(event.year);
-    if (parsed.precision === "unknown") continue;
-    if (best === null || parsed.start > best.start) {
-      best = {
-        start: parsed.start,
-        display: parsed.display,
-        year: Math.max(BUILDOUT_FIRST_YEAR, Number(parsed.start.slice(0, 4))),
-        familyKey: buildoutFamilyForType(event.interventionType),
-      };
-    }
-  }
-  return best;
-}
-
-/**
- * The change-oriented route index behind the `group` URL key. Ordering is the
- * only thing a group changes; every row is built the same way, so a reader
- * comparing two groups is comparing like with like.
- */
-export function routeChangeIndex(
-  routes: readonly StudioRoute[],
-  options: {
-    group: RouteChangeGroup;
-    studiesIndex: StudyIndexArtifact | null;
-    corpus: StudioInterventionCorpus | null;
-    /** From `networkBuildout`; bounds the sparkline and the "too early" state. */
-    lastYear: number;
-    lastCompleteYear: number;
-    limit?: number;
-  },
-): RouteChangeIndex {
-  const studies = studiesByRouteId(options.studiesIndex);
-  const proposed = proposedCountsByRouteId(options.corpus);
-  const sparkFirstYear = Math.max(BUILDOUT_FIRST_YEAR, options.lastYear - SPARK_YEARS + 1);
-
-  const candidates = routes.flatMap((route) => {
-    const latest = latestChange(route);
-    const proposedCount = proposed.get(route.routeId) ?? 0;
-    const study = studies.get(route.routeId);
-    if (options.group === "never" && route.interventions.length > 0) return [];
-    if (options.group === "recent" && latest === null) return [];
-    if (options.group === "most" && route.interventions.length === 0) return [];
-    if (options.group === "measured" && study === undefined) return [];
-    if (options.group === "proposed" && proposedCount === 0) return [];
-
-    const counts = new Map<number, number>();
-    for (const change of datedChanges(route)) {
-      counts.set(change.year, (counts.get(change.year) ?? 0) + 1);
-    }
-    const spark: { year: number; count: number }[] = [];
-    for (let year = sparkFirstYear; year <= options.lastYear; year += 1) {
-      spark.push({ year, count: counts.get(year) ?? 0 });
-    }
-    const family = latest === null ? undefined : FAMILY_BY_KEY.get(latest.familyKey);
-
-    return [
-      {
-        row: {
-          slug: route.slug,
-          routeId: route.routeId,
-          displayLabel: route.displayLabel ?? route.label,
-          sbs: route.sbs,
-          headline:
-            family?.changeHeadline ??
-            (route.interventions.length > 0 ? "Change documented" : "No documented change"),
-          date: latest?.display ?? null,
-          changeCount: route.interventions.length,
-          proposedCount,
-          spark,
-          result: routeChangeResult({
-            study,
-            latestYear: latest?.year ?? null,
-            changeCount: route.interventions.length,
-            proposedCount,
-            lastCompleteYear: options.lastCompleteYear,
-          }),
-        } satisfies RouteChangeRow,
-        sortStart: latest?.start ?? "",
-        studyMonth: study?.implementationMonth ?? "",
-      },
-    ];
-  });
-
-  candidates.sort((left, right) => {
-    switch (options.group) {
-      case "recent":
-        return right.sortStart.localeCompare(left.sortStart) || compareLabels(left.row, right.row);
-      case "most":
-        return right.row.changeCount - left.row.changeCount || compareLabels(left.row, right.row);
-      case "measured":
-        return (
-          right.studyMonth.localeCompare(left.studyMonth) || compareLabels(left.row, right.row)
-        );
-      case "proposed":
-        return (
-          right.row.proposedCount - left.row.proposedCount || compareLabels(left.row, right.row)
-        );
-      default:
-        return compareLabels(left.row, right.row);
-    }
-  });
-
-  const rows = candidates.map((candidate) => candidate.row);
-  return {
-    group: options.group,
-    rows: options.limit === undefined ? rows : rows.slice(0, options.limit),
-    totalRoutes: rows.length,
-  };
-}
-
-function compareLabels(left: RouteChangeRow, right: RouteChangeRow): number {
-  return left.displayLabel.localeCompare(right.displayLabel, "en-US", { numeric: true });
-}
-
-function routeChangeResult(input: {
-  study: StudyIndexRow | undefined;
-  latestYear: number | null;
-  changeCount: number;
-  proposedCount: number;
-  lastCompleteYear: number;
-}): RouteChangeResult {
-  if (input.study !== undefined) {
-    const display = STUDY_DIRECTION_DISPLAY[input.study.direction];
-    return {
-      kind: "study",
-      label: display.label,
-      tone: display.tone,
-      magnitude:
-        input.study.effectMph === null || input.study.direction === "no_detectable_change"
-          ? null
-          : `${Math.abs(input.study.effectMph).toFixed(2)} mph`,
-    };
-  }
-  if (input.changeCount === 0) {
-    // The route row already says nothing is documented; the result cell is the
-    // only place left to say whether anything is at least proposed.
-    return {
-      kind: "state",
-      label:
-        input.proposedCount > 0
-          ? `${input.proposedCount} proposed ${plural(input.proposedCount, "change", "changes")}`
-          : "None proposed",
-    };
-  }
-  // A study needs months of speed data after the change; the frontier year and
-  // the year before it have not had them long enough in the served window.
-  if (input.latestYear !== null && input.latestYear >= input.lastCompleteYear) {
-    return { kind: "state", label: "Too early to say" };
-  }
-  return { kind: "state", label: "No study yet" };
-}
-
-type CorpusTreatment = StudioInterventionCorpusRecord["primaryTreatments"][number];
-
-const TREATMENT_LABELS = {
-  bus_lane: "Bus lane",
-  busway: "Busway",
-  transit_signal_priority: "Signal priority",
-  queue_jump: "Queue jump",
-  stop_consolidation: "Stop consolidation",
-  stop_relocation: "Stop relocation",
-  bus_bulb: "Bus bulb",
-  neckdown: "Curb extension",
-  red_paint: "Red paint",
-  off_board_fare_collection: "Off-board fare payment",
-  all_door_boarding: "All-door boarding",
-  ace: "Camera enforcement",
-  able: "Camera enforcement",
-  reroute: "Reroute",
-  pedestrian_improvement: "Pedestrian space",
-  signal_retiming: "Signal retiming",
-} satisfies Record<CorpusTreatment, string>;
-
-/** Mix slices are coloured by rank inside their own plan; each card carries its
- *  own legend, so a stable cross-card hue would buy nothing. */
-const MIX_COLORS = [
-  "var(--bp-color-accent)",
-  "var(--bp-route-queens)",
-  "var(--bp-route-si)",
-  "var(--bp-route-express)",
-] as const;
-
-const MIX_TAIL_COLOR = "var(--bp-color-ink-40)";
-
-/** Named slices per plan before the remainder folds into "Other". */
-const MIX_SLICES = 4;
-
-export type ProposedTreatmentSlice = {
-  label: string;
-  count: number;
-  sharePercent: number;
-  color: string;
-};
-
-export type ProposedPlanGroup = {
-  sourceId: string;
-  label: string;
-  changeCount: number;
-  routeCount: number;
-  mix: readonly ProposedTreatmentSlice[];
-};
-
-export type ProposedPlans = {
-  plans: readonly ProposedPlanGroup[];
-  totalChanges: number;
-};
-
-/**
- * Proposed corpus records grouped by the plan that proposed them. 248 rows is a
- * list nobody reads; 22 plans is a shape a governance reader recognises.
- */
-export function proposedPlanGroups(corpus: StudioInterventionCorpus | null): ProposedPlans {
-  const bySource = new Map<
-    string,
-    { label: string; changeCount: number; routes: Set<string>; treatments: Map<string, number> }
-  >();
-  let totalChanges = 0;
-
-  for (const record of corpus?.records ?? []) {
-    if (record.recordKind !== "proposed") continue;
-    totalChanges += 1;
-    const current = bySource.get(record.sourceId) ?? {
-      label: record.sourceLabel,
-      changeCount: 0,
-      routes: new Set<string>(),
-      treatments: new Map<string, number>(),
-    };
-    current.changeCount += 1;
-    for (const routeId of record.routes) current.routes.add(routeId);
-    for (const treatment of record.primaryTreatments) {
-      const label = TREATMENT_LABELS[treatment];
-      current.treatments.set(label, (current.treatments.get(label) ?? 0) + 1);
-    }
-    bySource.set(record.sourceId, current);
-  }
-
-  const plans = [...bySource.entries()]
-    .map(([sourceId, entry]) => ({
-      sourceId,
-      label: entry.label,
-      changeCount: entry.changeCount,
-      routeCount: entry.routes.size,
-      mix: treatmentMix(entry.treatments),
-    }))
-    .sort(
-      (left, right) =>
-        right.changeCount - left.changeCount ||
-        right.routeCount - left.routeCount ||
-        left.label.localeCompare(right.label),
-    );
-
-  return { plans, totalChanges };
-}
-
-function treatmentMix(counts: ReadonlyMap<string, number>): ProposedTreatmentSlice[] {
-  const ranked = [...counts.entries()].sort(
-    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
-  );
-  const total = ranked.reduce((sum, [, count]) => sum + count, 0);
-  if (total === 0) return [];
-  const named = ranked.slice(0, MIX_SLICES);
-  const tail = ranked.slice(MIX_SLICES).reduce((sum, [, count]) => sum + count, 0);
-  const slices = named.map(([label, count], index) => ({
-    label,
-    count,
-    sharePercent: (count / total) * 100,
-    color: MIX_COLORS[index] ?? MIX_TAIL_COLOR,
-  }));
-  if (tail > 0) {
-    slices.push({
-      label: "Other",
-      count: tail,
-      sharePercent: (tail / total) * 100,
-      color: MIX_TAIL_COLOR,
-    });
-  }
-  return slices;
 }

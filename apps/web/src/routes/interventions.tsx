@@ -2,9 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { routeHead } from "../lib/head.js";
 import { staticStudioLoaderStaleTimeMs } from "../studio/api-client.js";
-import type { StudioInterventionTreatmentFamily } from "../studio/api-contract.js";
-import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-route-index.js";
-import type { RouteChangeGroup } from "../studio/network-change-record.js";
 
 const PublicInterventions = lazy(() =>
   import("../components/interventions/PublicInterventions.js").then((module) => ({
@@ -16,90 +13,38 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
-const INTERVENTION_STATUSES = ["all", "evaluated", "future", "source-gap"] as const;
-const INTERVENTION_VIEWS = ["documented", "planned"] as const;
-const INTERVENTION_FAMILIES = [
-  "bus_priority_lane",
-  "signal_priority",
-  "stop_change",
-  "street_design",
-  "boarding_and_fare",
-  "enforcement",
-  "service_change",
-  "service_package",
-  "capital",
-  "curb_management",
-  "customer_information",
-  "other",
-] as const satisfies readonly StudioInterventionTreatmentFamily[];
-// Spelled out rather than imported: this route module is eager, and pulling a
-// value out of `network-change-record` would drag the whole derivation into the
-// entry bundle. `satisfies` keeps the two lists in step.
-const INTERVENTION_GROUPS = [
-  "recent",
-  "most",
-  "measured",
-  "proposed",
-  "never",
-] as const satisfies readonly RouteChangeGroup[];
-
+/**
+ * The three filters the page owns, each omitted at its default so a shared URL
+ * carries only what the reader actually chose.
+ *
+ * `family` is a treatment-family key from the served artifact, not a fixed
+ * enum: the retired ledger's `StudioInterventionTreatmentFamily` vocabulary
+ * (`enforcement`, `stop_change`, …) is a different one from the episode
+ * artifact's (`automated-bus-lane-enforcement`, `bus-stop-or-boarding`, …), so
+ * the route validates the SHAPE and the page resolves the value against the
+ * facets it actually has.
+ */
 export type InterventionsSearch = {
-  status?: (typeof INTERVENTION_STATUSES)[number];
-  view?: (typeof INTERVENTION_VIEWS)[number];
-  /** Route-index view above the ledger. Defaults to `recent`, omitted at default. */
-  group?: (typeof INTERVENTION_GROUPS)[number];
-  studied?: true;
-  borough?: (typeof ROUTE_INDEX_BOROUGHS)[number] | typeof ROUTE_INDEX_ALL_BOROUGHS;
-  family?: StudioInterventionTreatmentFamily | "all";
+  family?: string;
   route?: string;
-  q?: string;
+  /** Every change rather than the first page of them. */
+  all?: true;
 };
 
-export function validateInterventionsSearch(search: Record<string, unknown>): InterventionsSearch {
-  const {
-    status: statusValue,
-    view: viewValue,
-    group: groupValue,
-    studied: studiedValue,
-    borough: boroughValue,
-    family: familyValue,
-    route: routeValue,
-    q: queryValue,
-  } = search;
-  const status = member(INTERVENTION_STATUSES, statusValue);
-  const view = member(INTERVENTION_VIEWS, viewValue);
-  const group = member(INTERVENTION_GROUPS, groupValue);
-  const studied = studiedValue === true || studiedValue === "true" ? true : undefined;
-  const borough = member(
-    [ROUTE_INDEX_ALL_BOROUGHS, ...ROUTE_INDEX_BOROUGHS] as const,
-    boroughValue,
-  );
-  const family = member(["all", ...INTERVENTION_FAMILIES] as const, familyValue);
-  const route = boundedTrimmedSearch(routeValue, 96);
-  const q = boundedTrimmedSearch(queryValue, 120);
-  return {
-    ...(view === "planned" || (view === undefined && status === "future")
-      ? { view: "planned" as const }
-      : {}),
-    ...(group === undefined || group === "recent" ? {} : { group }),
-    ...(studied === true || (studied === undefined && status === "evaluated")
-      ? { studied: true as const }
-      : {}),
-    ...(status === "source-gap" ? { status } : {}),
-    ...(borough === undefined || borough === ROUTE_INDEX_ALL_BOROUGHS ? {} : { borough }),
-    ...(family === undefined || family === "all" ? {} : { family }),
-    ...(route === undefined ? {} : { route }),
-    ...(q === undefined ? {} : { q }),
-  };
-}
+const FAMILY_KEY = /^[a-z0-9-]{1,64}$/u;
 
-function member<const TValue extends string>(
-  values: readonly TValue[],
-  value: unknown,
-): TValue | undefined {
-  return typeof value === "string" && (values as readonly string[]).includes(value)
-    ? (value as TValue)
+export function validateInterventionsSearch(search: Record<string, unknown>): InterventionsSearch {
+  const { family: familyValue, route: routeValue, all: allValue } = search;
+  const family = typeof familyValue === "string" && FAMILY_KEY.test(familyValue)
+    ? familyValue
     : undefined;
+  const route = boundedTrimmedSearch(routeValue, 96);
+  const all = allValue === true || allValue === "true" ? true : undefined;
+  return {
+    ...(family === undefined ? {} : { family }),
+    ...(route === undefined ? {} : { route }),
+    ...(all === undefined ? {} : { all }),
+  };
 }
 
 function boundedTrimmedSearch(value: unknown, maxLength: number): string | undefined {
@@ -142,6 +87,7 @@ export const Route = createFileRoute("/interventions")({
 function InterventionsRoute() {
   const data = Route.useLoaderData();
   const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   return (
     <Suspense fallback={<InterventionsRouteFallback />}>
       {data.publicArtifact === null ? (
@@ -150,7 +96,10 @@ function InterventionsRoute() {
         <main className="min-h-full p-7 max-sm:p-4">
           <PublicInterventions
             artifact={data.publicArtifact}
-            initialRouteQuery={search.route ?? ""}
+            search={search}
+            onSearchChange={(next) => {
+              void navigate({ search: next, replace: true });
+            }}
           />
         </main>
       )}
