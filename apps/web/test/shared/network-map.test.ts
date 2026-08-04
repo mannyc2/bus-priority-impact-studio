@@ -316,21 +316,30 @@ describe("legendModel", () => {
 
   test("speed bands carry live counts and one no-data chip", () => {
     const legend = legendModel(fleet, SPEED_ALL, "March 2026");
-    expect(legend.bands.map((band) => band.count)).toEqual([1, 1, 2]);
-    expect(legend.noDataCount).toBe(1);
-    expect(legend.bands[2]?.darkText).toBe(true);
+    expect(legend?.bands.map((band) => band.count)).toEqual([1, 1, 2]);
+    expect(legend?.noDataCount).toBe(1);
+    expect(legend?.bands[2]?.darkText).toBe(true);
+  });
+
+  test("a legend with nothing in any band does not render", () => {
+    /* Every band at (0) asserts that the colours exist, not that any route is
+       in them. Facts absent -> no legend; facts present -> unchanged. */
+    const blank = [feature({ routeId: "GAP", currentMph: null, riderHoursLost: null })];
+    expect(legendModel(blank, SPEED_ALL, "March 2026")).toBeNull();
+    expect(legendModel(blank, DELAY, "March 2026")).toBeNull();
+    expect(legendModel(fleet, SPEED_ALL, "March 2026")).not.toBeNull();
   });
 
   test("delay bands order worst first", () => {
     const legend = legendModel(fleet, DELAY, "March 2026");
-    expect(legend.subtitle).toBe("March 2026");
-    expect(legend.bands.map((band) => band.label)).toEqual([
+    expect(legend?.subtitle).toBe("March 2026");
+    expect(legend?.bands.map((band) => band.label)).toEqual([
       "40k or more",
       "15 to 40k",
       "8 to 15k",
       "under 8k",
     ]);
-    expect(legend.bands.map((band) => band.count)).toEqual([1, 1, 1, 1]);
+    expect(legend?.bands.map((band) => band.count)).toEqual([1, 1, 1, 1]);
   });
 });
 
@@ -363,7 +372,24 @@ describe("insightModel", () => {
       DELAY,
       "March 2026",
     );
-    expect(insight).toEqual({ lead: "Rider delay is unavailable.", rest: "" });
+    expect(insight).toEqual({
+      lead: "Rider delay is unavailable.",
+      rest: "",
+      hint: "Click a route to see its delay exposure.",
+    });
+  });
+
+  test("every encoding carries one standing interaction hint", () => {
+    const fleet = [feature({ routeId: "A", currentMph: 5, riderHoursLost: 50_000 })];
+    expect(insightModel(fleet, SPEED_ALL, "March 2026").hint).toBe(
+      "Click a route for its numbers; pin it to compare.",
+    );
+    expect(insightModel(fleet, DELAY, "March 2026").hint).toBe(
+      "Click a route to see its delay exposure.",
+    );
+    expect(
+      insightModel(fleet, { lens: "speed", period: "am", compare: true }, "March 2026").hint,
+    ).toBe("Click a route to compare peak against all day.");
   });
 });
 

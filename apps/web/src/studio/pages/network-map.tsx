@@ -44,7 +44,6 @@ import {
   type SegmentValidation,
 } from "@/components/route/network-map-search";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
-import { Button } from "@/components/ui/button";
 import {
   currentMapBusLaneArtifact,
   fetchMapBusLanes,
@@ -772,26 +771,15 @@ export function NetworkMapPage({
 
   return (
     <main className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-7 py-3 max-md:px-4">
-        <h1 className="m-0 text-[18px] font-semibold">Network map</h1>
-        <span className="text-[12px] text-[var(--bp-color-ink-55)]">
-          {releaseCoverage === null
-            ? "Release coverage unavailable."
-            : `Data through ${releaseCoverage}.`}{" "}
-          Local, Limited & SBS. {completeFactCount}/{network.features.length} verified routes.
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => setDataNotesOpen(true)}
-          className="ml-auto"
-        >
-          Data notes
-        </Button>
-      </div>
+      {/*
+        The map is the page. A title band that repeated the nav item, restated
+        coverage the chrome already carries, and parked a dialog button in dead
+        space cost a strip of canvas for nothing. The heading survives for
+        assistive technology and SEO; its contents moved into the map chrome.
+      */}
+      <h1 className="sr-only">Network map</h1>
       {mapMessage === null && activeLanesError === null && activeUrlNotice === null ? null : (
-        <p className="m-0 px-7 pb-2 text-[12px] text-[var(--bp-color-ink-55)]" role="status">
+        <p className="m-0 px-7 pb-2 pt-2 text-[12px] text-[var(--bp-color-ink-55)]" role="status">
           {[mapMessage, activeLanesError, activeUrlNotice]
             .filter((message) => message !== null)
             .join(" ")}
@@ -836,26 +824,23 @@ export function NetworkMapPage({
             delayEligible={delayEligible}
             amEligible={amEligible}
             pmEligible={pmEligible}
-            borough={borough}
             lanesVisible={effectiveSearch.lanes === true}
             lanesAvailable={lanesEligible}
-            routeCount={filteredFeatures.length}
+            routeCount={network.features.length}
+            coverage={releaseCoverage}
+            verifiedRouteCount={completeFactCount}
             browseExpanded={
               browseOpen || (mobileViewport && mobileSheetOpen && mobileMode === "browse")
             }
             desktopBrowseButtonRef={findPillRef}
             mobileBrowseButtonRef={mobileBrowseButtonRef}
             onViewChange={updateView}
-            onBoroughChange={(nextBorough) =>
-              onSearchChange(patchSearch(effectiveSearch, { borough: nextBorough }), {
-                replace: true,
-              })
-            }
             onLanesChange={(visible) =>
               onSearchChange(patchSearch(effectiveSearch, { lanes: visible ? true : undefined }), {
                 replace: true,
               })
             }
+            onOpenDataNotes={() => setDataNotesOpen(true)}
             onBrowse={() => {
               if (isMobileViewport()) {
                 setMobileMode("browse");
@@ -884,7 +869,11 @@ export function NetworkMapPage({
             role="note"
             className="absolute right-4 top-4 z-10 max-w-[260px] rounded-[3px] bg-[var(--bp-color-card)]/95 p-3 pr-7 text-[11px] leading-normal text-[var(--bp-color-ink-70)] shadow-[0_1px_6px_rgba(0,0,0,0.15)]"
           >
-            <b className="text-[var(--bp-color-ink)]">{insight.lead}</b> {insight.rest}
+            {/* Three lines, not one run-on: what the colour means, what the
+                numbers are, and what you can do about it. */}
+            <b className="block text-[12px] text-[var(--bp-color-ink)]">{insight.lead}</b>
+            <span className="mt-0.5 block">{insight.rest}</span>
+            <span className="mt-1.5 block text-[var(--bp-color-ink-40)]">{insight.hint}</span>
             <button
               type="button"
               aria-label="Dismiss note"
