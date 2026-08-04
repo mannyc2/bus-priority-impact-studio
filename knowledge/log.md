@@ -10296,3 +10296,38 @@ A final independent public status read returned release
 no data-pointer mutation. Together with the generation-5 canonical publish and
 generation-6 zero-content-PUT no-op receipts, this closes Plan 101 and the
 Generation-17 tail as current, idempotent, and fully de-monthed.
+
+## [2026-08-04] engineering | Plan 104's page contract retired; the episodes page is canonical for /interventions
+
+Operator adjudication, Plan 120 step 0, recorded verbatim: **APPROVE** — "The
+gen-19 public-episodes page is canonical for `/interventions`, Plan 104's
+page-composition contract is retired (its build-out chart and its approved copy
+grammar already carry forward), and the orphaned Plan-104 page code may be
+deleted."
+
+Background: commit `49368520` (2026-07-28) swapped `/interventions` to the
+public-episodes page three days before its plan existed in-repo, replacing the
+comp-approved Plan 104 layout and tripping 104's own STOP condition. Rather
+than restore a layout whose corpus and facet endpoints now return 404 in
+production, the operator adopted the shipped page — the surface plans 117-119
+had already invested in.
+
+Carried forward from Plan 104: the `NetworkBuildout` chart and the approved
+sentence grammar ("Bus lane opened", "Camera enforcement began", …), the
+latter copied into `apps/web/src/studio/episode-copy.ts` by Plan 118 before
+Plan 120 deleted the module half that held it.
+
+Deleted as unreachable: `studio/pages/interventions.tsx` (1,234 lines),
+`RouteChangeIndex.tsx`, `ProposedPlans.tsx`, the route-index/proposed-plans
+half of `network-change-record.ts` (364 lines; the build-out half stays live),
+`interventions-page.test.ts`, and three zero-caller api-client fetchers whose
+endpoints 404 in production.
+
+Restored in the same plan: `/interventions` URL state. The page's filters are
+owned by the URL again (`family`, `route`, `all`), so deep links, back/forward
+and shared URLs behave. The retired ledger's `status`, `view`, `group`,
+`studied`, `borough` and `q` params validated to nothing and were removed.
+`family` is validated as a shape rather than an enum: the episode artifact's
+treatment-family vocabulary (`automated-bus-lane-enforcement`, …) is not the
+retired ledger's (`enforcement`, …), and a key the served artifact has no facet
+for reads as no filter rather than as an empty page.

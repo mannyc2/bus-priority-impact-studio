@@ -17,6 +17,8 @@ import type {
 } from "@bp/domain/studio/public-intervention-episodes";
 import { useMemo, useState } from "react";
 
+import type { InterventionsSearch } from "@/routes/interventions";
+
 import { NetworkBuildout } from "@/components/interventions/NetworkBuildout";
 import {
   ChangeEntry,
@@ -50,17 +52,26 @@ const ROUTE_BADGE_CAP = 10;
 
 export function PublicInterventions({
   artifact,
-  initialRouteQuery = "",
+  search = {},
+  onSearchChange,
 }: {
   artifact: PublicInterventionEpisodesArtifact;
-  initialRouteQuery?: string | undefined;
+  search?: InterventionsSearch | undefined;
+  onSearchChange?: ((next: InterventionsSearch) => void) | undefined;
 }) {
   const { episodes } = artifact;
-  const [kindKey, setKindKey] = useState<string | null>(null);
-  const [routeQuery, setRouteQuery] = useState(initialRouteQuery);
-  const [showAll, setShowAll] = useState(false);
-
   const facets = useMemo(() => publicKindFacets(episodes), [episodes]);
+
+  /* The URL owns the filters, so a shared link, the back button and the page
+     agree. A `family` the served artifact has no facet for reads as no
+     filter rather than as an empty result. */
+  const kindKey = facets.some((facet) => facet.kindKey === search.family)
+    ? (search.family ?? null)
+    : null;
+  const routeQuery = search.route ?? "";
+  const showAll = search.all === true;
+  const updateSearch = (next: InterventionsSearch) => onSearchChange?.(next);
+
   const filtered = useMemo(
     () => filterEpisodes(episodes, { kindKey, routeQuery }),
     [episodes, kindKey, routeQuery],
@@ -105,8 +116,11 @@ export function PublicInterventions({
               id="route-filter"
               value={routeQuery}
               onChange={(event) => {
-                setRouteQuery(event.target.value);
-                setShowAll(false);
+                const route = event.target.value.trim();
+                updateSearch({
+                  ...(kindKey === null ? {} : { family: kindKey }),
+                  ...(route.length === 0 ? {} : { route }),
+                });
               }}
               placeholder="Find a route"
               className="h-8 w-[160px] text-[12.5px] @max-md:w-full"
@@ -120,8 +134,7 @@ export function PublicInterventions({
             count={episodes.length}
             active={kindKey === null}
             onSelect={() => {
-              setKindKey(null);
-              setShowAll(false);
+              updateSearch(routeQuery.length === 0 ? {} : { route: routeQuery });
             }}
           />
           {facets.map((facet) => (
@@ -131,8 +144,10 @@ export function PublicInterventions({
               count={facet.episodeCount}
               active={kindKey === facet.kindKey}
               onSelect={() => {
-                setKindKey(facet.kindKey === kindKey ? null : facet.kindKey);
-                setShowAll(false);
+                updateSearch({
+                  ...(facet.kindKey === kindKey ? {} : { family: facet.kindKey }),
+                  ...(routeQuery.length === 0 ? {} : { route: routeQuery }),
+                });
               }}
             />
           ))}
@@ -161,7 +176,13 @@ export function PublicInterventions({
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => setShowAll(!showAll)}
+              onClick={() => {
+                updateSearch({
+                  ...(kindKey === null ? {} : { family: kindKey }),
+                  ...(routeQuery.length === 0 ? {} : { route: routeQuery }),
+                  ...(showAll ? {} : { all: true }),
+                });
+              }}
             >
               {showAll
                 ? "Show recent changes only"

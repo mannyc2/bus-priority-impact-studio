@@ -8,8 +8,6 @@ import {
   fetchNetworkMapGeo,
   fetchRouteSegmentsGeoLoad,
   fetchSelectedRouteMapEvidence,
-  fetchStudioInterventionFacetIndex,
-  fetchStudioInterventionsEvidence,
   fetchStudioRoute,
   fetchStudioRouteIndex,
   fetchStudioRouteInterventionInventory,
@@ -320,8 +318,8 @@ describe("Studio API client", () => {
     mockFetch(fetchFailure as unknown as typeof globalThis.fetch);
 
     try {
-      await fetchStudioInterventionsEvidence();
-      throw new Error("Expected fetchStudioInterventionsEvidence to throw");
+      await fetchStudioRoutes();
+      throw new Error("Expected fetchStudioRoutes to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(StudioApiError);
       if (error instanceof StudioApiError) {
@@ -348,18 +346,15 @@ describe("Studio API client", () => {
     }) as typeof globalThis.fetch);
 
     await fetchStudioRouteInterventionInventory("b44-sbs");
-    await fetchStudioInterventionFacetIndex();
 
     expect(requestedPaths).toEqual([
       "/api/v1/artifacts/studio/v2/routes/b44-sbs/intervention-inventory.json",
-      "/api/v1/artifacts/studio/v2/interventions/facet-index.json",
     ]);
 
     mockFetch(
       (async () => new Response(null, { status: 404 })) as unknown as typeof globalThis.fetch,
     );
     await expect(fetchStudioRouteInterventionInventory("b44")).resolves.toBeNull();
-    await expect(fetchStudioInterventionFacetIndex()).resolves.toBeNull();
   });
 
   test("inventory artifact loads preserve malformed JSON errors and aborts", async () => {
@@ -378,7 +373,7 @@ describe("Studio API client", () => {
         );
       });
     }) as typeof globalThis.fetch);
-    const load = fetchStudioInterventionFacetIndex({ signal: controller.signal });
+    const load = fetchStudioRouteInterventionInventory("b44", { signal: controller.signal });
     controller.abort();
     await expect(load).rejects.toMatchObject({ name: "AbortError" });
   });

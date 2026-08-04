@@ -527,6 +527,49 @@ describe("one real change renders once", () => {
   });
 });
 
+describe("url-owned filters", () => {
+  test("a family in the URL drives the rendered filter", async () => {
+    const html = await renderWithRouter(
+      createElement(PublicInterventions, {
+        artifact,
+        search: { family: "automated-bus-lane-enforcement" },
+      }),
+    );
+    const text = html.replaceAll(/<[^>]*>/gu, " ");
+    expect(text).toContain("Automated camera enforcement on BX12+");
+    expect(text).not.toContain("Reviewed B44 change");
+    /* The chip the URL selected is the pressed one. */
+    const chipAt = html.indexOf("Automated bus lane enforcement");
+    expect(html.slice(0, chipAt).lastIndexOf('aria-pressed="true"')).toBeGreaterThan(
+      html.slice(0, chipAt).lastIndexOf('aria-pressed="false"'),
+    );
+  });
+
+  test("a route in the URL drives the rendered filter", async () => {
+    const html = await renderWithRouter(
+      createElement(PublicInterventions, { artifact, search: { route: "q52" } }),
+    );
+    const text = html.replaceAll(/<[^>]*>/gu, " ");
+    expect(text).toContain("Q52 Limited change");
+    expect(text).not.toContain("Reviewed B44 change");
+  });
+
+  test("a family the served artifact does not have reads as no filter", async () => {
+    const html = await renderWithRouter(
+      createElement(PublicInterventions, { artifact, search: { family: "not-a-real-family" } }),
+    );
+    const text = html.replaceAll(/<[^>]*>/gu, " ");
+    /* Never an empty page for a stale or hand-edited link. */
+    expect(text).not.toContain("No source-backed dated change matches that.");
+    expect(text).toContain("Reviewed B44 change");
+  });
+
+  test("with no search at all every change still renders", async () => {
+    const html = await renderWithRouter(createElement(PublicInterventions, { artifact }));
+    expect(html.replaceAll(/<[^>]*>/gu, " ")).toContain("Reviewed B44 change");
+  });
+});
+
 describe("public chronology helpers", () => {
   test("computes overlap and chronology from explicit intervals", () => {
     const [first, second] = artifact.episodes;

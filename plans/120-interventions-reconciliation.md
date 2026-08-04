@@ -76,7 +76,13 @@ the corpus/facet endpoints that no longer exist in production (probed 404,
 
 ## Adjudication record
 
-- (fill in: date, verbatim operator token)
+- 2026-08-04, operator (mannyc2), in session: **APPROVE** — "The gen-19
+  public-episodes page is canonical for `/interventions`, Plan 104's
+  page-composition contract is retired (its build-out chart and its approved
+  copy grammar already carry forward), and the orphaned Plan-104 page code may
+  be deleted." Selected against the alternatives of rebuilding the 104 layout
+  on the v2 contract (rejected) and deferring (rejected). Executed the same
+  day.
 
 ## Current state
 
