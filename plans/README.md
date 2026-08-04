@@ -83,7 +83,7 @@ gen-17 publications ARE live) with an honest-degrade guard in 121; the
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 115 | Route facts under byte-reused releases (hash+coverage, not stamps) | P0 | M | none | TODO |
+| 115 | Route facts under byte-reused releases (hash+coverage, not stamps) | P0 | M | none | DONE (executed 2026-08-04; no drift from `e0c00aaf` in the three in-scope files. Join and route-fact parity now compare coverage only; `releaseIdentityMatches`/`releaseIdentityLabel` deleted and the public status paragraph no longer prints `pub_` identifiers. SHA-256 integrity gating untouched. Byte-reuse regression pinned in both `api-client.test.ts` and `route-fact-evidence.test.ts`; 449 web tests, `check:types`, `@bp/web build` (137.4 KB gz entry), `check:architecture` all green. Production probe of the legend still owed — it needs a deploy.) |
 | 116 | June/July catch-up + missing-artifact publication (OPERATOR runbook) | P0 | S-M | 098 active; 115 first recommended | TODO (blocked on operator auth; candidate must be rebased onto current main) |
 | 117 | Merge identical cross-route episodes in the view model | P1 | M | none; before 118 | TODO |
 | 118 | Episode public copy layer (vocab, separators, disclaimer, badges, lint) | P1 | M | 117 | TODO |
