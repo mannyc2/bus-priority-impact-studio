@@ -15,8 +15,14 @@ import type {
   PublicInterventionEpisode,
 } from "@bp/domain/studio/public-intervention-episodes";
 import { Link } from "@tanstack/react-router";
+import { type ReactNode, useState } from "react";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   componentSentence,
   PLACEMENT_DISCLAIMER,
@@ -29,6 +35,47 @@ import {
  * dates and titles line up down the whole page whatever marker they carry.
  */
 export const ENTRY_GUTTER = "grid-cols-[22px_minmax(0,1fr)] gap-x-3";
+
+/**
+ * The one disclosure control these surfaces use: a real button that says what
+ * it will do and a chevron that shows what state it is in. A bare `<details>`
+ * with its marker hidden offered neither.
+ *
+ * Panels are `hiddenUntilFound`, so what a change affected stays in the served
+ * document and find-in-page still reaches it — the one thing `<details>` did
+ * get right.
+ */
+export function Disclosure({
+  closedLabel,
+  openLabel,
+  className,
+  triggerClassName = "text-[11.5px]",
+  children,
+}: {
+  closedLabel: string;
+  openLabel: string;
+  className?: string | undefined;
+  triggerClassName?: string | undefined;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className={className}>
+      <CollapsibleTrigger
+        className={`group inline-flex cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-[var(--bp-color-accent)] ${triggerClassName}`}
+      >
+        {open ? openLabel : closedLabel}
+        <span
+          aria-hidden="true"
+          className="text-[9px] transition-transform group-data-[panel-open]:rotate-180"
+        >
+          ▾
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent hiddenUntilFound>{children}</CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 /** Routes named before the rest collapse behind a disclosure. */
 const ROUTE_FACE_CAP = 4;
@@ -130,16 +177,16 @@ function AffectedRoutes({
         <RouteRelation key={route.routeKey} route={route} />
       ))}
       {rest.length === 0 ? null : (
-        <details className="group">
-          <summary className="cursor-pointer list-none text-[11.5px] text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
-            {`and ${rest.length} more ${rest.length === 1 ? "route" : "routes"}`}
-          </summary>
+        <Disclosure
+          closedLabel={`Show ${rest.length} more ${rest.length === 1 ? "route" : "routes"}`}
+          openLabel={`Hide ${rest.length} more ${rest.length === 1 ? "route" : "routes"}`}
+        >
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {rest.map((route) => (
               <RouteRelation key={route.routeKey} route={route} />
             ))}
           </div>
-        </details>
+        </Disclosure>
       )}
     </div>
   );
@@ -179,10 +226,11 @@ function Components({ episode }: { episode: PublicInterventionEpisode }) {
         ))}
       </ul>
       {rest.length === 0 ? null : (
-        <details className="mt-1.5">
-          <summary className="cursor-pointer list-none text-[11.5px] text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
-            {`and ${rest.length} more in the same change`}
-          </summary>
+        <Disclosure
+          className="mt-1.5"
+          closedLabel={`Show ${rest.length} more in the same change`}
+          openLabel={`Hide ${rest.length} more in the same change`}
+        >
           <ul className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
             {rest.map((component) => (
               <li key={component.componentId} className="text-[12px] leading-[1.5]">
@@ -190,7 +238,7 @@ function Components({ episode }: { episode: PublicInterventionEpisode }) {
               </li>
             ))}
           </ul>
-        </details>
+        </Disclosure>
       )}
     </div>
   );
@@ -237,18 +285,20 @@ function ComponentText({
 function PlacementHistory({ episode }: { episode: PublicInterventionEpisode }) {
   if (episode.authority !== "producer" || episode.placements.length === 0) return null;
   const lines = placementLines(episode.placements);
+  const label = `${episode.placements.length} historical placement ${episode.placements.length === 1 ? "record" : "records"}`;
   return (
-    <details className="mt-2.5 text-[11.5px] text-[var(--bp-color-ink-55)]">
-      <summary className="cursor-pointer list-none text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
-        {`${episode.placements.length} historical placement ${episode.placements.length === 1 ? "record" : "records"}`}
-      </summary>
+    <Disclosure
+      className="mt-2.5 text-[11.5px] text-[var(--bp-color-ink-55)]"
+      closedLabel={label}
+      openLabel={label}
+    >
       <p className="m-0 mt-1.5">{PLACEMENT_DISCLAIMER}</p>
       <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4">
         {lines.map((line) => (
           <li key={line.text}>{line.count === 1 ? line.text : `${line.text} (×${line.count})`}</li>
         ))}
       </ul>
-    </details>
+    </Disclosure>
   );
 }
 

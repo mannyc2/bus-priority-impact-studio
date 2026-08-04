@@ -11,16 +11,26 @@
  */
 
 import type {
+  PublicEpisodeRoute,
   PublicInterventionEpisodesArtifact,
   PublicProposedPlan,
 } from "@bp/domain/studio/public-intervention-episodes";
 import { useMemo, useState } from "react";
 
 import { NetworkBuildout } from "@/components/interventions/NetworkBuildout";
-import { ChangeEntry, ENTRY_GUTTER } from "@/components/interventions/PublicChangeEntry";
+import {
+  ChangeEntry,
+  Disclosure,
+  ENTRY_GUTTER,
+} from "@/components/interventions/PublicChangeEntry";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import {
   filterEpisodes,
@@ -171,16 +181,18 @@ export function PublicInterventions({
           ))}
         </ul>
         {proposed.plans.length <= PLAN_FACE_CAP ? null : (
-          <details className="mt-4 border-t border-[var(--bp-color-rule)] pt-3">
-            <summary className="cursor-pointer list-none text-[12px] text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
-              {`${proposed.plans.length - PLAN_FACE_CAP} smaller plans`}
-            </summary>
+          <Disclosure
+            className="mt-4 border-t border-[var(--bp-color-rule)] pt-3"
+            triggerClassName="text-[12px]"
+            closedLabel={`Show ${proposed.plans.length - PLAN_FACE_CAP} smaller plans`}
+            openLabel="Hide smaller plans"
+          >
             <ul className="m-0 mt-3 flex list-none flex-col p-0">
               {proposed.plans.slice(PLAN_FACE_CAP).map((plan) => (
                 <PlanRow key={plan.planId} plan={plan} />
               ))}
             </ul>
-          </details>
+          </Disclosure>
         )}
         <p className="mt-4 max-w-[70ch] text-[12px] leading-[1.5] text-[var(--bp-color-ink-70)]">
           A proposal has no start date until the agency sets one, so none of these appear on a
@@ -241,56 +253,91 @@ function ChangeGroup({ group }: { group: NetworkChangeGroup }) {
   ];
 
   return (
-    <details>
-      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        {/* Same gutter as a change entry, so a group heading and the entries
-            inside it share one left edge. */}
-        <div className={`grid ${ENTRY_GUTTER}`}>
-          <span
-            aria-hidden="true"
-            className="mt-[3px] flex size-[22px] items-center justify-center rounded-[3px] bg-[var(--bp-color-ink-10)] font-mono text-[10.5px] font-bold text-[var(--bp-color-ink-55)]"
-          >
-            {group.episodes.length}
+    <ChangeGroupDisclosure group={group} uniqueRoutes={uniqueRoutes} />
+  );
+}
+
+/**
+ * The trigger carries only what identifies the group — count, date, heading —
+ * so its hit target stays a line, not a grid. What the group affected reads
+ * the same open or closed, so it sits outside the control.
+ */
+function ChangeGroupDisclosure({
+  group,
+  uniqueRoutes,
+}: {
+  group: NetworkChangeGroup;
+  uniqueRoutes: readonly PublicEpisodeRoute[];
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      {/* Same gutter as a change entry, so a group heading and the entries
+          inside it share one left edge. */}
+      <CollapsibleTrigger
+        className={`group grid w-full ${ENTRY_GUTTER} cursor-pointer bg-transparent p-0 text-left`}
+      >
+        <span
+          aria-hidden="true"
+          className="mt-[3px] flex size-[22px] items-center justify-center rounded-[3px] bg-[var(--bp-color-ink-10)] font-mono text-[10.5px] font-bold text-[var(--bp-color-ink-55)]"
+        >
+          {group.episodes.length}
+        </span>
+        <span className="min-w-0">
+          <span className="block font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
+            {group.dateDisplay}
           </span>
-          <div className="min-w-0">
-            <div className="font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
-              {group.dateDisplay}
-            </div>
-            <div className="mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-              <span className="text-[14.5px] font-semibold leading-snug">{group.heading}</span>
-              <span className="text-[12px] text-[var(--bp-color-accent)]">Open</span>
-            </div>
-            {group.sourceLabel === null ? null : (
-              <p className="mt-1 max-w-[68ch] text-[12.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
-                {group.sourceLabel}
-              </p>
+          <span className="mt-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+            <span className="text-[14.5px] font-semibold leading-snug">{group.heading}</span>
+            <span className="inline-flex items-center gap-1 text-[12px] text-[var(--bp-color-accent)]">
+              {open ? "Hide changes" : "Show changes"}
+              <span
+                aria-hidden="true"
+                className="text-[9px] transition-transform group-data-[panel-open]:rotate-180"
+              >
+                ▾
+              </span>
+            </span>
+          </span>
+        </span>
+      </CollapsibleTrigger>
+
+      <div className={`grid ${ENTRY_GUTTER}`}>
+        <span aria-hidden="true" />
+        <div className="min-w-0">
+          {group.sourceLabel === null ? null : (
+            <p className="mt-1 max-w-[68ch] text-[12.5px] leading-[1.5] text-[var(--bp-color-ink-70)]">
+              {group.sourceLabel}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {uniqueRoutes.slice(0, ROUTE_BADGE_CAP).map((route) => (
+              <RouteBadge
+                key={route.routeKey}
+                route={route.routeId}
+                displayLabel={route.label}
+                size="sm"
+              />
+            ))}
+            {uniqueRoutes.length <= ROUTE_BADGE_CAP ? null : (
+              <span className="self-center text-[11px] text-[var(--bp-color-ink-55)]">
+                {`and ${uniqueRoutes.length - ROUTE_BADGE_CAP} more`}
+              </span>
             )}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {uniqueRoutes.slice(0, ROUTE_BADGE_CAP).map((route) => (
-                <RouteBadge
-                  key={route.routeKey}
-                  route={route.routeId}
-                  displayLabel={route.label}
-                  size="sm"
-                />
-              ))}
-              {uniqueRoutes.length <= ROUTE_BADGE_CAP ? null : (
-                <span className="self-center text-[11px] text-[var(--bp-color-ink-55)]">
-                  {`and ${uniqueRoutes.length - ROUTE_BADGE_CAP} more`}
-                </span>
-              )}
-            </div>
           </div>
         </div>
-      </summary>
-      <ol className="m-0 mt-4 flex list-none flex-col gap-4 pl-[34px] @max-md:pl-[26px]">
-        {group.episodes.map((episode) => (
-          <li key={episode.episodeId}>
-            <ChangeEntry episode={episode} />
-          </li>
-        ))}
-      </ol>
-    </details>
+      </div>
+
+      <CollapsibleContent hiddenUntilFound>
+        <ol className="m-0 mt-4 flex list-none flex-col gap-4 pl-[34px] @max-md:pl-[26px]">
+          {group.episodes.map((episode) => (
+            <li key={episode.episodeId}>
+              <ChangeEntry episode={episode} />
+            </li>
+          ))}
+        </ol>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
