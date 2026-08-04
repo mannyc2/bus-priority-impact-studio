@@ -115,8 +115,10 @@ export function resolveRouteFactEvidence(
   const comparisons: Array<
     readonly [field: string, expected: ComparableFactValue, actual: ComparableFactValue]
   > = [
-    ["releaseId", manifest.releaseId, response.releaseId],
-    ["publishedAt", manifest.publishedAt, response.publishedAt],
+    // Embedded releaseId/publishedAt are informational: a release may
+    // re-point byte-identical artifacts that still carry the identity of
+    // the release that first published them. Coverage and values are the
+    // real cross-artifact defense.
     ["release.coverage.start", manifest.coverage.start, response.coverage.start],
     ["release.coverage.end", manifest.coverage.end, response.coverage.end],
     ["coverage.end", detail.coverageEnd, response.coverage.end],

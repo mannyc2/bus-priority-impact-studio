@@ -723,32 +723,15 @@ export type NetworkMapJoinResult = {
 };
 
 type CoverageLike = { readonly start: string | null; readonly end: string };
-type ReleaseIdentityLike = {
-  readonly releaseId: string;
-  readonly publishedAt: string;
-  readonly coverage: CoverageLike;
-};
 
 function coverageMatches(left: CoverageLike, right: CoverageLike): boolean {
   return left.start === right.start && left.end === right.end;
-}
-
-function releaseIdentityMatches(left: ReleaseIdentityLike, right: ReleaseIdentityLike): boolean {
-  return (
-    left.releaseId === right.releaseId &&
-    left.publishedAt === right.publishedAt &&
-    coverageMatches(left.coverage, right.coverage)
-  );
 }
 
 function coverageLabel(coverage: CoverageLike): string {
   return coverage.start === null || coverage.start === coverage.end
     ? coverage.end
     : `${coverage.start} through ${coverage.end}`;
-}
-
-function releaseIdentityLabel(identity: ReleaseIdentityLike): string {
-  return `${identity.releaseId} published ${identity.publishedAt}, covering ${coverageLabel(identity.coverage)}`;
 }
 
 export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMapJoinResult {
@@ -773,13 +756,20 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
           ? `Network geometry failed integrity verification (expected ${bundle.network.expectedSha256}, received ${bundle.network.actualSha256}).`
           : `Citywide network geometry is unavailable (${bundle.network.status}).`,
     };
-  const networkIdentityMismatch = !releaseIdentityMatches(bundle.network.data, bundle.manifest);
+  // Release identity is an activation-time property of the manifest, not of
+  // the artifact bytes: a release may re-point deduplicated artifacts that
+  // still embed the release that first published them. Integrity is the
+  // declared-SHA-256 match (checked upstream); compatibility is coverage.
+  const networkIdentityMismatch = !coverageMatches(
+    bundle.network.data.coverage,
+    bundle.manifest.coverage,
+  );
   const routeFactsIdentityMismatch =
     bundle.routeFacts.status === "ready" &&
     (bundle.manifest.routeFacts.status !== "available" ||
-      !releaseIdentityMatches(bundle.routeFacts.data, bundle.manifest) ||
-      !releaseIdentityMatches(bundle.routeFacts.data, bundle.network.data) ||
-      !releaseIdentityMatches(bundle.routeFacts.data, bundle.manifest.routeFacts));
+      !coverageMatches(bundle.routeFacts.data.coverage, bundle.manifest.coverage) ||
+      !coverageMatches(bundle.routeFacts.data.coverage, bundle.network.data.coverage) ||
+      !coverageMatches(bundle.routeFacts.data.coverage, bundle.manifest.routeFacts.coverage));
   const coverageMismatch = networkIdentityMismatch || routeFactsIdentityMismatch;
   const facts =
     bundle.routeFacts.status === "ready" && !coverageMismatch ? bundle.routeFacts.data : null;
@@ -859,9 +849,13 @@ export function joinNetworkMapBundle(bundle: NetworkMapBundle | null): NetworkMa
       ? `Route facts failed integrity verification (expected ${bundle.routeFacts.expectedSha256}, received ${bundle.routeFacts.actualSha256}).`
       : null;
   const coverageMismatchMessage = networkIdentityMismatch
-    ? `Manifest covers ${coverageLabel(bundle.manifest.coverage)}, but map geometry covers ${coverageLabel(bundle.network.data.coverage)}. Release identity mismatch: expected ${releaseIdentityLabel(bundle.manifest)}; received ${releaseIdentityLabel(bundle.network.data)}.`
+    ? `Manifest covers ${coverageLabel(bundle.manifest.coverage)}, but map geometry covers ${coverageLabel(bundle.network.data.coverage)}.`
     : routeFactsIdentityMismatch && bundle.routeFacts.status === "ready"
-      ? `Map geometry covers ${coverageLabel(bundle.network.data.coverage)}, but route facts cover ${coverageLabel(bundle.routeFacts.data.coverage)}. Release identity mismatch: manifest ${releaseIdentityLabel(bundle.manifest)}; network ${releaseIdentityLabel(bundle.network.data)}; route facts ${releaseIdentityLabel(bundle.routeFacts.data)}; manifest reference ${bundle.manifest.routeFacts.status === "available" ? releaseIdentityLabel(bundle.manifest.routeFacts) : "unavailable"}.`
+      ? bundle.manifest.routeFacts.status !== "available"
+        ? "This release does not publish route facts, so map metrics stay unavailable."
+        : !coverageMatches(bundle.network.data.coverage, bundle.routeFacts.data.coverage)
+          ? `Map geometry covers ${coverageLabel(bundle.network.data.coverage)}, but route facts cover ${coverageLabel(bundle.routeFacts.data.coverage)}.`
+          : `Route facts cover ${coverageLabel(bundle.routeFacts.data.coverage)}, but this release covers ${coverageLabel(bundle.manifest.routeFacts.coverage)}.`
       : null;
   return {
     collection: { type: "FeatureCollection", features },

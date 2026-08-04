@@ -13,6 +13,173 @@ REJECTED (with one-line rationale)
 
 ---
 
+# Generation 21 — production-regression fix-pack + interventions/map UX repair (2026-08-02)
+
+Planned by an `improve` read-only audit (four parallel scoped auditors —
+provenance archaeology, live production probing, interventions UX mechanics,
+map/route-detail mechanics — every load-bearing claim re-verified against
+source by the lead session). Only `plans/**` changed. Audited against
+`origin/main@e0c00aaf`; production probed 2026-08-02 on release
+`pub_20260801T232501631Z`.
+
+**Landing note (read before executing anything).** These plans were authored
+on the stale `ops/gen18-artifact-publication` tree and grafted onto main
+2026-08-04; plan bodies 115-126 and this section are the only parts that
+landed. Plan 113 had already deleted 98 plan bodies plus every
+`plans/mockups/` comp, so comps referenced below are read via
+`git show <old-sha>:plans/mockups/...`. Two pieces of work these plans
+reference stayed on the old tree and were NOT landed: the 2026-08-02
+kernel-descope amendments to plans 098-101 (those plans are closed DONE on
+main with production receipts), and the map hover/header fix — Plan 121
+re-implements the latter on main, so treat main as the only base.
+
+Headline findings: (1) the 2026-08-01 Plan 098 activation re-pointed
+byte-identical deduplicated artifacts whose bodies still embed the previous
+release's identity stamp; the client's strict stamp-equality checks null ALL
+route facts — network map "0/348 verified", dead delay lens, "verified
+exposure unavailable" on every route (integrity hashes all pass; plan 115).
+(2) Most remaining empty states are artifacts never published in any release;
+a fully verified June/July catch-up candidate exists but was cut from a
+non-ancestor commit and needs rebase + re-verify before the operator
+activates it (plan 116). (3) `/interventions` was swapped wholesale on
+2026-07-28, three days before its plan existed, discarding the comp-approved
+Plan 104 layout; the shipped page renders per-route episodes as near-duplicate
+rows with schema vocabulary, fake collapsibles, and a doctrine-evading kicker
+eyebrow (plans 117-120). (4) The network map still runs dwell-then-dim hover
+(160 ms latch, whole-canvas 0.92→0.2 flips, no transitions); the operator's
+2026-07-26 "hover never dims" decision was never landed or recorded
+(plan 121). (5) Route detail renders the speed scalar three times with two
+different numbers, and discards 36 served months of segment history because
+the artifacts predate `spineReadiness` (plans 122, 116). (6) The active
+release's routes-index projection carries `spark`/`movement6mPct` null for
+375/375 routes (route-detail has real values), so the /routes "12-mo trend"
+column is silently blank citywide; and raw capability diagnostics ("speed
+months present, history artifact not built") render verbatim as public copy
+under the honest-empty "Building" state (plan 124 + 116's amended gates).
+
+**Operator bug sweep (2026-08-02, folded into the plans below — verified
+against `origin/main@881d5611`, after the gen-17 tail closed).** Nine
+reported defects and where each landed: the unplanned "No flags raised"
+detector card → 122 (delete); two route maps and the Slow-segments readout
+rail → NEW plan 126 (Overview map becomes THE interactive map with the
+Plan-125 popup pattern + native direction treatment; explorer map + rail
+retire); the hand-rolled "When riders ride" div chart → 126 (Recharts/
+shadcn pair + styled tooltip); raw crosswalk slugs
+(`priority_corridor_designation`, …) as public treatment names + the
+"+N more" popover blowout → 122 (137 self-labeled crosswalk rows; client
+label guard + helper fix + popover hygiene); speed-history chart floating
+in card whitespace → 126 (chart fills card; shrink-the-card rejected);
+"Checked" tab badge + "Checked clean / Detectors ran; no publishable
+signal." empty copy → 124 (reworded; supersedes the keep-verbatim rule for
+checked_clean only); single-option "Speed"/"All day" toggles and the
+foreign-reading borough selector → 121 (suppress degenerate toggles;
+DELETE the selector — it was `ui/select` with an unstyled trigger); the
+run-on map note "(i)" → 121 (lead/body/hint as three lines); all-zero
+legend "under 7 (0) …" → symptom of 115 (data discarded client-side; the
+gen-17 publications ARE live) with an honest-degrade guard in 121; the
+/routes filter input off the search primitive → 124.
+
+## Execution order & status (gen 21)
+
+| Plan | Title | Priority | Effort | Depends on | Status |
+|------|-------|----------|--------|------------|--------|
+| 115 | Route facts under byte-reused releases (hash+coverage, not stamps) | P0 | M | none | DONE (executed 2026-08-04; no drift from `e0c00aaf` in the three in-scope files. Join and route-fact parity now compare coverage only; `releaseIdentityMatches`/`releaseIdentityLabel` deleted and the public status paragraph no longer prints `pub_` identifiers. SHA-256 integrity gating untouched. Byte-reuse regression pinned in both `api-client.test.ts` and `route-fact-evidence.test.ts`; 449 web tests, `check:types`, `@bp/web build` (137.4 KB gz entry), `check:architecture` all green. Production probe of the legend still owed — it needs a deploy.) |
+| 116 | June/July catch-up + missing-artifact publication (OPERATOR runbook) | P0 | S-M | 098 active; 115 first recommended | TODO (blocked on operator auth; candidate must be rebased onto current main) |
+| 117 | Merge identical cross-route episodes in the view model | P1 | M | none; before 118 | TODO |
+| 118 | Episode public copy layer (vocab, separators, disclaimer, badges, lint) | P1 | M | 117 | TODO |
+| 119 | Real disclosure controls (Collapsible) on interventions surfaces | P1 | M | 117, 118 | TODO |
+| 120 | /interventions reconciliation: adopt episodes page, delete orphan, URL state | P1 | M | OPERATOR GATE (step 0); 117-119 first | TODO |
+| 121 | Calm network map: hover never dims, sr-only title band, honest chrome (no single-option toggles, borough selector deleted, structured note) | P1 | M-L | none | TODO |
+| 122 | Route-detail hygiene: one speed scalar, honest history states, map hover, treatment labels + popover, no filler card | P1 | M-L | 115 recommended first | TODO |
+| 123 | "Route at a glance" Overview enrichment spike (comp-gated) | P2 | M | 122, 126; operator comp token | TODO |
+| 124 | Routes-index trend honesty + capability vocabulary out of public copy + search-field unification | P1 | S-M | none (data half rides 116's amended gates) | TODO |
+| 125 | One click surface on the network map (popup leads; rail stays on browse) | P2 | S-M | 121 (same file, sequential) | TODO |
+| 126 | One route map: Overview map goes interactive (popup + direction); explorer map + readout rail retire; riders chart on the chart kit; charts fill cards | P1 | L | 122 (same files); before 123 | TODO |
+
+Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
+REJECTED (with one-line rationale)
+
+## Dependency and safety notes (gen 21)
+
+- 115 first: it is the P0 production regression and every later activation
+  (116) re-triggers the same class until it lands. 116 is operator-executed
+  and may proceed in parallel once 115 is deployed.
+- 117 → 118 → 119 → 120 execute SEQUENTIALLY (same files:
+  `PublicChangeEntry.tsx`, `PublicInterventions.tsx`,
+  `public-episode-view.ts`); never in parallel worktrees. 120 additionally
+  holds the operator adjudication (gen-19 page canonical, Plan 104 layout
+  contract formally retired) and must not run without its Step 0 token.
+- 118 copies the approved `changeHeadline` grammar out of
+  `network-change-record.ts` BEFORE 120 deletes that file's dead half.
+- 121 and 122 are independent of the interventions chain and of each other
+  (disjoint files) and may run in parallel worktrees with any of 117-120.
+- 125 runs strictly AFTER 121 (both edit `studio/pages/network-map.tsx`).
+  Operator decision 2026-08-02 recorded in 125: the anchored popup is the
+  single desktop click surface; `NetworkMapSelected` survives only for the
+  mobile sheet and `?segment=` share links (its unique cargo: rank — moved
+  into the popup — plus the segment-evidence list and canonicalization
+  notices, which stay on those two paths).
+- 126 runs strictly AFTER 122 (same files: `OverviewSection.tsx`,
+  `SegmentExplorer.tsx`, `RouteMapLibre.map.tsx`; 122's hover fixes carry
+  into the surviving map). It is independent of the interventions chain and
+  of 121/125 (different map component), but its popup ports Plan 125's
+  anchored-popup ruling — read 125 before executing 126. Expected
+  supersession: 122's step-3 readout strings die with the rail 126 deletes;
+  the data-layer discriminants survive.
+- 123 is comp-gated (Phase B operator token) and now runs after BOTH 122
+  (empties the Overview slot) and 126 (the comp must show the interactive
+  map card + filled chart).
+- Comps referenced by these plans predate Plan 113's mockup deletion — read
+  them via git history (e.g. `git show 926ce17c:plans/mockups/080-.../...`).
+  Plan 123 reintroduces one living comp directory as its acceptance record.
+
+## Findings considered and rejected / deferred (gen 21 — do not re-audit)
+
+- **"Network map" h1 as an unplanned regression** — inverted premise: Plan
+  059 specified the h1 character-for-character and the approved 080 comp
+  shows the band; nothing on main ever deleted it. The 2026-07-26 title-band
+  deletion exists only in the unmerged local tree. Removing it now is an
+  operator-directed supersession, implemented + recorded by plan 121.
+- **Artifact-side merge of per-route episodes** — impossible without
+  breaking the producer conformance gate
+  (`public-intervention-episodes.ts:352-358` pins 222/188/268); the merge is
+  view-model-only (plan 117). The true upstream fix (one record per real
+  change) is owed in mta-wiki, out of this repo's scope.
+- **Relocating the Overview speed CHART to Slow segments** — rejected: two
+  route-level charts inside a segment-grain tab violates display-grain
+  doctrine. Only the duplicated scalar goes (plan 122); the monthly trend
+  stays on Overview.
+- **Blanket widening of the kicker lint** to all small-tracking uppercase —
+  rejected: it would flag ~12 legitimate 0.06-0.08em column/stat labels. The
+  surgical fix (add the 0.04-0.05em signature + 3 banned phrases) is in
+  plan 118.
+- **Treating "Treatment inventory unavailable" / 404 inventory artifacts as
+  code bugs** — they are honest states for artifacts never published in any
+  release; ownership is publication (plan 116), client handles them
+  correctly via 404→null.
+- **`TreatmentsHistorySection` + legacy route-history stack retirement** —
+  deferred again (still the live fallback for missing artifacts and
+  `?study=`/`?record=` deep links); blocker recorded in plan 120's
+  maintenance notes (public path needs deep-link parity first).
+- **Absent-artifact 500 envelope (Plan 031)** — no longer applies on the
+  `/api/v1/artifacts/*` path: probing shows clean 404 `NOT_FOUND` envelopes
+  with a 307 release redirect; the 404→null client path works. Do not
+  re-plan Plan 031 for this path.
+- **`fetchStudioInterventionsEvidence` throw-vs-null inconsistency** — real
+  but moot standalone: all three legacy interventions fetchers have zero
+  callers and their endpoints are 404; deletion folded into plan 120.
+- **RDX-04 (detector findings / reliability empty citywide)** — upstream
+  detector-coverage work, not a UI fix; evidence base is the stale v1
+  fixture, so plan 123's Phase A verifies against live payloads before any
+  design leans on it. Report-only here.
+- **Stale v1 artifacts committed in-repo** (`public-episodes.json` v1 vs v2
+  reader; capability manifest v1 vs schema 2) — fixture hygiene, not serving
+  breaks: plan 122 step 6 handles the capability manifest; the episodes
+  fixture is superseded by the served `public-episodes-v2.json` and its
+  cleanup can ride any interventions PR.
+
+---
+
 # Generation 20 — aggressive LOC cleanup (2026-08-01)
 
 Planned at commit `292d2bd0` on the dirty `ops/gen18-artifact-publication`
