@@ -5,11 +5,14 @@ import type {
 } from "@bp/domain/maps";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   loadMapLibre,
   type MapLibreGeoJSONSource,
   type MapLibreMap,
+  type MapLibrePopup,
   type MapLibreMapLayerMouseEvent,
+  type MapLibreModule,
   resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
 import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
@@ -51,6 +54,8 @@ export type RouteMapLibreMapProps = {
   /** Published NYC DOT bus-lane geometry (loaded lazily by the section). */
   busLanes: MapBusLaneFeatureCollection | null;
   compact?: boolean | undefined;
+  /** The one click surface: an anchored popup, never a parallel panel. */
+  popup?: { anchor: readonly [number, number]; content: ReactNode } | null | undefined;
   fallback: ReactNode;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
@@ -240,11 +245,17 @@ export function RouteMapLibreMap({
   showLanes,
   busLanes,
   compact = false,
+  popup = null,
   fallback,
   onInteractiveAvailabilityChange,
 }: RouteMapLibreMapProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const popupRef = useRef<MapLibrePopup | null>(null);
+  const vendorRef = useRef<MapLibreModule | null>(null);
+  const [popupNode] = useState(() =>
+    typeof document === "undefined" ? null : document.createElement("div"),
+  );
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState<"runtime" | "unsupported" | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -331,6 +342,7 @@ export function RouteMapLibreMap({
       loadVendor: loadMapLibre,
       resetVendor: resetMapLibreLoader,
       createMap: (maplibregl) => {
+        vendorRef.current = maplibregl;
         const container = containerRef.current;
         if (container === null) throw new Error("Route map container is unavailable.");
         const map = new maplibregl.Map({
@@ -483,6 +495,9 @@ export function RouteMapLibreMap({
         map.off("mousemove", HIT_LAYER, onMouseMove);
         map.off("mouseleave", HIT_LAYER, onMouseLeave);
         map.off("click", HIT_LAYER, onClick);
+        popupRef.current?.remove();
+        popupRef.current = null;
+        vendorRef.current = null;
         mapRef.current = null;
         setReady(false);
       },
@@ -550,6 +565,32 @@ export function RouteMapLibreMap({
     lastPinnedIdRef.current = pinnedSegmentId;
   }, [activeDirection, directionsById, hoveredSegmentId, pinnedSegmentId, ready, segmentIds]);
 
+  /* One click surface, same ruling as the network map (Plan 125): a click
+     anchors one popup to the segment. There is no parallel panel. */
+  useEffect(() => {
+    const map = mapRef.current;
+    const maplibregl = vendorRef.current;
+    if (map === null || maplibregl === null || popupNode === null || !ready) return;
+    if (popup === null) {
+      popupRef.current?.remove();
+      return;
+    }
+    if (popupRef.current === null) {
+      popupRef.current = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        focusAfterOpen: false,
+        maxWidth: "none",
+        offset: 14,
+        className: "bp-map-popup",
+      });
+    }
+    popupRef.current
+      .setLngLat([popup.anchor[0], popup.anchor[1]])
+      .setDOMContent(popupNode)
+      .addTo(map);
+  }, [popup, popupNode, ready]);
+
   if (failure !== null) {
     return (
       <div
@@ -600,6 +641,7 @@ export function RouteMapLibreMap({
           {unavailableDetailCount === 1 ? " segment" : " segments"}.
         </div>
       ) : null}
+      {popupNode !== null && popup !== null ? createPortal(popup.content, popupNode) : null}
     </div>
   );
 }

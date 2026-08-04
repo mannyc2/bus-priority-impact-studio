@@ -2,7 +2,7 @@ import type {
   MapBusLaneFeatureCollection,
   MapRouteSegmentFeatureCollection,
 } from "@bp/domain/maps";
-import { lazy, Suspense } from "react";
+import { lazy, type ReactNode, Suspense } from "react";
 import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import type { RouteGeoContext } from "@/components/route/route-geo-map";
 import type { StudioRoute, StudioSegment } from "@/studio/api-contract";
@@ -39,7 +39,14 @@ export type RouteMapLibreProps = {
   showLanes: boolean;
   busLanes: MapBusLaneFeatureCollection | null;
   compact?: boolean | undefined;
+  /** The one click surface: an anchored popup, never a parallel panel. */
+  popup?: RouteMapPopupState | null | undefined;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
+};
+
+export type RouteMapPopupState = {
+  anchor: readonly [number, number];
+  content: ReactNode;
 };
 
 export function RouteMapLibre(props: RouteMapLibreProps) {
