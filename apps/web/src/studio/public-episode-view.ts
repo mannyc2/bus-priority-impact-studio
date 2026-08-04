@@ -340,23 +340,150 @@ export function networkBuildoutModel(snapshot: PublicNetworkBuildoutSnapshot): N
   };
 }
 
+/**
+ * One real change rendered once. The pack models a rollout as one episode per
+ * affected route, so an enforcement activation or a network redesign arrives as
+ * dozens of episodes sharing a date, a treatment mix, a source and a title. The
+ * merge is display-only: every route, component, placement and citation of
+ * every member survives the union, and per-route pages are unaffected because a
+ * single route never holds two members of the same change.
+ */
+export type MergedEpisode = PublicInterventionEpisode & {
+  /** Episode ids folded into this entry (length 1 when nothing merged). */
+  mergedEpisodeIds: readonly string[];
+};
+
+/** Camera-enforcement titles end in the route phrase the builder appended. */
+function titleStem(episode: PublicInterventionEpisode): string {
+  if (episode.authority !== "tracker_enrichment") return episode.title;
+  const separator = episode.title.indexOf(" on ");
+  return separator === -1 ? episode.title : episode.title.slice(0, separator);
+}
+
+function mergeKey(episode: PublicInterventionEpisode): string {
+  return `${episode.authority}|${episode.date.value}|${familyKey(episode)}|${titleStem(episode).toLowerCase()}`;
+}
+
+function familyKey(episode: PublicInterventionEpisode): string {
+  return episode.treatmentFamilies
+    .map((family) => family.treatmentFamilyKey)
+    .toSorted()
+    .join(",");
+}
+
+function unionBy<T>(items: readonly T[], identity: (item: T) => string): T[] {
+  const kept = new Map<string, T>();
+  for (const item of items) {
+    const key = identity(item);
+    if (!kept.has(key)) kept.set(key, item);
+  }
+  return [...kept.values()];
+}
+
+export function mergeIdenticalEpisodes(
+  episodes: readonly PublicInterventionEpisode[],
+): MergedEpisode[] {
+  const buckets = new Map<string, PublicInterventionEpisode[]>();
+  for (const episode of canonicalOrder(episodes)) {
+    const key = mergeKey(episode);
+    const bucket = buckets.get(key) ?? [];
+    bucket.push(episode);
+    buckets.set(key, bucket);
+  }
+  const merged: MergedEpisode[] = [];
+  for (const bucket of buckets.values()) {
+    const first = bucket[0];
+    if (first === undefined) continue;
+    merged.push(foldEpisodes(first, bucket));
+  }
+  return merged;
+}
+
+/** Canonical input order, so a shuffled list merges to an identical result. */
+function canonicalOrder(
+  episodes: readonly PublicInterventionEpisode[],
+): PublicInterventionEpisode[] {
+  return episodes.toSorted(
+    (left, right) =>
+      compareEpisodesNewestFirst(left, right) || left.episodeId.localeCompare(right.episodeId),
+  );
+}
+
+function foldEpisodes(
+  first: PublicInterventionEpisode,
+  members: readonly PublicInterventionEpisode[],
+): MergedEpisode {
+  const mergedEpisodeIds = members.map((episode) => episode.episodeId).toSorted();
+  if (members.length === 1) return { ...first, mergedEpisodeIds };
+  const routes = unionBy(
+    members.flatMap((episode) => episode.routes),
+    (route) => route.routeKey,
+  );
+  const citations = unionBy(
+    members.flatMap((episode) => episode.citations),
+    (citation) => citation.label,
+  );
+  if (first.authority === "producer") {
+    return {
+      ...first,
+      routes,
+      citations,
+      components: unionBy(
+        members.flatMap((episode) => (episode.authority === "producer" ? episode.components : [])),
+        (component) => component.componentId,
+      ),
+      placements: unionBy(
+        members.flatMap((episode) => (episode.authority === "producer" ? episode.placements : [])),
+        (placement) => placement.placementKey,
+      ),
+      mergedEpisodeIds,
+    };
+  }
+  return {
+    ...first,
+    title: mergedTitle(first, routes),
+    routes,
+    citations,
+    components: unionBy(
+      members.flatMap((episode) =>
+        episode.authority === "tracker_enrichment" ? episode.components : [],
+      ),
+      (component) => component.componentId,
+    ),
+    mergedEpisodeIds,
+  };
+}
+
+/** A merged entry names its routes rather than inheriting one member's phrase. */
+function mergedTitle(
+  first: PublicInterventionEpisode,
+  routes: readonly { label: string }[],
+): string {
+  if (routes.length < 2) return first.title;
+  const stem = titleStem(first);
+  return routes.length === 2
+    ? `${stem} on ${routes.map((route) => route.label).join(" and ")}`
+    : `${stem} on ${routes.length} routes`;
+}
+
 export type NetworkChangeGroup = {
   groupId: string;
   heading: string | null;
   dateDisplay: string;
   sourceLabel: string | null;
   routeCount: number;
-  episodes: readonly PublicInterventionEpisode[];
+  episodes: readonly MergedEpisode[];
 };
 
 const GROUP_THRESHOLD = 3;
 
-export function networkChangeGroups(
-  episodes: readonly PublicInterventionEpisode[],
-): NetworkChangeGroup[] {
-  const buckets = new Map<string, PublicInterventionEpisode[]>();
+export function networkChangeGroups(episodes: readonly MergedEpisode[]): NetworkChangeGroup[] {
+  const buckets = new Map<string, MergedEpisode[]>();
   for (const episode of [...episodes].sort(compareEpisodesNewestFirst)) {
-    const key = `${episodeStartKey(episode)}|${episode.citations[0]?.label ?? ""}`;
+    /* Grouping is a same-day display convenience. It keys on the day and the
+       treatment mix — never on a citation, which one member can carry an extra
+       of and fall out of its own group. */
+    const key = `${episodeStartKey(episode)}|${familyKey(episode)}`;
     const bucket = buckets.get(key) ?? [];
     bucket.push(episode);
     buckets.set(key, bucket);

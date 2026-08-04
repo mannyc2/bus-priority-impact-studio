@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   filterEpisodes,
+  mergeIdenticalEpisodes,
   type NetworkChangeGroup,
   networkBuildoutModel,
   networkChangeGroups,
@@ -34,6 +35,8 @@ import {
 const GROUP_PAGE = 12;
 /** Plan rows expanded on the face. */
 const PLAN_FACE_CAP = 4;
+/** Route badges named on a group heading before the rest become a count. */
+const ROUTE_BADGE_CAP = 10;
 
 export function PublicInterventions({
   artifact,
@@ -52,7 +55,9 @@ export function PublicInterventions({
     () => filterEpisodes(episodes, { kindKey, routeQuery }),
     [episodes, kindKey, routeQuery],
   );
-  const groups = useMemo(() => networkChangeGroups(filtered), [filtered]);
+  /* Filter first, merge second: a route query narrows to the changes naming
+     that route, and the merged entry then still lists every route it touched. */
+  const groups = useMemo(() => networkChangeGroups(mergeIdenticalEpisodes(filtered)), [filtered]);
   const shown = showAll ? groups : groups.slice(0, GROUP_PAGE);
   const buildout = networkBuildoutModel(artifact.networkBuildout);
   const proposed = artifact.proposedPlans;
@@ -225,6 +230,16 @@ function ChangeGroup({ group }: { group: NetworkChangeGroup }) {
     return <ChangeEntry episode={single} />;
   }
 
+  /* One list decides both the badges and the overflow count, so the two can
+     never disagree about how many routes the group covers. */
+  const uniqueRoutes = [
+    ...new Map(
+      group.episodes.flatMap((episode) =>
+        episode.routes.map((route) => [route.routeKey, route] as const),
+      ),
+    ).values(),
+  ];
+
   return (
     <details>
       <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -251,21 +266,17 @@ function ChangeGroup({ group }: { group: NetworkChangeGroup }) {
               </p>
             )}
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {group.episodes
-                .slice(0, 10)
-                .flatMap((episode) =>
-                  episode.routes.map((route) => (
-                    <RouteBadge
-                      key={`${episode.episodeId}:${route.routeKey}`}
-                      route={route.routeId}
-                      displayLabel={route.label}
-                      size="sm"
-                    />
-                  )),
-                )}
-              {group.routeCount <= 10 ? null : (
+              {uniqueRoutes.slice(0, ROUTE_BADGE_CAP).map((route) => (
+                <RouteBadge
+                  key={route.routeKey}
+                  route={route.routeId}
+                  displayLabel={route.label}
+                  size="sm"
+                />
+              ))}
+              {uniqueRoutes.length <= ROUTE_BADGE_CAP ? null : (
                 <span className="self-center text-[11px] text-[var(--bp-color-ink-55)]">
-                  {`and ${group.routeCount - 10} more`}
+                  {`and ${uniqueRoutes.length - ROUTE_BADGE_CAP} more`}
                 </span>
               )}
             </div>
