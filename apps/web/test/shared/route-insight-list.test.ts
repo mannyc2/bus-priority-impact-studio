@@ -3,8 +3,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RouteInsightList } from "../../src/components/route/RouteInsightList";
 import type {
-  RouteSurfaceCapability,
-  StudioRouteCapability,
   StudioRouteInsight,
 } from "../../src/studio/api-contract";
 
@@ -18,23 +16,6 @@ const baseInsight = {
   detectorId: "speed_pace_hotspot",
   refs: [],
 } satisfies StudioRouteInsight;
-
-const readySurface = {
-  state: "ready",
-  reason: null,
-  depth: { monthsCovered: 6, grains: ["route_month"] },
-  dataAsOf: "2026-03",
-  freshness: "current",
-} satisfies RouteSurfaceCapability;
-
-const cleanCapability = {
-  overallState: "ready",
-  surfaces: {
-    speedHistory: { ...readySurface, state: "checked_clean" },
-    ridership: readySurface,
-  },
-  caveats: [],
-} satisfies StudioRouteCapability;
 
 function insight(input: Partial<StudioRouteInsight>): StudioRouteInsight {
   return { ...baseInsight, ...input };
@@ -56,7 +37,6 @@ describe("RouteInsightList", () => {
           insight({ title: "Extra two", severity: "low", detectorId: "extra-2" }),
           insight({ title: "Extra three", severity: "low", detectorId: "extra-3" }),
         ],
-        capability: cleanCapability,
         onNavigate: () => undefined,
       }),
     );
@@ -82,7 +62,6 @@ describe("RouteInsightList", () => {
             severity: "high",
           }),
         ],
-        capability: cleanCapability,
         onNavigate: () => undefined,
       }),
     );
@@ -90,30 +69,13 @@ describe("RouteInsightList", () => {
     expect(markup).toContain("Slow segments →");
   });
 
-  test("renders a clean card only when capability surfaces show checked-clean evidence", () => {
-    const cleanMarkup = renderToStaticMarkup(
-      createElement(RouteInsightList, {
-        insights: [],
-        capability: cleanCapability,
-        onNavigate: () => undefined,
-      }),
+  test("renders nothing at all when there are no insights", () => {
+    /* The "No flags raised … across N checked surfaces" card was never planned
+       or comped and put detector vocabulary on a public face. With findings
+       empty citywide it rendered on essentially every route. */
+    const markup = renderToStaticMarkup(
+      createElement(RouteInsightList, { insights: [], onNavigate: () => undefined }),
     );
-    const unavailableMarkup = renderToStaticMarkup(
-      createElement(RouteInsightList, {
-        insights: [],
-        capability: {
-          overallState: "building",
-          surfaces: {
-            speedHistory: { ...readySurface, state: "building", reason: "Still building." },
-          },
-          caveats: [],
-        },
-        onNavigate: () => undefined,
-      }),
-    );
-
-    expect(cleanMarkup).toContain("No flags raised");
-    expect(cleanMarkup).toContain("No detector flags raised for this route");
-    expect(unavailableMarkup).toBe("");
+    expect(markup).toBe("");
   });
 });

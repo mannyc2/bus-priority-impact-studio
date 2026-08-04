@@ -282,11 +282,25 @@ describe("route treatment crosswalk", () => {
         (row) => row.disposition === "other_documented",
       ).every((row) => row.reviewedLabel.length > 0),
     ).toBe(true);
+    /* No reviewed label may still be a slug. Self-labeled rows used to pass
+       their raw value through, so `priority_corridor_designation` reached a
+       public face verbatim (Plan 122). A raw value that is already prose —
+       "ADA pedestrian ramps" — is a fine label and stays as it is. */
+    expect(
+      REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1.filter(
+        (row) =>
+          row.disposition === "other_documented" &&
+          /^[a-z0-9]+(_[a-z0-9]+)+$/u.test(row.reviewedLabel),
+      ),
+    ).toEqual([]);
+    /* Re-pinned 2026-08-04: `reviewedOther` now humanizes self-labeled rows.
+       This hash is a change detector — update it only alongside a deliberate
+       vocabulary change, never to make a red test green. */
     expect(
       createHash("sha256")
         .update(JSON.stringify(REVIEWED_OPEN_TREATMENT_DISPOSITIONS_V1))
         .digest("hex"),
-    ).toBe("a38c1eb0a65bb380e6a610256d3dbe55d543da98e9fa43905b6a8caf38ed806e");
+    ).toBe("663db5b70f9ffd8d027b60523de8a3fbe4a5e67552fd0299b56cf2def48cfb98");
 
     const addition = diffReviewedOpenTreatmentVocabulary({
       ...input,

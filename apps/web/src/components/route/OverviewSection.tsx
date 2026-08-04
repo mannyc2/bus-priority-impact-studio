@@ -149,11 +149,7 @@ export function OverviewSection({
         </SectionCard>
       </div>
 
-      <RouteInsightList
-        insights={data.insights}
-        capability={data.capability}
-        onNavigate={onNavigate}
-      />
+      <RouteInsightList insights={data.insights} onNavigate={onNavigate} />
     </div>
   );
 }
@@ -172,13 +168,9 @@ function overviewSummary(
   const performance = routePerformanceSummary(route, dossier);
   const sentences: string[] = [];
 
-  if (performance.speedMph > 0) {
-    const schedule =
-      route.scheduledMph !== null && route.scheduledMph > 0
-        ? ` against a ${route.scheduledMph.toFixed(1)} mph schedule`
-        : "";
-    sentences.push(`${route.label} runs ${performance.speedMph.toFixed(1)} mph${schedule}.`);
-  }
+  /* The speed scalar is stated by the header stat and the Slow-segments
+     readout. Saying it a third time in prose made the page contradict itself
+     when the two sources disagreed. */
 
   const movement = dossier?.speed.movement6mPct ?? null;
   if (movement !== null && Math.abs(movement) >= 0.05) {

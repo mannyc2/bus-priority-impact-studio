@@ -168,7 +168,7 @@ export function interventionPresentationForTreatment(
   const metadata = KIND_PRESENTATION[treatment.treatmentKind];
   const label =
     treatment.treatmentKind === "other_documented"
-      ? (treatment.rawLabel ?? humanize(treatment.rawKind))
+      ? otherDocumentedLabel(treatment.rawKind, treatment.rawLabel)
       : metadata.label;
   return {
     ...metadata,
@@ -328,6 +328,27 @@ function projectOccurrenceRelationships(
   return relationships;
 }
 
+/** Display names the operator named for the kinds riders actually see. */
+const CURATED_OTHER_LABELS: Record<string, string> = {
+  limited_to_local_conversion: "Limited-to-local conversion",
+  priority_corridor_designation: "Priority corridor designation",
+  overnight_service_discontinuation: "Overnight service discontinued",
+};
+
+/**
+ * The crosswalk passes the kind slug AS the label for 137 reviewed rows, so
+ * `rawLabel ?? humanize(rawKind)` printed `priority_corridor_designation` on a
+ * public face. A label equal to its kind carries no information; only a label
+ * that genuinely differs is a display name.
+ */
+export function otherDocumentedLabel(rawKind: string, rawLabel: string | null): string {
+  const curated = CURATED_OTHER_LABELS[rawKind];
+  if (curated !== undefined) return curated;
+  if (rawLabel !== null && rawLabel !== rawKind) return rawLabel;
+  return humanize(rawKind);
+}
+
 function humanize(value: string): string {
-  return value.replaceAll("_", " ");
+  const words = value.replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

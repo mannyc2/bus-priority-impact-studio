@@ -100,3 +100,37 @@ describe("typed treatment badges", () => {
     }
   });
 });
+
+describe("overflow popover with slug-labelled treatments", () => {
+  function otherRows(count: number) {
+    const bundle = fixtureBundle();
+    return routeInterventionViewModel({
+      ...bundle,
+      treatments: Array.from({ length: count }, (_, index) => ({
+        ...treatment(index + 1, "other_documented", "other", "implemented"),
+        rawKind: "priority_corridor_designation",
+        rawLabel: "priority_corridor_designation",
+      })),
+    }).treatments;
+  }
+
+  test("no raw slug survives to the rendered text", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TreatmentBadgeRow, { treatments: otherRows(8), max: 1 }),
+    );
+    const text = markup.replaceAll(/<[^>]*>/gu, " ");
+    /* The operator's screenshot read "priority_corridor_designation,
+       Proposedpriority_corridor_designation…" */
+    expect(text).not.toMatch(/[a-z0-9]+(_[a-z0-9]+){2,}/u);
+    expect(text).toContain("Priority corridor designation");
+  });
+
+  test("each hidden treatment is announced once, with sentence seams", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TreatmentBadgeRow, { treatments: otherRows(8), max: 1 }),
+    );
+    const announced = markup.match(/Priority corridor designation, Implemented\./gu) ?? [];
+    /* Seven hidden rows, each named once — never once per badge AND per label. */
+    expect(announced).toHaveLength(7);
+  });
+});

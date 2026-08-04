@@ -16,15 +16,20 @@ import type {
  * the Riders tab (frontend §7.2 keeps cell-grain data out of the Tier-1
  * response; these hooks own one abort lifecycle each). */
 
+/* `unavailable` is a fact about the data — a clean 404 or a null payload.
+   A failed request is not that, and rendering one as the other turns a
+   transport problem into a claim about the route. */
 export type RouteSpeedHistoryState =
   | { status: "loading"; data: null }
   | { status: "ready"; data: StudioRouteSpeedHistoryResponse }
-  | { status: "unavailable"; data: null };
+  | { status: "unavailable"; data: null }
+  | { status: "error"; data: null };
 
 export type RouteHourlyProfileState =
   | { status: "loading"; data: null }
   | { status: "ready"; data: StudioRouteHourlyProfileResponse }
-  | { status: "unavailable"; data: null };
+  | { status: "unavailable"; data: null }
+  | { status: "error"; data: null };
 
 export function useRouteHourlyProfile(routeSlug: string): RouteHourlyProfileState {
   const [state, setState] = useState<RouteHourlyProfileState>({ status: "loading", data: null });
@@ -37,9 +42,10 @@ export function useRouteHourlyProfile(routeSlug: string): RouteHourlyProfileStat
         if (controller.signal.aborted) return;
         setState(data === null ? { status: "unavailable", data: null } : { status: "ready", data });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        setState({ status: "unavailable", data: null });
+        console.warn("Route hourly profile request failed.", { routeSlug, error });
+        setState({ status: "error", data: null });
       });
 
     return () => controller.abort();
@@ -59,9 +65,10 @@ export function useRouteSpeedHistory(routeSlug: string): RouteSpeedHistoryState 
         if (controller.signal.aborted) return;
         setState(data === null ? { status: "unavailable", data: null } : { status: "ready", data });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        setState({ status: "unavailable", data: null });
+        console.warn("Route speed-history request failed.", { routeSlug, error });
+        setState({ status: "error", data: null });
       });
 
     return () => controller.abort();
@@ -142,6 +149,7 @@ export function chartHoursFromHourlyProfile(
 
 export function hourProfileSource(state: RouteHourlyProfileState): string {
   if (state.status === "loading") return "Loading route hourly profile.";
+  if (state.status === "error") return "Route hourly profile could not be loaded.";
   if (state.status === "unavailable") return "Route hourly profile unavailable.";
   return `${state.data.summary.latestMonth ?? "latest"} route-hour profile`;
 }

@@ -181,7 +181,7 @@ export function TreatmentBadgeRow({
             +{hidden.length} more
           </PopoverTrigger>
           <span id={hiddenDescriptionId} className="sr-only">
-            {hidden.map((row) => `${row.presentation.label}, ${row.lifecycleLabel}`).join("; ")}
+            {hidden.map((row) => `${row.presentation.label}, ${row.lifecycleLabel}.`).join(" ")}
           </span>
           <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
             <PopoverHeader>
@@ -191,11 +191,17 @@ export function TreatmentBadgeRow({
               </PopoverDescription>
             </PopoverHeader>
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {/* A code-less treatment's badge fallback IS its full label, so
+                  rendering both printed the label twice and pushed an unbroken
+                  token past the panel. The badge appears only when it is a
+                  code; the text column always carries the words. */}
               {hidden.map((row) => (
                 <li key={row.key} className="flex items-start gap-2">
-                  <RouteInventoryBadge row={row} size="xs" />
+                  {row.presentation.compactCode === null ? null : (
+                    <RouteInventoryBadge row={row} size="xs" />
+                  )}
                   <span className="min-w-0 text-sm">
-                    <span className="font-medium">{row.presentation.label}</span>
+                    <span className="block break-words font-medium">{row.presentation.label}</span>
                     <span className="block text-muted-foreground">{row.lifecycleLabel}</span>
                   </span>
                 </li>

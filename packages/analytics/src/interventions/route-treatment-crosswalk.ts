@@ -540,6 +540,13 @@ function reviewedMapped(
   return { rawValue, ...mapped(treatmentKind, treatmentFamily) };
 }
 
+/**
+ * Most reviewed rows below carry the raw value as their own label, which is how
+ * `priority_corridor_designation` reached a public face verbatim. A label equal
+ * to its raw value is not a display name, so it is humanized here instead —
+ * one helper covering every self-labeled row. A label that genuinely differs is
+ * an authored display name and survives untouched.
+ */
 function reviewedOther(
   rawValue: string,
   reviewedLabel: string,
@@ -549,8 +556,13 @@ function reviewedOther(
     disposition: "other_documented",
     treatmentKind: "other_documented",
     treatmentFamily: "other",
-    reviewedLabel,
+    reviewedLabel: reviewedLabel === rawValue ? humanizeRawValue(rawValue) : reviewedLabel,
   };
+}
+
+function humanizeRawValue(value: string): string {
+  const words = value.replaceAll("_", " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 const MTA_WIKI_ATOMIC_TREATMENT_DISPOSITIONS_V1 = {
