@@ -7,8 +7,8 @@ import { ROUTE_INDEX_ALL_BOROUGHS, ROUTE_INDEX_BOROUGHS } from "../studio/home-r
 import type { RouteChangeGroup } from "../studio/network-change-record.js";
 
 const PublicInterventions = lazy(() =>
-  import("../studio/pages/interventions.js").then((module) => ({
-    default: module.PublicInterventionsPage,
+  import("../components/interventions/PublicInterventions.js").then((module) => ({
+    default: module.PublicInterventions,
   })),
 );
 
