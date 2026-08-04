@@ -109,10 +109,11 @@ export type NetworkFocusPresentation = {
 /**
  * Resolve all map/list focus sources without conflating the durable route pin.
  *
- * Pointer hover resolves to `preview` — the hovered line alone — and never to
- * `focus`, so casual mousing over a 348-route canvas cannot dim the network.
- * Only a deliberate act (keyboard focus, a list preview, a pin) earns the dim,
- * and a pin outranks the pointer rather than losing to it.
+ * Pointing at a route — on the canvas or down the ranked list — resolves to
+ * `preview`, that route alone, and never to `focus`, so casual mousing over a
+ * 348-route canvas cannot dim the network. Only the two deliberate acts earn
+ * the dim: a pin, and keyboard focus, which is the accessibility affordance
+ * that replaces hover. Both outrank the pointer rather than losing to it.
  */
 export function resolveNetworkFocusPresentation(input: {
   focusedRouteId: string | null;
@@ -123,16 +124,12 @@ export function resolveNetworkFocusPresentation(input: {
   if (input.focusedRouteId !== null) {
     return { mode: "focus", routeId: input.focusedRouteId };
   }
-  if (input.previewRouteId !== null) {
-    return { mode: "focus", routeId: input.previewRouteId };
-  }
   if (input.selectedRouteId !== null) {
     return { mode: "focus", routeId: input.selectedRouteId };
   }
-  if (input.hoveredRouteId !== null) {
-    return { mode: "preview", routeId: input.hoveredRouteId };
-  }
-  return { mode: "preview", routeId: null };
+  /* A pointer over a list row means the same thing as a pointer over the line:
+     light that route, leave the network alone. */
+  return { mode: "preview", routeId: input.hoveredRouteId ?? input.previewRouteId };
 }
 
 function applyNetworkFocusPresentation(

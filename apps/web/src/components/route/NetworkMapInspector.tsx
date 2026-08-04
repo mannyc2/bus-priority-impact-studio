@@ -1,7 +1,7 @@
 import type { MapRouteSegmentFeature, MapRouteSegmentFeatureCollection } from "@bp/domain/maps";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Search } from "lucide-react";
-import { type RefObject, useEffect, useId, useRef } from "react";
+import { memo, type RefObject, useEffect, useId, useRef } from "react";
 import {
   featureClass,
   featureValue,
@@ -103,7 +103,11 @@ function routeValueUnit(view: NetworkView): string {
   return `mph, ${periodLabel(view.period)}`;
 }
 
-function RankedRouteRow({
+/**
+ * Memoised: previewing a row used to re-render all ~350 of them, because a
+ * pointer moving down the list writes React state on every row it crosses.
+ */
+const RankedRouteRow = memo(function RankedRouteRow({
   feature,
   rank,
   view,
@@ -190,7 +194,7 @@ function RankedRouteRow({
       </span>
     </div>
   );
-}
+});
 
 export function NetworkMapBrowse({
   ranked,

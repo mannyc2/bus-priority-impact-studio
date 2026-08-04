@@ -287,34 +287,47 @@ describe("MapLibre loader and runtime", () => {
       mode: "focus",
       routeId: "keyboard",
     });
+    /* The pin outranks both pointers rather than losing to them. */
     expect(resolveNetworkFocusPresentation({ ...base, focusedRouteId: null })).toEqual({
       mode: "focus",
-      routeId: "list-hover",
+      routeId: "pin",
     });
-    expect(
-      resolveNetworkFocusPresentation({
-        ...base,
-        focusedRouteId: null,
-        previewRouteId: null,
-      }),
-    ).toEqual({ mode: "focus", routeId: "pin" });
   });
 
-  test("pointer hover previews its own route and never dims the network", () => {
-    const hoverOnly = {
+  test("pointing at a route previews it and never dims the network", () => {
+    const pointerOnly = {
       focusedRouteId: null,
       hoveredRouteId: "map-hover",
       previewRouteId: null,
       selectedRouteId: null,
     };
-    expect(resolveNetworkFocusPresentation(hoverOnly)).toEqual({
+    expect(resolveNetworkFocusPresentation(pointerOnly)).toEqual({
       mode: "preview",
       routeId: "map-hover",
     });
-    expect(resolveNetworkFocusPresentation({ ...hoverOnly, hoveredRouteId: null })).toEqual({
+    /* A pointer down the ranked list means the same thing as one on the line. */
+    expect(
+      resolveNetworkFocusPresentation({
+        ...pointerOnly,
+        hoveredRouteId: null,
+        previewRouteId: "list-hover",
+      }),
+    ).toEqual({ mode: "preview", routeId: "list-hover" });
+    expect(resolveNetworkFocusPresentation({ ...pointerOnly, hoveredRouteId: null })).toEqual({
       mode: "preview",
       routeId: null,
     });
+  });
+
+  test("keyboard focus still dims, because it is what replaces hover", () => {
+    expect(
+      resolveNetworkFocusPresentation({
+        focusedRouteId: "keyboard",
+        hoveredRouteId: "map-hover",
+        previewRouteId: null,
+        selectedRouteId: "pin",
+      }),
+    ).toEqual({ mode: "focus", routeId: "keyboard" });
   });
 
   test("the inspector only insets the desktop map and shares that inset with camera padding", () => {
