@@ -10,7 +10,11 @@ import type { NetworkView } from "../../src/components/route/network-map-model.j
 
 const SPEED_ALL: NetworkView = { lens: "speed", period: "all", compare: false };
 
-function controls(overrides: { delayEligible?: boolean; amEligible?: boolean; pmEligible?: boolean }) {
+function controls(overrides: {
+  delayEligible?: boolean;
+  amEligible?: boolean;
+  pmEligible?: boolean;
+}) {
   return renderToStaticMarkup(
     createElement(NetworkMapControls, {
       view: SPEED_ALL,

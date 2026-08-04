@@ -67,7 +67,6 @@ const sparse = capability({
 describe("sectionPresentation (frontend §8.1 registry)", () => {
   test("route detail sections use plain public titles", () => {
     expect(routeSectionTitle("overview")).toBe("Overview");
-    expect(routeSectionTitle("map")).toBe("Route map");
     expect(routeSectionTitle("where-when")).toBe("Slow segments");
     expect(routeSectionTitle("reliability")).toBe("Reliability");
     expect(routeSectionTitle("riders")).toBe("Riders");
@@ -83,7 +82,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("rich route renders every section", () => {
-    for (const section of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
+    for (const section of ["where-when", "reliability", "riders", "treatments"] as const) {
       expect(sectionPresentation(rich, section)).toEqual({ mode: "render" });
     }
   });
@@ -109,7 +108,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("sparse route gets the honest-empty vocabulary, not blank sections", () => {
-    expect(sectionPresentation(sparse, "map")).toEqual({ mode: "render" });
     expect(sectionPresentation(sparse, "where-when")).toMatchObject({
       mode: "empty",
       state: "building",
@@ -130,7 +128,7 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
   });
 
   test("null capability (legacy fallback) renders everything", () => {
-    for (const section of ["map", "where-when", "reliability", "riders", "treatments"] as const) {
+    for (const section of ["where-when", "reliability", "riders", "treatments"] as const) {
       expect(sectionPresentation(null, section)).toEqual({ mode: "render" });
     }
   });
@@ -148,7 +146,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ).toEqual([
       ["overview", undefined],
       ["where-when", undefined],
-      ["map", undefined],
       ["reliability", undefined],
       ["riders", undefined],
       ["treatments", undefined],
@@ -162,7 +159,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ).toEqual([
       ["overview", undefined],
       ["where-when", "checked_clean"],
-      ["map", undefined],
       ["reliability", "checked_clean"],
       ["riders", undefined],
       ["evidence", undefined],
@@ -175,7 +171,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ).toEqual([
       ["overview", undefined],
       ["where-when", "building"],
-      ["map", undefined],
       ["riders", "insufficient_data"],
       ["treatments", "blocked"],
       ["evidence", undefined],
@@ -186,7 +181,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionRegistry(rich).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "where-when",
-      "map",
       "reliability",
       "riders",
       "treatments",
@@ -195,7 +189,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionRegistry(clean).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "where-when",
-      "map",
       "reliability",
       "riders",
       "evidence",
@@ -203,7 +196,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     expect(routeSectionRegistry(sparse).visibleSections.map((section) => section.value)).toEqual([
       "overview",
       "where-when",
-      "map",
       "riders",
       "treatments",
       "evidence",
@@ -254,7 +246,6 @@ describe("sectionPresentation (frontend §8.1 registry)", () => {
     ).toEqual([
       ["overview", 0],
       ["where-when", 0],
-      ["map", 0],
       ["riders", 1],
       ["treatments", 0],
       ["evidence", 1],
@@ -298,7 +289,6 @@ describe("route tab layer (plan 053 §4 redesign)", () => {
   test("maps each section to its owning tab; evidence belongs to no tab", () => {
     expect(routeTabForSection("overview")).toBe("overview");
     expect(routeTabForSection("where-when")).toBe("segments");
-    expect(routeTabForSection("map")).toBe("segments");
     expect(routeTabForSection("riders")).toBe("riders");
     expect(routeTabForSection("reliability")).toBe("riders");
     expect(routeTabForSection("treatments")).toBe("history");
@@ -311,11 +301,18 @@ describe("route tab layer (plan 053 §4 redesign)", () => {
     const sparseRegistry = routeSectionRegistry(sparse);
     const [, segmentsTab, ridersTab, historyTab] = ROUTE_DETAIL_TABS;
 
-    // Segments = [where-when, map]: the map surface is ready on every fixture,
-    // so render always wins even when speedHistory is empty/building.
-    for (const registry of [richRegistry, cleanRegistry, sparseRegistry]) {
-      expect(tabPresentation(registry, segmentsTab)).toEqual({ mode: "render" });
-    }
+    /* Segments = [where-when] alone since plan 126 retired the always-render
+       `map` member, so the tab now states its ranked list's real readiness
+       instead of borrowing the map's. */
+    expect(tabPresentation(richRegistry, segmentsTab)).toEqual({ mode: "render" });
+    expect(tabPresentation(cleanRegistry, segmentsTab)).toEqual({
+      mode: "empty",
+      state: "checked_clean",
+    });
+    expect(tabPresentation(sparseRegistry, segmentsTab)).toEqual({
+      mode: "empty",
+      state: "building",
+    });
 
     // Riders = [riders, reliability].
     expect(tabPresentation(richRegistry, ridersTab)).toEqual({ mode: "render" });
@@ -360,9 +357,11 @@ describe("route tab layer (plan 053 §4 redesign)", () => {
       "riders",
     ]);
     expect(registry.presentations.history).toEqual({ mode: "hidden" });
-    // Segments stays visible+render because the map surface is ready even though
-    // speedHistory is only checked_clean.
-    expect(registry.presentations.segments).toEqual({ mode: "render" });
+    // Segments stays visible, now carrying speedHistory's own checked_clean state.
+    expect(registry.presentations.segments).toEqual({
+      mode: "empty",
+      state: "checked_clean",
+    });
   });
 
   test("sparse route keeps all four tabs with honest-empty trigger states", () => {
@@ -375,7 +374,7 @@ describe("route tab layer (plan 053 §4 redesign)", () => {
     ]);
     expect(registry.presentations).toEqual({
       overview: { mode: "render" },
-      segments: { mode: "render" },
+      segments: { mode: "empty", state: "building" },
       riders: { mode: "empty", state: "insufficient_data" },
       history: { mode: "empty", state: "blocked" },
     });

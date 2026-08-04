@@ -309,14 +309,17 @@ describe("other_documented display names", () => {
   test("a slug that labels itself never reaches a face", () => {
     /* The crosswalk passes the kind AS the label for 137 reviewed rows, so
        `rawLabel ?? humanize(rawKind)` printed the slug verbatim. */
-    expect(otherDocumentedLabel("priority_corridor_designation", "priority_corridor_designation")).toBe(
-      "Priority corridor designation",
-    );
+    expect(
+      otherDocumentedLabel("priority_corridor_designation", "priority_corridor_designation"),
+    ).toBe("Priority corridor designation");
     expect(otherDocumentedLabel("limited_to_local_conversion", "limited_to_local_conversion")).toBe(
       "Limited-to-local conversion",
     );
     expect(
-      otherDocumentedLabel("overnight_service_discontinuation", "overnight_service_discontinuation"),
+      otherDocumentedLabel(
+        "overnight_service_discontinuation",
+        "overnight_service_discontinuation",
+      ),
     ).toBe("Overnight service discontinued");
   });
 

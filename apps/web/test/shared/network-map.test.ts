@@ -33,12 +33,12 @@ import {
 import type { NetworkMapFeature } from "../../src/studio/api-client";
 import type { StudyIndexRow } from "../../src/studio/api-contract";
 import {
+  networkMapRailSurface,
   networkMapReleaseKey,
   networkMapSearchStateKey,
+  popupRankLine,
   popupStatRows,
   routeStudySummary,
-  networkMapRailSurface,
-  popupRankLine,
   selectedEvidenceWanted,
   selectedRouteEvidenceKey,
   shortCoverage,

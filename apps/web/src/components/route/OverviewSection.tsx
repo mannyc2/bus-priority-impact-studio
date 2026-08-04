@@ -1,25 +1,25 @@
 import { ChartFrame } from "@/components/ChartFrame";
-import { CorridorMap } from "@/components/CorridorMap";
 import { routeSpeedInterventionTrend } from "@/components/route/intervention-trend-model";
-import { RouteGeoMap } from "@/components/route/RouteGeoMap";
 import { RouteInsightList } from "@/components/route/RouteInsightList";
+import { RouteSegmentMapCard } from "@/components/route/RouteSegmentMapCard";
 import {
   dossierSpeedPoints,
   formatCompact,
   routePerformanceSummary,
 } from "@/components/route/route-derived";
-import { useRouteSegmentsGeo } from "@/components/route/route-detail-data";
 import { routeInterventionViewModel } from "@/components/route/route-intervention-model";
+import type { RouteDetailSearch } from "@/components/route/route-segment-explorer";
 import type { RouteDetailSectionValue } from "@/components/route/section-registry";
 import { SectionCard } from "@/components/SectionCard";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { TreatmentBadgeRow } from "@/components/TreatmentBadge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type {
   RouteDossierSummaryForDetail,
+  RouteStudiesArtifact,
   StudioRoute,
   StudioRouteDetailResponse,
+  StudioRouteEvidenceBundle,
   StudioRouteInterventionInventoryBundle,
   StudioRouteInterventionObservationBundle,
 } from "@/studio/api-contract";
@@ -27,20 +27,29 @@ import type {
 const OVERVIEW_INTERVENTION_MARKER_CAP = 4;
 
 /**
- * The Overview tab: one plain-language route summary, the route's one plain
- * monthly speed-trend chart, a small locator map, and the ranked insight list.
- * This is the canonical home for each of those data families — the Slow
- * segments tab owns the analytical map, History owns the event timeline.
+ * The Overview tab: one plain-language route summary, the route's one monthly
+ * speed-trend chart, the route's ONE map, and the ranked insight list. Plan 126
+ * moved the interactive map here from the Slow-segments tab, which had been
+ * drawing the same segment speeds a second time; that tab kept the ranked list.
+ * History still owns the event timeline.
  */
 export function OverviewSection({
   data,
+  search,
+  onSearchChange,
+  evidence = null,
   inventory = null,
   observations = null,
+  studies = null,
   onNavigate,
 }: {
   data: StudioRouteDetailResponse;
+  search: RouteDetailSearch;
+  onSearchChange: (search: RouteDetailSearch, replace: boolean) => void;
+  evidence?: StudioRouteEvidenceBundle | null;
   inventory?: StudioRouteInterventionInventoryBundle | null;
   observations?: StudioRouteInterventionObservationBundle | null;
+  studies?: RouteStudiesArtifact | null;
   onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
   const { route, segments } = data;
@@ -65,7 +74,6 @@ export function OverviewSection({
   const treatments = interventionModel.treatments.filter(
     (row) => row.treatment.lifecycleState !== "historical_confirmed",
   );
-  const geo = useRouteSegmentsGeo(route.routeId);
 
   return (
     <div className="flex flex-col gap-7">
@@ -97,6 +105,7 @@ export function OverviewSection({
               : "No route speed history is attached yet."
           }
           height={172}
+          fill
           right={
             hasSpeedHistory ? (
               <Badge variant="neutral">{speedTrend.points.length} months</Badge>
@@ -105,14 +114,18 @@ export function OverviewSection({
         >
           {hasSpeedHistory ? (
             <>
-              <SpeedTrend
-                mode="calendar"
-                points={speedTrend.points}
-                markers={speedTrend.markers}
-                {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
-                height={172}
-                seriesLabel={speedTrend.seriesLabel}
-              />
+              {/* Fills the card instead of leaving dead space beneath a fixed
+                  172px body — the row is height-matched to the map card. */}
+              <div className="min-h-[172px] flex-1">
+                <SpeedTrend
+                  mode="calendar"
+                  points={speedTrend.points}
+                  markers={speedTrend.markers}
+                  {...(route.scheduledMph === null ? {} : { scheduled: route.scheduledMph })}
+                  height="100%"
+                  seriesLabel={speedTrend.seriesLabel}
+                />
+              </div>
               {speedTrend.methodLimitation === null ? null : (
                 <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--bp-color-ink-55)]">
                   {speedTrend.methodLimitation}
@@ -120,33 +133,21 @@ export function OverviewSection({
               )}
             </>
           ) : (
-            <div className="flex h-full min-h-[172px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
+            <div className="flex min-h-[172px] flex-1 items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
               No route speed history is attached yet.
             </div>
           )}
         </ChartFrame>
 
-        <SectionCard
-          title="Route map"
-          sub="Observed speed by segment."
-          right={
-            <Button type="button" size="sm" variant="secondary" onClick={() => onNavigate("map")}>
-              Explore route segments
-            </Button>
-          }
-          bodyClassName="flex min-h-[172px] flex-1 flex-col"
-        >
-          {geo.status === "ready" ? (
-            <RouteGeoMap collection={geo.collection} context={geo.context} variant="mini" />
-          ) : geo.status === "loading" ? (
-            <div
-              className="h-[200px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)]"
-              aria-hidden
-            />
-          ) : (
-            <CorridorMap route={route} segments={segments} mode="mini" />
-          )}
-        </SectionCard>
+        <RouteSegmentMapCard
+          data={data}
+          search={search}
+          onSearchChange={onSearchChange}
+          evidence={evidence}
+          inventory={inventory}
+          studies={studies}
+          onExploreSegments={() => onNavigate("where-when")}
+        />
       </div>
 
       <RouteInsightList insights={data.insights} onNavigate={onNavigate} />
@@ -168,9 +169,9 @@ function overviewSummary(
   const performance = routePerformanceSummary(route, dossier);
   const sentences: string[] = [];
 
-  /* The speed scalar is stated by the header stat and the Slow-segments
-     readout. Saying it a third time in prose made the page contradict itself
-     when the two sources disagreed. */
+  /* The speed scalar is stated by the header stat and the ranked segment
+     list. Saying it a third time in prose made the page contradict itself
+     when the sources disagreed. */
 
   const movement = dossier?.speed.movement6mPct ?? null;
   if (movement !== null && Math.abs(movement) >= 0.05) {

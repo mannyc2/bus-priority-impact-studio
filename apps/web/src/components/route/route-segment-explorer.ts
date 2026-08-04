@@ -67,21 +67,27 @@ export function validateRouteDetailSearch(search: Record<string, unknown>): Rout
     lanes: rawLanes,
   } = search;
   const tab = isMember(ROUTE_DETAIL_TABS, rawTab) ? rawTab : undefined;
-  if (tab === undefined) return {};
   if (tab === "history") {
     const study = isBoundedSearchToken(rawStudy) ? rawStudy : undefined;
     return { tab, ...(study === undefined ? {} : { study }) };
   }
-  if (tab !== "segments") return { tab };
+  if (tab === "riders") return { tab };
 
+  /* Overview (no tab) and Slow segments share the map's params: the route's one
+     map lives on Overview since plan 126, so `?segment=`, `?direction=` and
+     `?lanes=` have to survive there. The saved historical period stays with the
+     ranked list, the only surface that renders it. */
   const segment = isBoundedSearchToken(rawSegment) ? rawSegment : undefined;
   const direction = isMember(EXPLORER_DIRECTIONS, rawDirection) ? rawDirection : undefined;
-  const month = typeof rawMonth === "string" && ISO_MONTH.test(rawMonth) ? rawMonth : undefined;
+  const month =
+    tab === "segments" && typeof rawMonth === "string" && ISO_MONTH.test(rawMonth)
+      ? rawMonth
+      : undefined;
   const daypart =
     month !== undefined && isMember(EXPLORER_DAYPARTS, rawDaypart) ? rawDaypart : undefined;
 
   return {
-    tab,
+    ...(tab === undefined ? {} : { tab }),
     ...(segment === undefined ? {} : { segment }),
     ...(direction === undefined ? {} : { direction }),
     ...(month === undefined ? {} : { month }),
@@ -114,7 +120,7 @@ export function canonicalizeRouteDetailSearch(
   },
 ): RouteDetailCanonicalization {
   const search = validateRouteDetailSearch({ ...incoming });
-  if (search.tab !== "segments") {
+  if (search.tab === "history" || search.tab === "riders") {
     return { search, segmentState: "none", historicalState: "current" };
   }
 

@@ -41,6 +41,8 @@ export type RouteMapLibreProps = {
   compact?: boolean | undefined;
   /** The one click surface: an anchored popup, never a parallel panel. */
   popup?: RouteMapPopupState | null | undefined;
+  /** Clicking off every segment closes the popup, same as the network map. */
+  onClearSelection?: (() => void) | undefined;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
 

@@ -438,7 +438,12 @@ function corridorBusLaneObservations(): StudioRouteInterventionObservationBundle
 describe("OverviewSection", () => {
   test("renders summary, trend chart, mini map, and ranked insights for a full route", () => {
     const markup = renderToStaticMarkup(
-      createElement(OverviewSection, { data: detail({}), onNavigate: () => undefined }),
+      createElement(OverviewSection, {
+        data: detail({}),
+        search: {},
+        onSearchChange: () => undefined,
+        onNavigate: () => undefined,
+      }),
     );
 
     expect(markup).toContain("M15-SBS at a glance");
@@ -483,6 +488,8 @@ describe("OverviewSection", () => {
           dossier: null,
           capability: cleanCapability,
         }),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -503,6 +510,8 @@ describe("OverviewSection", () => {
       createElement(OverviewSection, {
         data: detail({ route: { ...baseRoute, diagnosis: "Generic corridor record." } }),
         inventory: buswayInventory(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -516,6 +525,8 @@ describe("OverviewSection", () => {
           dossier: null,
         }),
         inventory: null,
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -529,6 +540,8 @@ describe("OverviewSection", () => {
         data: detail({}),
         inventory: aceInventory(),
         observations: aceObservations(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -545,6 +558,8 @@ describe("OverviewSection", () => {
         data: detail({}),
         inventory: corridorBusLaneInventory(),
         observations: corridorBusLaneObservations(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );

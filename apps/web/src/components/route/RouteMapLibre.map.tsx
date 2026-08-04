@@ -10,9 +10,10 @@ import {
   loadMapLibre,
   type MapLibreGeoJSONSource,
   type MapLibreMap,
-  type MapLibrePopup,
   type MapLibreMapLayerMouseEvent,
+  type MapLibreMapMouseEvent,
   type MapLibreModule,
+  type MapLibrePopup,
   resetMapLibreLoader,
 } from "@/components/route/load-maplibre";
 import { type MapRuntimeMap, startMapLibreRuntime } from "@/components/route/maplibre-runtime";
@@ -56,6 +57,8 @@ export type RouteMapLibreMapProps = {
   compact?: boolean | undefined;
   /** The one click surface: an anchored popup, never a parallel panel. */
   popup?: { anchor: readonly [number, number]; content: ReactNode } | null | undefined;
+  /** Clicking off every segment closes the popup, same as the network map. */
+  onClearSelection?: (() => void) | undefined;
   fallback: ReactNode;
   onInteractiveAvailabilityChange?: ((available: boolean) => void) | undefined;
 };
@@ -246,6 +249,7 @@ export function RouteMapLibreMap({
   busLanes,
   compact = false,
   popup = null,
+  onClearSelection,
   fallback,
   onInteractiveAvailabilityChange,
 }: RouteMapLibreMapProps) {
@@ -287,13 +291,14 @@ export function RouteMapLibreMap({
       ).length,
     [segmentData],
   );
-  const minHeight = compact ? 300 : undefined;
 
   // Latest interaction callbacks without re-initializing the map.
   const onSelectRef = useRef(onSegmentSelect);
   onSelectRef.current = onSegmentSelect;
   const setHoverRef = useRef(setHoveredSegmentId);
   setHoverRef.current = setHoveredSegmentId;
+  const onClearSelectionRef = useRef(onClearSelection);
+  onClearSelectionRef.current = onClearSelection;
   /* Last values actually written, so a mousemove that resolves to the same
      segment is a no-op and feature-state writes stay proportional to change. */
   const lastHoverRef = useRef<string | null>(null);
@@ -336,6 +341,15 @@ export function RouteMapLibreMap({
         activeDirectionRef.current,
       );
       if (segmentId !== null) onSelectRef.current(segmentId);
+    };
+    /* Clicking the basemap closes the popup. Queried rather than sequenced
+       against the layer handler, so it never depends on listener order. */
+    const onBackgroundClick = (event: MapLibreMapMouseEvent) => {
+      const map = mapRef.current;
+      if (map === null) return;
+      if (map.queryRenderedFeatures(event.point, { layers: [HIT_LAYER] }).length === 0) {
+        onClearSelectionRef.current?.();
+      }
     };
 
     const controller = startMapLibreRuntime({
@@ -478,6 +492,7 @@ export function RouteMapLibreMap({
         map.on("mousemove", HIT_LAYER, onMouseMove);
         map.on("mouseleave", HIT_LAYER, onMouseLeave);
         map.on("click", HIT_LAYER, onClick);
+        map.on("click", onBackgroundClick);
         setReady(true);
         onInteractiveAvailabilityChange?.(true);
       },
@@ -495,6 +510,7 @@ export function RouteMapLibreMap({
         map.off("mousemove", HIT_LAYER, onMouseMove);
         map.off("mouseleave", HIT_LAYER, onMouseLeave);
         map.off("click", HIT_LAYER, onClick);
+        map.off("click", onBackgroundClick);
         popupRef.current?.remove();
         popupRef.current = null;
         vendorRef.current = null;
@@ -595,9 +611,10 @@ export function RouteMapLibreMap({
     return (
       <div
         className={
-          compact ? "relative min-h-[300px]" : "relative min-h-[460px] max-md:min-h-[320px]"
+          compact
+            ? "relative min-h-[380px] max-md:min-h-[320px]"
+            : "relative min-h-[460px] max-md:min-h-[320px]"
         }
-        style={{ minHeight }}
       >
         {fallback}
         {failure === "runtime" ? (
@@ -621,17 +638,19 @@ export function RouteMapLibreMap({
 
   return (
     <div
-      className={compact ? "relative min-h-[300px]" : "relative min-h-[460px] max-md:min-h-[320px]"}
-      style={{ minHeight }}
+      className={
+        compact
+          ? "relative min-h-[380px] max-md:min-h-[320px]"
+          : "relative min-h-[460px] max-md:min-h-[320px]"
+      }
     >
       <section
         ref={containerRef}
         className={
           compact
-            ? "bp-bus-map min-h-[300px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)]"
+            ? "bp-bus-map min-h-[380px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)] max-md:min-h-[320px]"
             : "bp-bus-map min-h-[460px] overflow-hidden rounded-[3px] bg-[var(--bp-color-card)] max-md:min-h-[320px]"
         }
-        style={{ minHeight }}
         data-period-values={displaySpeeds.size}
         aria-label={`Interactive ${route.label} segment map; the segment list carries the same data`}
       />

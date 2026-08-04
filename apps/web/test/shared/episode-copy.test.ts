@@ -131,9 +131,13 @@ describe("episode copy", () => {
   });
 
   test("says one dated placement state once, with its count", () => {
-    expect(placementLines([placement(), placement({ placementKey: "b" }), placement({ placementKey: "c" })])).toEqual([
-      { text: "Last confirmed active as of July 27, 2026", count: 3 },
-    ]);
+    expect(
+      placementLines([
+        placement(),
+        placement({ placementKey: "b" }),
+        placement({ placementKey: "c" }),
+      ]),
+    ).toEqual([{ text: "Last confirmed active as of July 27, 2026", count: 3 }]);
     expect(
       placementLines([
         placement(),

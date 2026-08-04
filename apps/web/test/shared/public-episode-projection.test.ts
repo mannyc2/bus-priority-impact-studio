@@ -321,7 +321,12 @@ function trackerEpisode(input: {
       intervalEnd: input.date,
     },
     routes: [
-      { routeKey: input.routeKey, routeId: input.routeId, label: input.label, slug: input.routeKey },
+      {
+        routeKey: input.routeKey,
+        routeId: input.routeId,
+        label: input.label,
+        slug: input.routeKey,
+      },
     ],
     treatmentFamilies: [
       {
@@ -517,7 +522,10 @@ describe("one real change renders once", () => {
     /* The group header runs from its trigger to its panel: the badge strip
        reads the same open or closed, so it sits outside the control. */
     const triggerAt = html.indexOf('data-slot="collapsible-trigger"');
-    const header = html.slice(triggerAt, html.indexOf('data-slot="collapsible-content"', triggerAt));
+    const header = html.slice(
+      triggerAt,
+      html.indexOf('data-slot="collapsible-content"', triggerAt),
+    );
     expect(labels.filter((label) => header.includes(label))).toHaveLength(10);
     expect(header).toContain("and 3 more");
     /* A real control that says what it will do. */

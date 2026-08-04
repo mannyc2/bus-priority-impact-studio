@@ -2,9 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RouteInsightList } from "../../src/components/route/RouteInsightList";
-import type {
-  StudioRouteInsight,
-} from "../../src/studio/api-contract";
+import type { StudioRouteInsight } from "../../src/studio/api-contract";
 
 const baseInsight = {
   routeId: "M15+",

@@ -9,18 +9,29 @@ export function ChartFrame({
   source,
   right,
   height = 220,
+  fill = false,
   children,
 }: {
   title?: string;
   source?: string;
   right?: ReactNode;
   height?: number;
+  /** Grow the body to the card's height instead of pinning it to `height`.
+   * `height` stays the floor, so a stacked card still reserves its space. */
+  fill?: boolean;
   children: ReactNode;
 }) {
   if (title) {
     return (
-      <SectionCard title={title} sub={source} right={right}>
-        <div style={{ minHeight: height }}>{children}</div>
+      <SectionCard
+        title={title}
+        sub={source}
+        right={right}
+        {...(fill ? { bodyClassName: "flex min-w-0 flex-1 flex-col" } : {})}
+      >
+        <div className={fill ? "flex flex-1 flex-col" : undefined} style={{ minHeight: height }}>
+          {children}
+        </div>
       </SectionCard>
     );
   }
