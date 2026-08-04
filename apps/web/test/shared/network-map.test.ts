@@ -37,6 +37,9 @@ import {
   networkMapSearchStateKey,
   popupStatRows,
   routeStudySummary,
+  networkMapRailSurface,
+  popupRankLine,
+  selectedEvidenceWanted,
   selectedRouteEvidenceKey,
   shortCoverage,
 } from "../../src/studio/pages/network-map";
@@ -807,5 +810,50 @@ describe("routeStudySummary", () => {
       count: 2,
       eventKey: null,
     });
+  });
+});
+
+describe("one click surface", () => {
+  test("a plain pin opens the popup only; the rail keeps browsing", () => {
+    /* The rail card restated the popup's own metrics side by side — the
+       duplicate-surface pattern the doctrine bans. Operator ruling 2026-08-02. */
+    expect(
+      networkMapRailSurface({ browseOpen: false, segmentParam: undefined, hasSelection: true }),
+    ).toBe("closed");
+    expect(
+      networkMapRailSurface({ browseOpen: false, segmentParam: undefined, hasSelection: false }),
+    ).toBe("closed");
+  });
+
+  test("a shared segment link still lands on its evidence list", () => {
+    expect(
+      networkMapRailSurface({ browseOpen: false, segmentParam: "spine-1", hasSelection: true }),
+    ).toBe("segment-evidence");
+    /* No selection to hang it on yet: keep the rail shut rather than empty. */
+    expect(
+      networkMapRailSurface({ browseOpen: false, segmentParam: "spine-1", hasSelection: false }),
+    ).toBe("closed");
+  });
+
+  test("browse outranks both", () => {
+    expect(
+      networkMapRailSurface({ browseOpen: true, segmentParam: "spine-1", hasSelection: true }),
+    ).toBe("browse");
+  });
+
+  test("evidence is fetched only where something will read it", () => {
+    const base = { pinnedRouteId: "M15+", segmentParam: undefined, mobileInspectorOpen: false };
+    /* A desktop click shows the popup, which never reads segment evidence. */
+    expect(selectedEvidenceWanted(base)).toBe(false);
+    expect(selectedEvidenceWanted({ ...base, segmentParam: "spine-1" })).toBe(true);
+    expect(selectedEvidenceWanted({ ...base, mobileInspectorOpen: true })).toBe(true);
+    expect(
+      selectedEvidenceWanted({ ...base, pinnedRouteId: null, mobileInspectorOpen: true }),
+    ).toBe(false);
+  });
+
+  test("the popup carries the ordinal the retired rail card used to", () => {
+    expect(popupRankLine(7, 348)).toBe("#7 of 348 in this view");
+    expect(popupRankLine(null, 348)).toBeNull();
   });
 });
