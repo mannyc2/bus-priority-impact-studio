@@ -90,7 +90,7 @@ describe("route insight placement", () => {
           detectorId: "speed_pace_hotspot",
         }),
       ),
-    ).toBe("map");
+    ).toBe("where-when");
     expect(
       routeSectionForInsight(
         insight({

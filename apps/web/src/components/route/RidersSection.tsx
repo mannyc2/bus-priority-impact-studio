@@ -8,15 +8,12 @@ import {
   formatCompact,
 } from "@/components/route/route-derived";
 import { useRouteHourlyProfile } from "@/components/route/route-detail-data";
-import {
-  formatCompactCount,
-  formatHourShort,
-  latestPeakWindow,
-} from "@/components/route/route-segment-explorer";
+import { latestPeakWindow } from "@/components/route/route-segment-explorer";
 import { SectionCard } from "@/components/SectionCard";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
 import { SpeedTrend } from "@/components/SpeedTrend";
 import { Badge } from "@/components/ui/badge";
+import { WhenRidersRide } from "@/components/WhenRidersRide";
 import type { StudioRouteDetailResponse } from "@/studio/api-contract";
 
 const KPI_GRID_COLS: Record<number, string> = {
@@ -183,7 +180,9 @@ export function RidersSection({
 
 /** Rider-grain replacement for the deleted "Top burden segments" duplicate
  * (plan 081 amendment item 2 / comp D7): real boardings by hour with the
- * busiest window flagged on the chart itself. */
+ * busiest window flagged on the chart itself. On the sanctioned Recharts pair
+ * since plan 126 — the hand-rolled divs carried browser-`title` tooltips no
+ * other chart in the app uses. */
 function WhenRidersRideCard({
   hourlyProfile,
 }: {
@@ -202,39 +201,7 @@ function WhenRidersRideCard({
       height={148}
     >
       {hasBoardings && boardings !== null ? (
-        <div className="flex h-full min-h-[148px] flex-col justify-end gap-1 pt-4">
-          <div className="relative flex h-[110px] items-end gap-[2px]">
-            {boardings.map((value, hour) => {
-              const max = Math.max(...boardings, 1);
-              const isPeak = peak !== null && hour === peak.hourOfDay;
-              return (
-                <div
-                  key={hour}
-                  className="relative min-h-[2px] flex-1 rounded-t-[2px]"
-                  style={{
-                    height: `${(value / max) * 100}%`,
-                    background: "var(--bp-color-accent)",
-                    opacity: isPeak ? 1 : 0.72,
-                  }}
-                  title={`${formatHourShort(hour)} — ${formatCompactCount(value)} boardings`}
-                >
-                  {isPeak ? (
-                    <span className="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap rounded-[2px] bg-[var(--bp-color-accent)] px-1.5 py-0.5 font-mono text-[9px] font-bold text-white">
-                      {peak.label}
-                    </span>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex justify-between font-mono text-[9.5px] text-[var(--bp-color-ink-40)]">
-            <span>12A</span>
-            <span>6A</span>
-            <span>12P</span>
-            <span>6P</span>
-            <span>11P</span>
-          </div>
-        </div>
+        <WhenRidersRide boardings={boardings} height={148} {...(peak === null ? {} : { peak })} />
       ) : (
         <div className="flex h-full min-h-[148px] items-center justify-center rounded-[3px] bg-[var(--bp-color-paper-deep)] px-4 text-center text-[12.5px] text-[var(--bp-color-ink-55)]">
           {hourlyProfile.status === "loading"

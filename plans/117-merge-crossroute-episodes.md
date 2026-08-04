@@ -234,9 +234,21 @@ New cases in `apps/web/test/shared/public-episode-projection.test.ts`
 ## STOP conditions
 
 - Step 1 finds zero mergeable groups (premise fails — report).
-- The merge would fold >40% of all episodes into multi-episode entries —
+- ~~The merge would fold >40% of all episodes into multi-episode entries —
   that suggests the key is too coarse and is erasing real distinctions;
-  report the histogram instead of shipping.
+  report the histogram instead of shipping.~~ **CORRECTED 2026-08-04 (post-
+  execution).** This threshold fired at 64.9% and the operator authorized
+  shipping anyway, because the evidence refuted the premise it encoded. The
+  40% number was written against an assumption that producer episodes are
+  roughly one-per-real-change, so a large fold could only mean an over-coarse
+  key. The live artifact is the opposite: the producer emits ONE episode PER
+  ROUTE, so a single citywide change (Queens Bus Network Redesign, 36 routes)
+  legitimately folds 36 episodes, and the fold rate mostly measures how many
+  routes the biggest programs touch — not key coarseness. The real guard is
+  the one the operator actually applied: inside every merged group the title,
+  summary, citations and date must be identical, and every route-scoped
+  component must survive the union. A future re-measure should assert THAT,
+  and drop the percentage entirely.
 - `NetworkChangeGroup`'s type change ripples into files outside scope.
 - Excerpt drift (see drift check).
 

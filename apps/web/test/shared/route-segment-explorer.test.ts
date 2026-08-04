@@ -91,6 +91,56 @@ describe("route detail search", () => {
     expect(validateRouteDetailSearch({ tab: "overview" })).toEqual({});
   });
 
+  test("the map's params survive on Overview, where the route's one map lives", () => {
+    /* Plan 126 moved the interactive map to the Overview tab, so a shared
+       `?segment=`/`?direction=`/`?lanes=` link has to reach it without a tab
+       param. The saved historical period does not: only the ranked list on
+       Slow segments renders it. */
+    expect(
+      validateRouteDetailSearch({
+        segment: "stable-1",
+        direction: "EB",
+        lanes: true,
+        month: "2026-02",
+        daypart: "pm_peak",
+      }),
+    ).toEqual({ segment: "stable-1", direction: "EB", lanes: true });
+
+    // The gen-18 D2 lane-extent link: overlay on, popup open on the named segment.
+    expect(validateRouteDetailSearch({ lanes: true, segment: "stable-1" })).toEqual({
+      lanes: true,
+      segment: "stable-1",
+    });
+    // Slow segments still owns the period controls.
+    expect(
+      validateRouteDetailSearch({ tab: "segments", month: "2026-02", daypart: "pm_peak" }),
+    ).toEqual({ tab: "segments", month: "2026-02", daypart: "pm_peak" });
+  });
+
+  test("Overview canonicalizes the pin against served segments like the list does", () => {
+    const history = { status: "pending" } as const;
+    const segments = [
+      { direction: "NB" as const, spineSegmentId: "north" },
+      { direction: "SB" as const, spineSegmentId: "south" },
+    ];
+    expect(
+      canonicalizeRouteDetailSearch({ segment: "south", direction: "NB" }, { segments, history }),
+    ).toMatchObject({
+      search: { segment: "south", direction: "SB" },
+      segmentState: "valid",
+    });
+    expect(
+      canonicalizeRouteDetailSearch({ segment: "missing" }, { segments, history }),
+    ).toMatchObject({ search: {}, segmentState: "invalid" });
+    // An unavailable lane layer drops the overlay rather than lying about it.
+    expect(
+      canonicalizeRouteDetailSearch(
+        { lanes: true },
+        { segments, history, lanes: "unavailable" },
+      ).search,
+    ).toEqual({});
+  });
+
   test("a unique incoming pin wins a conflicting direction; an unknown pin is dropped", () => {
     const history = { status: "pending" } as const;
     const segments = [

@@ -106,62 +106,39 @@ export function RouteDetailPage({
     );
   };
 
+  /* The route's one map lives on Overview and the ranked list on Slow
+     segments, and both write the same `?segment=`/`?direction=`/`?lanes=`
+     contract — so the navigation callback is shared, not per-tab. */
+  const onSearchChange = (nextSearch: RouteDetailSearch, replace: boolean) => {
+    navigate({
+      to: "/routes/$routeId",
+      params: { routeId: route.slug },
+      search: nextSearch,
+      replace,
+    });
+  };
+
   let panel: ReactNode;
   switch (activeTab) {
     case "overview":
       panel = (
         <OverviewSection
           data={data}
+          search={search}
+          onSearchChange={onSearchChange}
+          evidence={evidence}
           inventory={inventory}
           observations={observations}
+          studies={studies}
           onNavigate={navigateToTab}
         />
       );
       break;
-    case "segments": {
-      // One linked explorer owns list + map (plan 081/comp r4). The `map`
-      // section renders a map-only explorer just when the ranked list can't
-      // (its speed-history surface is empty but geometry is ready), so both
-      // capability gates keep meaning something.
-      const onSearchChange = (nextSearch: RouteDetailSearch, replace: boolean) => {
-        navigate({
-          to: "/routes/$routeId",
-          params: { routeId: route.slug },
-          search: nextSearch,
-          replace,
-        });
-      };
-      const whereWhenRenders =
-        tabRegistry.sectionRegistry.presentations["where-when"].mode === "render";
-      panel = (
-        <>
-          {section("where-when", () => (
-            <SegmentExplorerSection
-              data={data}
-              search={search}
-              onSearchChange={onSearchChange}
-              evidence={evidence}
-              inventory={inventory}
-              studies={studies}
-            />
-          ))}
-          {whereWhenRenders
-            ? null
-            : section("map", () => (
-                <SegmentExplorerSection
-                  data={data}
-                  search={search}
-                  onSearchChange={onSearchChange}
-                  evidence={evidence}
-                  inventory={inventory}
-                  studies={studies}
-                  mapOnly
-                />
-              ))}
-        </>
-      );
+    case "segments":
+      panel = section("where-when", () => (
+        <SegmentExplorerSection data={data} search={search} onSearchChange={onSearchChange} />
+      ));
       break;
-    }
     case "riders":
       panel = (
         <>

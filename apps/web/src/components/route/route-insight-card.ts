@@ -86,8 +86,7 @@ export function routeInsightMicroFigureKind(
   if (
     insight.kind === "map_segment" ||
     insight.placement === "map_segment" ||
-    (insight.target?.segmentIds?.length ?? 0) > 0 ||
-    section === "map"
+    (insight.target?.segmentIds?.length ?? 0) > 0
   ) {
     return "segment_strip";
   }

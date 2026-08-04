@@ -2,7 +2,6 @@ import type { RouteSurfaceCapability, StudioRouteCapability } from "@/studio/api
 
 export type RouteDetailSectionValue =
   | "overview"
-  | "map"
   | "where-when"
   | "reliability"
   | "riders"
@@ -18,7 +17,6 @@ export type RouteDetailSection = {
 
 export const ROUTE_SECTION_TITLES = {
   overview: "Overview",
-  map: "Route map",
   "where-when": "Slow segments",
   reliability: "Reliability",
   riders: "Riders",
@@ -30,7 +28,6 @@ export const ROUTE_SECTION_TITLES = {
 export const ROUTE_DETAIL_SECTIONS = [
   { value: "overview", label: ROUTE_SECTION_TITLES.overview },
   { value: "where-when", label: ROUTE_SECTION_TITLES["where-when"] },
-  { value: "map", label: ROUTE_SECTION_TITLES.map },
   { value: "reliability", label: ROUTE_SECTION_TITLES.reliability },
   { value: "riders", label: ROUTE_SECTION_TITLES.riders },
   { value: "treatments", label: ROUTE_SECTION_TITLES.treatments },
@@ -53,11 +50,6 @@ export function routeSectionTitle(sectionValue: RouteDetailSectionValue): string
  */
 const SECTION_CONFIG: Record<RouteDetailSectionValue, RouteSectionConfig> = {
   overview: { surfaces: [] },
-  /* Unconditional, like overview and evidence. The manifest emits exactly
-     eight surface keys — condition, trend, speedHistory, reliability,
-     ridership, treatment, scheduleBaseline, detectorFindings — and never
-     `map`, `geometry` or `routeGeometry`, so this gated on nothing. */
-  map: { surfaces: [] },
   "where-when": { surfaces: ["speedHistory"] },
   reliability: {
     surfaces: ["reliability"],
@@ -213,7 +205,7 @@ export type RouteDetailTabValue = "overview" | "segments" | "riders" | "history"
 
 export const ROUTE_DETAIL_TABS = [
   { value: "overview", label: "Overview", sections: ["overview"] },
-  { value: "segments", label: "Slow segments", sections: ["where-when", "map"] },
+  { value: "segments", label: "Slow segments", sections: ["where-when"] },
   { value: "riders", label: "Riders & reliability", sections: ["riders", "reliability"] },
   { value: "history", label: "Treatments & history", sections: ["treatments"] },
 ] as const satisfies readonly {

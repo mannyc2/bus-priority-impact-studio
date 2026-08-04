@@ -67,7 +67,9 @@ export function routeSectionForInsight(insight: StudioRouteInsight): RouteDetail
   ) {
     return "treatments";
   }
-  if (insight.kind === "map_segment" || insight.placement === "map_segment") return "map";
+  /* Segment-scoped findings point at the ranked segment list — the route's one
+     map moved to Overview (plan 126) and the `map` section retired with it. */
+  if (insight.kind === "map_segment" || insight.placement === "map_segment") return "where-when";
   if (
     insight.kind === "customer_journey" ||
     RIDER_IMPACT_DETECTOR_IDS.has(insight.detectorId) ||

@@ -20,7 +20,8 @@ export type SpeedTrendSeriesInput =
 
 type SpeedTrendOptions = {
   scheduled?: number | undefined;
-  height?: number;
+  /** A string height (e.g. "100%") lets the chart fill a ChartFrame in fill mode. */
+  height?: number | string;
   /** Series label shown in the tooltip + config. */
   seriesLabel?: string;
   /** Label next to the dashed baseline. */

@@ -438,7 +438,12 @@ function corridorBusLaneObservations(): StudioRouteInterventionObservationBundle
 describe("OverviewSection", () => {
   test("renders summary, trend chart, mini map, and ranked insights for a full route", () => {
     const markup = renderToStaticMarkup(
-      createElement(OverviewSection, { data: detail({}), onNavigate: () => undefined }),
+      createElement(OverviewSection, {
+        data: detail({}),
+        search: {},
+        onSearchChange: () => undefined,
+        onNavigate: () => undefined,
+      }),
     );
 
     expect(markup).toContain("M15-SBS at a glance");
@@ -459,6 +464,29 @@ describe("OverviewSection", () => {
     expect(markup).toContain("Explore route segments");
     expect(markup).not.toContain("Full map");
     expect(markup).toContain("What stands out");
+  });
+
+  test("the Route map card is the interactive map, with its speed legend", () => {
+    /* Plan 126: Overview's static SVG mini map and the Slow-segments
+       interactive map were the same segment speeds twice. The interactive one
+       lives here now, so the legend that reads its colors lives here too. */
+    const markup = renderToStaticMarkup(
+      createElement(OverviewSection, {
+        data: detail({}),
+        search: {},
+        onSearchChange: () => undefined,
+        onNavigate: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain("under 5 mph");
+    expect(markup).toContain("5–6.5 mph");
+    expect(markup).toContain("over 6.5 mph");
+    expect(markup).toContain("no data");
+    expect(markup).toContain("current all day");
+    /* The overlay control appears only once verified lane coverage exists; the
+       route facts have not resolved during a server render. */
+    expect(markup).not.toContain("Painted bus lanes (DOT)");
   });
 
   test("falls back to honest empty states for a sparse route", () => {
@@ -483,6 +511,8 @@ describe("OverviewSection", () => {
           dossier: null,
           capability: cleanCapability,
         }),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -503,6 +533,8 @@ describe("OverviewSection", () => {
       createElement(OverviewSection, {
         data: detail({ route: { ...baseRoute, diagnosis: "Generic corridor record." } }),
         inventory: buswayInventory(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -516,6 +548,8 @@ describe("OverviewSection", () => {
           dossier: null,
         }),
         inventory: null,
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -529,6 +563,8 @@ describe("OverviewSection", () => {
         data: detail({}),
         inventory: aceInventory(),
         observations: aceObservations(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );
@@ -545,6 +581,8 @@ describe("OverviewSection", () => {
         data: detail({}),
         inventory: corridorBusLaneInventory(),
         observations: corridorBusLaneObservations(),
+        search: {},
+        onSearchChange: () => undefined,
         onNavigate: () => undefined,
       }),
     );

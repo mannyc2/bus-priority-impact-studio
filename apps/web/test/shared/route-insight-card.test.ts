@@ -38,8 +38,8 @@ describe("route insight card specs", () => {
       detectorLabel: "speed pace hotspot",
       evidenceLabel: "2 cited refs",
       microFigureKind: "segment_strip",
-      section: "map",
-      sectionLabel: "Map",
+      section: "where-when",
+      sectionLabel: "Where & when",
     });
   });
 
