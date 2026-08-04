@@ -514,9 +514,16 @@ describe("one real change renders once", () => {
         artifact: { ...artifact, episodes: sameDay },
       }),
     );
-    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
-    expect(labels.filter((label) => summary.includes(label))).toHaveLength(10);
-    expect(summary).toContain("and 3 more");
+    /* The group header runs from its trigger to its panel: the badge strip
+       reads the same open or closed, so it sits outside the control. */
+    const triggerAt = html.indexOf('data-slot="collapsible-trigger"');
+    const header = html.slice(triggerAt, html.indexOf('data-slot="collapsible-content"', triggerAt));
+    expect(labels.filter((label) => header.includes(label))).toHaveLength(10);
+    expect(header).toContain("and 3 more");
+    /* A real control that says what it will do. */
+    expect(header).toContain("Show changes");
+    expect(header).not.toContain("Hide changes");
+    expect(html.slice(triggerAt - 200, triggerAt)).toContain("<button");
   });
 });
 
