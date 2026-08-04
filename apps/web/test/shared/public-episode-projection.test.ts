@@ -21,6 +21,7 @@ import {
   chronologyOverlaps,
   episodesForRoute,
   hasEpisodeInsideSeries,
+  mergeIdenticalEpisodes,
   networkBuildoutModel,
   networkChangeGroups,
   packChronologyBands,
@@ -268,7 +269,9 @@ describe("authority-tagged public projection", () => {
   });
 
   test("keeps one identity through grouping", () => {
-    const grouped = networkChangeGroups(artifact.episodes).flatMap((group) => group.episodes);
+    const grouped = networkChangeGroups(mergeIdenticalEpisodes(artifact.episodes)).flatMap(
+      (group) => group.episodes,
+    );
     expect(grouped).toHaveLength(artifact.episodes.length);
     expect(new Set(grouped.map((episode) => episode.episodeId)).size).toBe(
       artifact.episodes.length,
@@ -294,6 +297,226 @@ describe("authority-tagged public projection", () => {
       (episode) => episode.episodeId === routeArtifact.episodes[0]?.episodeId,
     );
     expect(routeArtifact.episodes[0]).toEqual(global);
+  });
+});
+
+function trackerEpisode(input: {
+  id: string;
+  routeKey: string;
+  routeId: string;
+  label: string;
+  date: string;
+  title?: string;
+}): PublicInterventionEpisode {
+  return {
+    authority: "tracker_enrichment",
+    episodeId: input.id,
+    title: input.title ?? `Automated camera enforcement on ${input.label}`,
+    summary: "Tracker-owned MTA camera-enforcement registry event.",
+    date: {
+      precision: "day",
+      value: input.date,
+      display: input.date,
+      intervalStart: input.date,
+      intervalEnd: input.date,
+    },
+    routes: [
+      { routeKey: input.routeKey, routeId: input.routeId, label: input.label, slug: input.routeKey },
+    ],
+    treatmentFamilies: [
+      {
+        treatmentFamilyKey: "automated-bus-lane-enforcement",
+        label: "Automated bus lane enforcement",
+      },
+    ],
+    components: [
+      {
+        authority: "tracker_enrichment",
+        componentId: `ace:${input.routeId}:ABLE:${input.date}`,
+        label: "Automated bus lane enforcement (ABLE)",
+        detail: null,
+      },
+    ],
+    citations: [
+      {
+        citationId: "mta-ace-routes",
+        label: "MTA Automated Camera Enforcement routes",
+        publisher: "MTA",
+        published: null,
+        url: "https://example.com/ace",
+        urlStatus: "source_provided",
+      },
+    ],
+    caveat: null,
+    finding: null,
+    lineage: {
+      sourceId: "mta_ace_routes",
+      originIds: [`ace:${input.routeId}:ABLE:${input.date}`],
+      sourceEventIds: [`ace:${input.routeId}:ABLE:${input.date}`],
+    },
+  };
+}
+
+const cameraWave: PublicInterventionEpisode[] = [
+  trackerEpisode({
+    id: "ep_1111111111111111",
+    routeKey: "bx3",
+    routeId: "BX3",
+    label: "BX3",
+    date: "2024-06-20",
+  }),
+  trackerEpisode({
+    id: "ep_2222222222222222",
+    routeKey: "bx7",
+    routeId: "BX7",
+    label: "BX7",
+    date: "2024-06-20",
+  }),
+  trackerEpisode({
+    id: "ep_3333333333333333",
+    routeKey: "bx20",
+    routeId: "BX20",
+    label: "BX20",
+    date: "2024-06-20",
+  }),
+];
+
+describe("one real change renders once", () => {
+  test("folds one dated rollout spread across routes into a single entry", () => {
+    const merged = mergeIdenticalEpisodes(cameraWave);
+    expect(merged).toHaveLength(1);
+    const [entry] = merged;
+    expect(entry?.title).toBe("Automated camera enforcement on 3 routes");
+    expect(entry?.routes.map((route) => route.routeId).toSorted()).toEqual(["BX20", "BX3", "BX7"]);
+    expect(entry?.mergedEpisodeIds).toEqual([
+      "ep_1111111111111111",
+      "ep_2222222222222222",
+      "ep_3333333333333333",
+    ]);
+    expect(mergeIdenticalEpisodes(cameraWave.slice(0, 2))[0]?.title).toBe(
+      "Automated camera enforcement on BX3 and BX7",
+    );
+  });
+
+  test("never folds two changes whose titles differ beyond the routes", () => {
+    const merged = mergeIdenticalEpisodes([
+      producerEpisode({
+        id: "occurrence:dddddddddddddddddddddddd",
+        routeKey: "q27",
+        routeId: "Q27",
+        label: "Q27",
+        title: "Queens Bus Network Redesign — Service pattern",
+        date: "2025-06-29",
+      }),
+      producerEpisode({
+        id: "occurrence:eeeeeeeeeeeeeeeeeeeeeeee",
+        routeKey: "q76",
+        routeId: "Q76",
+        label: "Q76",
+        title: "Bruckner Boulevard busway",
+        date: "2025-06-29",
+      }),
+    ]);
+    expect(merged).toHaveLength(2);
+    expect(merged.every((entry) => entry.mergedEpisodeIds.length === 1)).toBe(true);
+  });
+
+  test("never folds across authority", () => {
+    const merged = mergeIdenticalEpisodes([
+      trackerEpisode({
+        id: "ep_4444444444444444",
+        routeKey: "bx3",
+        routeId: "BX3",
+        label: "BX3",
+        date: "2024-06-20",
+        title: "Automated camera enforcement",
+      }),
+      producerEpisode({
+        id: "occurrence:ffffffffffffffffffffffff",
+        routeKey: "bx7",
+        routeId: "BX7",
+        label: "BX7",
+        title: "Automated camera enforcement",
+        date: "2024-06-20",
+      }),
+    ]);
+    expect(merged).toHaveLength(2);
+  });
+
+  test("unions routes, components, placements and citations without duplicates", () => {
+    const [entry] = mergeIdenticalEpisodes([
+      producerEpisode({
+        id: "occurrence:111111111111111111111111",
+        routeKey: "b44-sbs",
+        routeId: "B44+",
+        label: "B44 SBS",
+        title: "Queens Bus Network Redesign — Service pattern",
+        date: "2025-06-29",
+      }),
+      producerEpisode({
+        id: "occurrence:222222222222222222222222",
+        routeKey: "b44-sbs",
+        routeId: "B44+",
+        label: "B44 SBS",
+        title: "Queens Bus Network Redesign — Service pattern",
+        date: "2025-06-29",
+      }),
+      producerEpisode({
+        id: "occurrence:333333333333333333333333",
+        routeKey: "q52-sbs",
+        routeId: "Q52+",
+        label: "Q52 SBS",
+        title: "Queens Bus Network Redesign — Service pattern",
+        date: "2025-06-29",
+      }),
+    ]);
+    expect(entry?.routes.map((route) => route.routeKey)).toEqual(["b44-sbs", "q52-sbs"]);
+    expect(entry?.components.map((component) => component.componentId)).toEqual([
+      "b44-sbs-service-pattern-component",
+      "q52-sbs-service-pattern-component",
+    ]);
+    expect(
+      entry?.authority === "producer"
+        ? entry.placements.map((placement) => placement.placementKey)
+        : [],
+    ).toEqual(["b44-sbs-service-pattern-placement"]);
+    expect(entry?.citations).toHaveLength(1);
+  });
+
+  test("merges the same whatever order the changes arrive in", () => {
+    const shuffled = [cameraWave[2], cameraWave[0], cameraWave[1]] as PublicInterventionEpisode[];
+    expect(mergeIdenticalEpisodes(shuffled)).toEqual(mergeIdenticalEpisodes(cameraWave));
+  });
+
+  test("names the same routes it counts on a group heading", async () => {
+    /* Three changes on one day, each already merged across several routes, so
+       the badge cap has to count routes rather than the changes holding them. */
+    const labels = Array.from(
+      { length: 13 },
+      (_, index) => `Q1${String(index + 1).padStart(2, "0")}`,
+    );
+    const stems = ["Automated camera enforcement", "Bus lane enforcement start", "Camera hours"];
+    const sameDay = labels.map((label, index) =>
+      trackerEpisode({
+        id: `ep_${String(index).padStart(16, "a")}`,
+        routeKey: label.toLowerCase(),
+        routeId: label,
+        label,
+        date: "2024-06-20",
+        title: `${stems[index % stems.length]} on ${label}`,
+      }),
+    );
+    const merged = mergeIdenticalEpisodes(sameDay);
+    expect(merged).toHaveLength(3);
+
+    const html = await renderWithRouter(
+      createElement(PublicInterventions, {
+        artifact: { ...artifact, episodes: sameDay },
+      }),
+    );
+    const summary = html.slice(html.indexOf("<summary"), html.indexOf("</summary>"));
+    expect(labels.filter((label) => summary.includes(label))).toHaveLength(10);
+    expect(summary).toContain("and 3 more");
   });
 });
 
