@@ -15,8 +15,8 @@ function RouteMapSkeleton({ height }: { height: number }) {
   return (
     <div
       className={
-        height === 300
-          ? "h-[300px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none"
+        height === 380
+          ? "h-[380px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none max-md:h-[320px]"
           : "h-[460px] animate-pulse rounded-[3px] bg-[var(--bp-color-ink-06)] motion-reduce:animate-none max-md:h-[320px]"
       }
       aria-hidden
@@ -58,11 +58,12 @@ export function RouteMapLibre(props: RouteMapLibreProps) {
       context={props.context}
       {...(props.pinnedSegmentId === null ? {} : { highlightId: props.pinnedSegmentId })}
       displaySpeeds={props.displaySpeeds}
+      variant={props.compact ? "mini" : "full"}
     />
   );
 
   return (
-    <Suspense fallback={<RouteMapSkeleton height={props.compact ? 300 : 460} />}>
+    <Suspense fallback={<RouteMapSkeleton height={props.compact ? 380 : 460} />}>
       <RouteMapLibreMap {...props} fallback={fallback} />
     </Suspense>
   );

@@ -20,14 +20,25 @@ const config = {
 } satisfies ChartConfig;
 
 /** Ticks the hand-rolled block drew by hand; kept so the axis reads the same. */
-const HOUR_TICKS = ["0", "6", "12", "18", "23"];
+export const WHEN_RIDERS_RIDE_HOUR_TICKS = ["0", "6", "12", "18", "23"];
 
-export function WhenRidersRideChart({ boardings, height = 148, peak }: WhenRidersRideProps) {
-  const rows = boardings.slice(0, 24).map((value, hour) => ({
+export type WhenRidersRideRow = { hour: string; value: number; isPeak: boolean };
+
+/** Recharts renders nothing without layout, so the row/emphasis contract is a
+ * pure function the tests can pin (same shape as buildSpeedTrendChartModel). */
+export function whenRidersRideRows(
+  boardings: readonly number[],
+  peak?: { hourOfDay: number } | undefined,
+): WhenRidersRideRow[] {
+  return boardings.slice(0, 24).map((value, hour) => ({
     hour: String(hour),
     value,
     isPeak: peak !== undefined && hour === peak.hourOfDay,
   }));
+}
+
+export function WhenRidersRideChart({ boardings, height = 148, peak }: WhenRidersRideProps) {
+  const rows = whenRidersRideRows(boardings, peak);
 
   return (
     <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
@@ -35,7 +46,7 @@ export function WhenRidersRideChart({ boardings, height = 148, peak }: WhenRider
         <CartesianGrid vertical={false} />
         <XAxis
           dataKey="hour"
-          ticks={HOUR_TICKS}
+          ticks={WHEN_RIDERS_RIDE_HOUR_TICKS}
           tickFormatter={(hour) => formatHourShort(Number(hour))}
           tickLine={false}
           axisLine={false}
