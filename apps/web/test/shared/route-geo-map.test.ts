@@ -5,6 +5,7 @@ import {
   interactiveRouteSegmentId,
   routeGeoMapModel,
 } from "@/components/route/route-geo-map";
+import { segmentIdsNeedingFeatureState } from "@/components/route/RouteMapLibre.map";
 
 const BOX = { width: 1040, height: 420, padding: 44 };
 
@@ -157,5 +158,55 @@ describe("interactiveRouteSegmentId", () => {
     expect(interactiveRouteSegmentId(overlapping, "NB")).toBe("north");
     expect(interactiveRouteSegmentId(overlapping, "SB")).toBe("south");
     expect(interactiveRouteSegmentId(overlapping, "EB")).toBeNull();
+  });
+});
+
+describe("segmentIdsNeedingFeatureState", () => {
+  const segmentIds = Array.from({ length: 40 }, (_, index) => `seg-${index}`);
+  const state = (
+    hoveredSegmentId: string | null,
+    pinnedSegmentId: string | null,
+    activeDirection: string | null = "all",
+  ) => ({ hoveredSegmentId, pinnedSegmentId, activeDirection });
+
+  test("a hover swap writes only the two segments that changed", () => {
+    /* Every hover transition used to rewrite feature-state for all 40. */
+    expect(
+      segmentIdsNeedingFeatureState({
+        segmentIds,
+        previous: state("seg-1", null),
+        next: state("seg-2", null),
+      }),
+    ).toEqual(["seg-1", "seg-2"]);
+  });
+
+  test("clearing a hover writes only the segment that lost it", () => {
+    expect(
+      segmentIdsNeedingFeatureState({
+        segmentIds,
+        previous: state("seg-1", null),
+        next: state(null, null),
+      }),
+    ).toEqual(["seg-1"]);
+  });
+
+  test("hover and pin together touch at most four", () => {
+    expect(
+      segmentIdsNeedingFeatureState({
+        segmentIds,
+        previous: state("seg-1", "seg-3"),
+        next: state("seg-2", "seg-4"),
+      }),
+    ).toEqual(["seg-1", "seg-2", "seg-3", "seg-4"]);
+  });
+
+  test("a direction change is the one case that touches every segment", () => {
+    expect(
+      segmentIdsNeedingFeatureState({
+        segmentIds,
+        previous: state(null, null, "all"),
+        next: state(null, null, "NB"),
+      }),
+    ).toEqual(segmentIds);
   });
 });

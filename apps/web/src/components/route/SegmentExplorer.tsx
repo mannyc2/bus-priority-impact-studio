@@ -40,6 +40,7 @@ import {
 import {
   formatMonthLabel,
   historicalSegmentValues,
+  type SegmentHistoryReason,
   type SegmentHistorySeries,
   segmentHistorySeries,
 } from "@/components/route/segment-history-data";
@@ -553,6 +554,7 @@ export function SegmentExplorerSection({
           </div>
           <SegmentReadout
             route={route}
+            routeAverageMph={data.dossier?.speed.current ?? route.weightedAvgSpeed}
             segments={segments}
             pinned={pinned}
             pinnedIsShareable={urlPinned !== null}
@@ -786,6 +788,14 @@ function HistoricalStatus({
   ) {
     message =
       "Historical segment coloring is unavailable because this route's geographic speed spine needs review. Current all-day evidence remains available.";
+  } else if (history.status === "error") {
+    message =
+      "Historical segment coloring is unavailable because the speed history could not be loaded. Current all-day evidence remains available.";
+  } else if (history.status === "ready" && history.data.spineReadiness === null) {
+    /* The months are in the payload; this client cannot join them yet. Say so,
+       rather than leaving disabled controls with no explanation. */
+    message =
+      "Historical segment coloring is unavailable because this route's published speed history predates the current segment matching and needs a rebuild. Current all-day evidence remains available.";
   } else if (active) {
     const gap =
       missingSegmentCount > 0
@@ -810,6 +820,7 @@ function HistoricalStatus({
 
 function SegmentReadout({
   route,
+  routeAverageMph,
   segments,
   pinned,
   pinnedIsShareable,
@@ -824,6 +835,8 @@ function SegmentReadout({
   onClear,
 }: {
   route: StudioRouteDetailResponse["route"];
+  /** The same scalar the persistent header shows, so tabs never disagree. */
+  routeAverageMph: number;
   segments: readonly StudioSegment[];
   pinned: StudioSegment | null;
   pinnedIsShareable: boolean;
@@ -901,7 +914,7 @@ function SegmentReadout({
     active === null
       ? historicalActive
         ? routeDisplaySpeed
-        : route.weightedAvgSpeed
+        : routeAverageMph
       : (displaySpeeds.get(active.id) ?? null);
   const sched = active === null ? route.scheduledMph : active.scheduledMph;
   const delta = sched === null || mph === null ? null : mph - sched;
@@ -935,7 +948,13 @@ function SegmentReadout({
           label="Speed"
           value={mph === null ? "—" : mph.toFixed(1)}
           valueColor={SPEED_BAND(mph)}
-          sub={mph === null ? `no data, ${periodLabel}` : `mph, ${periodLabel}`}
+          sub={
+            mph === null
+              ? `no data, ${periodLabel}`
+              : active === null && !historicalActive
+                ? `route average, ${periodLabel}`
+                : `mph, ${periodLabel}`
+          }
         />
         <ReadoutStat
           label="vs sched"
@@ -983,7 +1002,12 @@ function SegmentReadout({
       </div>
 
       <div className="mt-3 min-h-[56px]">
-        <SegmentSparkline segment={active} series={series} historyStatus={historyStatus} />
+        <SegmentSparkline
+          segment={active}
+          series={series}
+          historyStatus={historyStatus}
+          historyReason={historySeries.reason}
+        />
       </div>
 
       <div className="mt-auto flex min-h-[44px] items-center gap-2 pt-3">
@@ -1062,10 +1086,12 @@ function SegmentSparkline({
   segment,
   series,
   historyStatus,
+  historyReason,
 }: {
   segment: StudioSegment | null;
   series: SegmentHistorySeries | null;
   historyStatus: RouteSpeedHistoryState["status"];
+  historyReason: SegmentHistoryReason | null;
 }) {
   if (segment === null) return null;
   if (historyStatus === "loading") {
@@ -1076,13 +1102,18 @@ function SegmentSparkline({
       />
     );
   }
+  /* A failed request, a route whose history predates segment matching, and a
+     segment that genuinely has no months are three different things. Saying
+     "no history" for all three states a fact that is not true for two. */
   const points = series?.speeds.filter((speed): speed is number => speed !== null) ?? [];
   if (series === null || points.length < 2) {
-    return (
-      <p className="m-0 text-[11px] text-[var(--bp-color-ink-55)]">
-        No month history for this segment.
-      </p>
-    );
+    const message =
+      historyStatus === "error"
+        ? "Speed history could not be loaded."
+        : historyReason === "spine_unclassified"
+          ? "Speed history for this route predates the current segment matching and needs a rebuild."
+          : "No month history for this segment.";
+    return <p className="m-0 text-[11px] text-[var(--bp-color-ink-55)]">{message}</p>;
   }
   const first = series.months[0];
   const last = series.months.at(-1);

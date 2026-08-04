@@ -53,7 +53,11 @@ export function routeSectionTitle(sectionValue: RouteDetailSectionValue): string
  */
 const SECTION_CONFIG: Record<RouteDetailSectionValue, RouteSectionConfig> = {
   overview: { surfaces: [] },
-  map: { surfaces: ["map", "geometry", "routeGeometry"] },
+  /* Unconditional, like overview and evidence. The manifest emits exactly
+     eight surface keys — condition, trend, speedHistory, reliability,
+     ridership, treatment, scheduleBaseline, detectorFindings — and never
+     `map`, `geometry` or `routeGeometry`, so this gated on nothing. */
+  map: { surfaces: [] },
   "where-when": { surfaces: ["speedHistory"] },
   reliability: {
     surfaces: ["reliability"],

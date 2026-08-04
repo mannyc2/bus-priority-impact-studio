@@ -196,6 +196,36 @@ function supportsWebGl(): boolean {
   }
 }
 
+type RouteMapPresentation = {
+  hoveredSegmentId: string | null;
+  pinnedSegmentId: string | null;
+  activeDirection: string | null;
+};
+
+/**
+ * Which segments actually need a feature-state write.
+ *
+ * Every hover transition used to rewrite state for all N segments of the
+ * route. Only the direction filter changes them all; hover and pin change at
+ * most four — the ids leaving the state and the ids entering it.
+ */
+export function segmentIdsNeedingFeatureState(input: {
+  segmentIds: readonly string[];
+  previous: RouteMapPresentation;
+  next: RouteMapPresentation;
+}): readonly string[] {
+  if (input.previous.activeDirection !== input.next.activeDirection) return input.segmentIds;
+  const touched = new Set(
+    [
+      input.previous.hoveredSegmentId,
+      input.next.hoveredSegmentId,
+      input.previous.pinnedSegmentId,
+      input.next.pinnedSegmentId,
+    ].filter((id): id is string => id !== null),
+  );
+  return [...touched];
+}
+
 export function RouteMapLibreMap({
   collection,
   context,
@@ -253,6 +283,12 @@ export function RouteMapLibreMap({
   onSelectRef.current = onSegmentSelect;
   const setHoverRef = useRef(setHoveredSegmentId);
   setHoverRef.current = setHoveredSegmentId;
+  /* Last values actually written, so a mousemove that resolves to the same
+     segment is a no-op and feature-state writes stay proportional to change. */
+  const lastHoverRef = useRef<string | null>(null);
+  const lastHoveredIdRef = useRef<string | null>(null);
+  const lastPinnedIdRef = useRef<string | null>(null);
+  const lastDirectionRef = useRef<string | null>(null);
   const activeDirectionRef = useRef(activeDirection);
   activeDirectionRef.current = activeDirection;
 
@@ -269,14 +305,18 @@ export function RouteMapLibreMap({
         event.features as Parameters<typeof interactiveRouteSegmentId>[0],
         activeDirectionRef.current,
       );
-      if (map !== null && segmentId !== null) {
-        map.getCanvas().style.cursor = "pointer";
-        setHoverRef.current(segmentId);
-      }
+      if (map !== null) map.getCanvas().style.cursor = segmentId === null ? "" : "pointer";
+      /* A feature the direction filter rejects used to leave the previous hover
+         standing, so the readout kept describing a segment the pointer had
+         left. Clear it, and never re-send the id already in flight. */
+      if (segmentId === lastHoverRef.current) return;
+      lastHoverRef.current = segmentId;
+      setHoverRef.current(segmentId);
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
       if (map !== null) map.getCanvas().style.cursor = "";
+      lastHoverRef.current = null;
       setHoverRef.current(null);
     };
     const onClick = (event: MapLibreMapLayerMouseEvent) => {
@@ -483,7 +523,7 @@ export function RouteMapLibreMap({
   useEffect(() => {
     const map = mapRef.current;
     if (map === null || !ready) return;
-    for (const id of segmentIds) {
+    const writeState = (id: string) => {
       const direction = directionsById.get(id);
       map.setFeatureState(
         { source: SEGMENT_SOURCE, id },
@@ -493,7 +533,21 @@ export function RouteMapLibreMap({
           dimmed: activeDirection !== "all" && direction !== activeDirection,
         },
       );
+    };
+    for (const id of segmentIdsNeedingFeatureState({
+      segmentIds,
+      previous: {
+        hoveredSegmentId: lastHoveredIdRef.current,
+        pinnedSegmentId: lastPinnedIdRef.current,
+        activeDirection: lastDirectionRef.current,
+      },
+      next: { hoveredSegmentId, pinnedSegmentId, activeDirection },
+    })) {
+      writeState(id);
     }
+    lastDirectionRef.current = activeDirection;
+    lastHoveredIdRef.current = hoveredSegmentId;
+    lastPinnedIdRef.current = pinnedSegmentId;
   }, [activeDirection, directionsById, hoveredSegmentId, pinnedSegmentId, ready, segmentIds]);
 
   if (failure !== null) {

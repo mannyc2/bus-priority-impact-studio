@@ -176,3 +176,22 @@ describe("historical segment values", () => {
     expect(result.displayOrders.get("current-a")).toBe(1);
   });
 });
+
+describe("why a history series is unavailable", () => {
+  test("says which of the four reasons it is", () => {
+    /* Collapsing all four into "unavailable" is what let the page print "No
+       month history for this segment." over 36 served months. */
+    const segments = [segment("seg-1", "spine-1")];
+    expect(segmentHistorySeries(null, segments).reason).toBe("missing");
+    expect(segmentHistorySeries(history(null), segments).reason).toBe("spine_unclassified");
+    expect(segmentHistorySeries(history("needs_pattern_review"), segments).reason).toBe(
+      "needs_pattern_review",
+    );
+    expect(segmentHistorySeries(history("failed"), segments).reason).toBe("failed");
+  });
+
+  test("a ready series carries no reason", () => {
+    const result = segmentHistorySeries(history("series_ready"), [segment("seg-1", "spine-1")]);
+    expect(result.reason).toBeNull();
+  });
+});

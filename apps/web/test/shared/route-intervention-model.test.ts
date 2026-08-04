@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   interventionPresentationForTreatment,
+  otherDocumentedLabel,
   routeInterventionViewModel,
   treatmentRecordAnchorId,
 } from "../../src/components/route/route-intervention-model";
@@ -301,5 +302,30 @@ describe("route intervention presentation model", () => {
     expect(treatmentRecordAnchorId("treatment:v1:abc")).toBe("intervention-treatment_3a_v1_3a_abc");
     expect(treatmentRecordAnchorId("B44+")).not.toBe(treatmentRecordAnchorId("B44_2b_"));
     expect(treatmentRecordAnchorId("gap:B44:tsp")).toMatch(/^[A-Za-z][A-Za-z0-9_-]+$/u);
+  });
+});
+
+describe("other_documented display names", () => {
+  test("a slug that labels itself never reaches a face", () => {
+    /* The crosswalk passes the kind AS the label for 137 reviewed rows, so
+       `rawLabel ?? humanize(rawKind)` printed the slug verbatim. */
+    expect(otherDocumentedLabel("priority_corridor_designation", "priority_corridor_designation")).toBe(
+      "Priority corridor designation",
+    );
+    expect(otherDocumentedLabel("limited_to_local_conversion", "limited_to_local_conversion")).toBe(
+      "Limited-to-local conversion",
+    );
+    expect(
+      otherDocumentedLabel("overnight_service_discontinuation", "overnight_service_discontinuation"),
+    ).toBe("Overnight service discontinued");
+  });
+
+  test("a genuinely authored label still wins", () => {
+    expect(otherDocumentedLabel("branch_added", "New Rockaway branch")).toBe("New Rockaway branch");
+  });
+
+  test("an unknown kind is humanized rather than printed raw", () => {
+    expect(otherDocumentedLabel("some_new_kind_of_work", null)).toBe("Some new kind of work");
+    expect(otherDocumentedLabel("some_new_kind_of_work", null)).not.toMatch(/_/u);
   });
 });

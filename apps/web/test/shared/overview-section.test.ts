@@ -442,8 +442,10 @@ describe("OverviewSection", () => {
     );
 
     expect(markup).toContain("M15-SBS at a glance");
-    expect(markup).toContain("runs 5.8 mph");
-    expect(markup).toContain("against a 9.2 mph schedule");
+    /* The speed scalar belongs to the header stat and the Slow-segments
+       readout; a third copy in prose is what let the page contradict itself. */
+    expect(markup).not.toContain("runs 5.8 mph");
+    expect(markup).not.toContain("against a 9.2 mph schedule");
     expect(markup).toContain("Speed is down 4.2% over the past six months.");
     expect(markup).toContain("It is slower than 82% of comparable routes.");
     expect(markup).not.toContain("ACE"); // prose/legacy route fields never infer treatment badges
@@ -488,7 +490,8 @@ describe("OverviewSection", () => {
     // Summary falls back to the plain diagnosis when no served part exists.
     expect(sparse).toContain("M15-SBS route dossier is still building.");
     expect(sparse).toContain("No route speed history is attached yet.");
-    expect(sparse).toContain("No flags raised");
+    /* No insights renders nothing — no substitute card. */
+    expect(sparse).not.toContain("No flags raised");
     // OverviewSection's own output carries no doctrine violations.
     expect(sparse).not.toContain("·");
     expect(sparse).not.toContain("The route right now");

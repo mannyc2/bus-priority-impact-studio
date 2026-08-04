@@ -1,6 +1,6 @@
 import { SectionCard } from "@/components/SectionCard";
 import { Badge } from "@/components/ui/badge";
-import type { StudioRouteCapability, StudioRouteInsight } from "@/studio/api-contract";
+import type { StudioRouteInsight } from "@/studio/api-contract";
 import {
   routeSectionForInsight,
   safeInsightCaveats,
@@ -24,16 +24,15 @@ const severityColor: Record<StudioRouteInsight["severity"], string> = {
 
 export function RouteInsightList({
   insights,
-  capability,
   onNavigate,
 }: {
   insights: readonly StudioRouteInsight[];
-  capability: StudioRouteCapability | null;
   onNavigate: (section: RouteDetailSectionValue) => void;
 }) {
-  if (insights.length === 0) {
-    return cleanInsightState(capability);
-  }
+  /* No insights renders nothing. The card that used to sit here ("No flags
+     raised … across N checked surfaces") was never planned or comped, and put
+     detector vocabulary on a public face. */
+  if (insights.length === 0) return null;
 
   const rows = [...insights].sort(stableInsightSort).slice(0, MAX_INSIGHTS);
 
@@ -138,22 +137,3 @@ function SeverityBlocks({ severity }: { severity: StudioRouteInsight["severity"]
   );
 }
 
-function cleanInsightState(capability: StudioRouteCapability | null) {
-  const surfaces = Object.values(capability?.surfaces ?? {});
-  const checkedCount = surfaces.filter((surface) =>
-    ["checked_clean", "ready", "partial"].includes(surface.state),
-  ).length;
-  const hasCleanSignal = surfaces.some((surface) => surface.state === "checked_clean");
-  if (!hasCleanSignal) return null;
-
-  return (
-    <section className="rounded-[3px] bg-[var(--bp-color-card)] p-4 shadow-[0_0_0_1px_var(--bp-color-rule)]">
-      <div className="text-[13px] font-semibold text-[var(--bp-color-good)]">No flags raised</div>
-      <p className="m-0 mt-2 text-[13px] leading-[1.55] text-[var(--bp-color-ink-70)]">
-        {checkedCount > 0
-          ? `No detector flags raised for this route across ${checkedCount} checked surface${checkedCount === 1 ? "" : "s"}.`
-          : "No detector flags raised for this route."}
-      </p>
-    </section>
-  );
-}

@@ -14,8 +14,24 @@ export type SegmentHistorySeries = {
   latestMonth: string | null; // latest month that has a speed, else null
 };
 
+/**
+ * Why a series is unavailable, so the page can say which it is.
+ *
+ * `spine_unclassified` is the live case: artifacts published before the
+ * producer emitted `spineReadiness` carry months of real cells that this
+ * client refuses to join. Collapsing that into "no history" states a fact
+ * about the route that is not true.
+ */
+export type SegmentHistoryReason =
+  | "missing"
+  | "spine_unclassified"
+  | "needs_pattern_review"
+  | "failed";
+
 export type SegmentHistoryData = {
   readiness: "ready" | "partial" | "unavailable";
+  /** Set only when `readiness` is "unavailable". */
+  reason: SegmentHistoryReason | null;
   series: Map<string, SegmentHistorySeries>;
   unmatchedDetailSegmentIds: string[];
 };
@@ -173,12 +189,21 @@ export function segmentHistorySeries(
   const unmatchedDetailSegmentIds = segments
     .filter((segment) => segment.spineSegmentId === null)
     .map((segment) => segment.id);
-  if (history === null || history.spineReadiness === null) {
-    return { readiness: "unavailable", series, unmatchedDetailSegmentIds };
+  if (history === null) {
+    return { readiness: "unavailable", reason: "missing", series, unmatchedDetailSegmentIds };
+  }
+  if (history.spineReadiness === null) {
+    return {
+      readiness: "unavailable",
+      reason: "spine_unclassified",
+      series,
+      unmatchedDetailSegmentIds,
+    };
   }
   if (history.spineReadiness === "needs_pattern_review" || history.spineReadiness === "failed") {
     return {
       readiness: "unavailable",
+      reason: history.spineReadiness,
       series,
       unmatchedDetailSegmentIds: segments.map((segment) => segment.id),
     };
@@ -227,6 +252,7 @@ export function segmentHistorySeries(
       history.spineReadiness === "series_ready" && unmatchedDetailSegmentIds.length === 0
         ? "ready"
         : "partial",
+    reason: null,
     series,
     unmatchedDetailSegmentIds,
   };
