@@ -279,7 +279,6 @@ describe("MapLibre loader and runtime", () => {
     const base = {
       focusedRouteId: "keyboard",
       hoveredRouteId: "map-hover",
-      hoverDimEngaged: false,
       previewRouteId: "list-hover",
       selectedRouteId: "pin",
     };
@@ -289,24 +288,33 @@ describe("MapLibre loader and runtime", () => {
       routeId: "keyboard",
     });
     expect(resolveNetworkFocusPresentation({ ...base, focusedRouteId: null })).toEqual({
-      mode: "preview",
-      routeId: "map-hover",
+      mode: "focus",
+      routeId: "list-hover",
     });
     expect(
       resolveNetworkFocusPresentation({
         ...base,
         focusedRouteId: null,
-        hoveredRouteId: null,
-      }),
-    ).toEqual({ mode: "focus", routeId: "list-hover" });
-    expect(
-      resolveNetworkFocusPresentation({
-        ...base,
-        focusedRouteId: null,
-        hoveredRouteId: null,
         previewRouteId: null,
       }),
     ).toEqual({ mode: "focus", routeId: "pin" });
+  });
+
+  test("pointer hover previews its own route and never dims the network", () => {
+    const hoverOnly = {
+      focusedRouteId: null,
+      hoveredRouteId: "map-hover",
+      previewRouteId: null,
+      selectedRouteId: null,
+    };
+    expect(resolveNetworkFocusPresentation(hoverOnly)).toEqual({
+      mode: "preview",
+      routeId: "map-hover",
+    });
+    expect(resolveNetworkFocusPresentation({ ...hoverOnly, hoveredRouteId: null })).toEqual({
+      mode: "preview",
+      routeId: null,
+    });
   });
 
   test("the inspector only insets the desktop map and shares that inset with camera padding", () => {

@@ -74,13 +74,17 @@ const FIT_DURATION_MS = 240;
 
 // Hover/selection render through feature-state so pointer interaction never
 // rebuilds the 50k-coordinate source; setData only runs on period/lens change.
+// The active width is a step up from the base, not a transformation: at 5.5px
+// a hovered line swelled enough that the eye read the map as re-drawing.
 const LINE_WIDTH_EXPRESSION: MapLibreExpression = [
   "case",
   ["boolean", ["feature-state", "active"], false],
-  5.5,
+  4,
   ["case", ["get", "sbs"], 3.2, 2.2],
 ];
 const DEFAULT_LINE_OPACITY = 0.92;
+/** How long a legitimate dim takes to arrive or release. */
+const FOCUS_FADE_MS = 200;
 const FOCUSED_LINE_OPACITY_EXPRESSION: MapLibreExpression = [
   "case",
   ["boolean", ["feature-state", "active"], false],
@@ -102,28 +106,31 @@ export type NetworkFocusPresentation = {
   routeId: string | null;
 };
 
-/** Resolve all map/list focus sources without conflating the durable route pin. */
+/**
+ * Resolve all map/list focus sources without conflating the durable route pin.
+ *
+ * Pointer hover resolves to `preview` — the hovered line alone — and never to
+ * `focus`, so casual mousing over a 348-route canvas cannot dim the network.
+ * Only a deliberate act (keyboard focus, a list preview, a pin) earns the dim,
+ * and a pin outranks the pointer rather than losing to it.
+ */
 export function resolveNetworkFocusPresentation(input: {
   focusedRouteId: string | null;
   hoveredRouteId: string | null;
-  hoverDimEngaged: boolean;
   previewRouteId: string | null;
   selectedRouteId: string | null;
 }): NetworkFocusPresentation {
   if (input.focusedRouteId !== null) {
     return { mode: "focus", routeId: input.focusedRouteId };
   }
-  if (input.hoveredRouteId !== null) {
-    return {
-      mode: input.hoverDimEngaged ? "focus" : "preview",
-      routeId: input.hoveredRouteId,
-    };
-  }
   if (input.previewRouteId !== null) {
     return { mode: "focus", routeId: input.previewRouteId };
   }
   if (input.selectedRouteId !== null) {
     return { mode: "focus", routeId: input.selectedRouteId };
+  }
+  if (input.hoveredRouteId !== null) {
+    return { mode: "preview", routeId: input.hoveredRouteId };
   }
   return { mode: "preview", routeId: null };
 }
@@ -545,15 +552,11 @@ export function NetworkMapLibreMap({
       applyNetworkFocusPresentation(focusController, {
         focusedRouteId: focusedRouteIdRef.current,
         hoveredRouteId: hoverIntent.hovered(),
-        hoverDimEngaged: hoverIntent.dimEngaged(),
         previewRouteId: previewRouteIdRef.current,
         selectedRouteId: selectedRouteIdRef.current,
       });
     };
-    hoverIntent = createHoverIntent({
-      applyActive: syncPresentation,
-      applyFocus: syncPresentation,
-    });
+    hoverIntent = createHoverIntent({ applyActive: syncPresentation });
     hoverIntentRef.current = hoverIntent;
     const onMouseMove = (event: MapLibreMapLayerMouseEvent) => {
       const map = mapRef.current;
@@ -564,12 +567,7 @@ export function NetworkMapLibreMap({
       });
       if (candidates.length === 0) return;
       map.getCanvas().style.cursor = "pointer";
-      hoverIntent.move(
-        candidates,
-        focusedRouteIdRef.current !== null ||
-          previewRouteIdRef.current !== null ||
-          selectedRouteIdRef.current !== null,
-      );
+      hoverIntent.move(candidates);
     };
     const onMouseLeave = () => {
       const map = mapRef.current;
@@ -681,6 +679,15 @@ export function NetworkMapLibreMap({
             "line-sort-key": SORT_KEY_EXPRESSION,
           },
         });
+        // The dims that remain — pin engage/release, keyboard focus — ease
+        // instead of snapping. Feature-state widths cannot animate in MapLibre,
+        // which is why the hover width step is kept small rather than timed.
+        for (const layerId of [CASING_LAYER, NODATA_LAYER, LINE_LAYER]) {
+          map.setPaintProperty(layerId, "line-opacity-transition", {
+            duration: FOCUS_FADE_MS,
+            delay: 0,
+          });
+        }
         map.addLayer({
           id: GHOST_LAYER,
           type: "line",
@@ -896,7 +903,6 @@ export function NetworkMapLibreMap({
     applyNetworkFocusPresentation(focusController, {
       focusedRouteId,
       hoveredRouteId: hoverIntent.hovered(),
-      hoverDimEngaged: hoverIntent.dimEngaged(),
       previewRouteId,
       selectedRouteId,
     });

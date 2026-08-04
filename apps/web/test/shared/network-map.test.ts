@@ -370,24 +370,10 @@ describe("insightModel", () => {
 describe("createHoverIntent", () => {
   function harness() {
     const calls: string[] = [];
-    let pending: (() => void) | null = null;
     const intent = createHoverIntent({
       applyActive: (previous, next) => calls.push(`active:${previous ?? "-"}>${next ?? "-"}`),
-      applyFocus: () => calls.push("focus"),
-      schedule: (fire) => {
-        pending = fire;
-        return 1;
-      },
-      cancel: () => {
-        pending = null;
-      },
     });
-    const fireDwell = () => {
-      const fire = pending;
-      pending = null;
-      fire?.();
-    };
-    return { calls, intent, fireDwell };
+    return { calls, intent };
   }
 
   test("sweeping across routes swaps the light highlight without dimming", () => {
@@ -396,7 +382,6 @@ describe("createHoverIntent", () => {
     intent.move(["B"]);
     intent.move(["C"]);
     expect(calls).toEqual(["active:->A", "active:A>B", "active:B>C"]);
-    expect(intent.dimEngaged()).toBe(false);
   });
 
   test("keeps the hovered route while it is still under the cursor", () => {
@@ -407,47 +392,33 @@ describe("createHoverIntent", () => {
     expect(intent.hovered()).toBe("A");
   });
 
-  test("dwell engages the dim once, then swaps focus instantly", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("resting on one route never escalates into a network-wide dim", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
-    fireDwell();
-    expect(calls).toEqual(["active:->A", "focus"]);
-    expect(intent.dimEngaged()).toBe(true);
-    intent.move(["B"]);
-    expect(calls).toEqual(["active:->A", "focus", "focus"]);
+    intent.move(["A"]);
+    intent.move(["A"]);
+    expect(calls).toEqual(["active:->A"]);
+    expect(intent.hovered()).toBe("A");
   });
 
-  test("leaving before the dwell fires never dims", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("leaving releases the highlight", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
     intent.leave();
-    fireDwell();
     expect(calls).toEqual(["active:->A", "active:A>-"]);
-    expect(intent.dimEngaged()).toBe(false);
     expect(intent.hovered()).toBeNull();
   });
 
-  test("leaving after an engaged dim releases focus", () => {
-    const { calls, intent, fireDwell } = harness();
-    intent.move(["A"]);
-    fireDwell();
-    intent.leave();
-    expect(calls).toEqual(["active:->A", "focus", "focus"]);
-    expect(intent.dimEngaged()).toBe(false);
-  });
-
-  test("an existing pin or list preview keeps focus swaps immediate", () => {
+  test("leaving with nothing hovered is inert", () => {
     const { calls, intent } = harness();
-    intent.move(["A"], true);
-    expect(calls).toEqual(["focus"]);
-    expect(intent.dimEngaged()).toBe(true);
+    intent.leave();
+    expect(calls).toEqual([]);
   });
 
-  test("dispose cancels a pending dwell", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("dispose drops the hovered route", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
     intent.dispose();
-    fireDwell();
     expect(calls).toEqual(["active:->A"]);
   });
 });
