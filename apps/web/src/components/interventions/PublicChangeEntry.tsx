@@ -17,6 +17,12 @@ import type {
 import { Link } from "@tanstack/react-router";
 import { RouteBadge } from "@/components/RouteBadge";
 import { SourceNote, type SourceNoteEntry } from "@/components/SourceNote";
+import {
+  componentSentence,
+  PLACEMENT_DISCLAIMER,
+  placementLines,
+  trackerSummaryVisible,
+} from "@/studio/episode-copy";
 
 /**
  * The shared left gutter. Every change entry and every group heading uses it, so
@@ -69,15 +75,10 @@ export function ChangeEntry({
         <div className="font-mono text-[11px] tabular-nums text-[var(--bp-color-ink-55)]">
           {episode.date.display}
         </div>
-        <div className="mt-1 text-[10.5px] font-medium uppercase tracking-[0.04em] text-[var(--bp-color-ink-40)]">
-          {episode.authority === "producer"
-            ? "Resolved MTA source pack"
-            : "Tracker camera-enforcement enrichment"}
-        </div>
         <h3 className="m-0 mt-1 text-[14.5px] font-semibold leading-snug tracking-[-0.005em]">
           {episode.title}
         </h3>
-        {episode.summary.length === 0 ? null : (
+        {!trackerSummaryVisible(episode.summary) || episode.summary.length === 0 ? null : (
           <p className="mt-1.5 max-w-[68ch] text-[12.5px] leading-[1.55] text-[var(--bp-color-ink-70)]">
             {episode.summary}
           </p>
@@ -154,9 +155,6 @@ function RouteRelation({ route }: { route: PublicEpisodeRoute }) {
       className="inline-flex items-center gap-1.5 no-underline"
     >
       <RouteBadge route={route.routeId} displayLabel={route.label} size="sm" />
-      <span className="font-mono text-[10.5px] text-[var(--bp-color-ink-40)]">
-        {route.routeKey}
-      </span>
     </Link>
   );
 }
@@ -198,32 +196,28 @@ function Components({ episode }: { episode: PublicInterventionEpisode }) {
   );
 }
 
+/**
+ * Words come from the copy module; only the layout is decided here. Every
+ * adjacent piece of text is separated by a real character rather than a
+ * margin, so copied text and screen readers read the same sentence the eye
+ * does.
+ */
 function ComponentText({
   component,
 }: {
   component: PublicInterventionEpisode["components"][number];
 }) {
-  if (component.authority === "tracker_enrichment") {
-    return (
-      <>
-        <span className="font-semibold">{component.label}</span>
-        {component.detail === null ? null : (
-          <span className="text-[var(--bp-color-ink-70)]">{` ${component.detail}`}</span>
-        )}
-      </>
-    );
-  }
+  const sentence = componentSentence(component);
   return (
     <>
-      <span className="font-semibold">{`${component.actionLabel}: ${component.treatmentFamilyLabel}`}</span>
-      <span className="text-[var(--bp-color-ink-70)]">{` ${component.details}`}</span>
-      <span className="ml-1.5 text-[11px] text-[var(--bp-color-ink-55)]">
-        {component.extent.label}
-      </span>
-      {component.extent.description === null ? null : (
-        <span className="text-[var(--bp-color-ink-55)]">{` — ${component.extent.description}`}</span>
+      <span className="font-semibold">{sentence.lead}</span>
+      {sentence.detail === null ? null : (
+        <span className="text-[var(--bp-color-ink-70)]">{` — ${sentence.detail}`}</span>
       )}
-      {component.caveats.length === 0 ? null : (
+      {sentence.extent === null ? null : (
+        <div className="text-[11px] text-[var(--bp-color-ink-55)]">{sentence.extent}</div>
+      )}
+      {component.authority === "tracker_enrichment" || component.caveats.length === 0 ? null : (
         <ul className="m-0 mt-1 list-disc pl-4 text-[11px] text-[var(--bp-color-ink-55)]">
           {component.caveats.map((caveat) => (
             <li key={caveat}>{caveat}</li>
@@ -234,20 +228,24 @@ function ComponentText({
   );
 }
 
+/**
+ * The disclaimer is stated once for the whole list rather than appended to
+ * every record, and identical dated states collapse to one line with a count —
+ * the pinned release repeats a single state across all of a change's
+ * placements.
+ */
 function PlacementHistory({ episode }: { episode: PublicInterventionEpisode }) {
   if (episode.authority !== "producer" || episode.placements.length === 0) return null;
+  const lines = placementLines(episode.placements);
   return (
     <details className="mt-2.5 text-[11.5px] text-[var(--bp-color-ink-55)]">
       <summary className="cursor-pointer list-none text-[var(--bp-color-accent)] [&::-webkit-details-marker]:hidden">
         {`${episode.placements.length} historical placement ${episode.placements.length === 1 ? "record" : "records"}`}
       </summary>
+      <p className="m-0 mt-1.5">{PLACEMENT_DISCLAIMER}</p>
       <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4">
-        {episode.placements.map((placement) => (
-          <li key={placement.placementKey}>
-            {placement.confirmedCurrent === null
-              ? `${placement.stateAsOf.replaceAll("_", " ")} as of ${placement.asOfDate}; this is not a confirmed-current claim.`
-              : `Confirmed active as of ${placement.confirmedCurrent.asOfDate}.`}
-          </li>
+        {lines.map((line) => (
+          <li key={line.text}>{line.count === 1 ? line.text : `${line.text} (×${line.count})`}</li>
         ))}
       </ul>
     </details>

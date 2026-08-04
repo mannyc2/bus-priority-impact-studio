@@ -74,8 +74,9 @@ export function PublicRouteHistory({
         <header className="flex flex-wrap items-center gap-3 border-b border-[var(--bp-color-rule)] pb-4">
           <RouteBadge route={input.routeId} displayLabel={input.routeLabel} size="lg" />
           <div className="min-w-0">
+            {/* The badge beside it already names the route. */}
             <h1 className="m-0 text-[22px] font-semibold leading-tight tracking-[-0.02em]">
-              {`${input.routeLabel} history`}
+              History
             </h1>
             {input.corridor === null ? null : (
               <p className="mt-0.5 text-[12.5px] text-[var(--bp-color-ink-55)]">{input.corridor}</p>
