@@ -985,9 +985,9 @@ describe("Studio API client", () => {
     expect(result.collection?.features.map((feature) => feature.properties.currentMph)).toEqual([
       7.1, 7.1,
     ]);
-    expect(result.collection?.features.map((feature) => feature.properties.riderHoursLost)).toEqual([
-      12_000, 12_000,
-    ]);
+    expect(result.collection?.features.map((feature) => feature.properties.riderHoursLost)).toEqual(
+      [12_000, 12_000],
+    );
     expect(
       result.collection?.features.every((feature) => feature.properties.factsStatus === "ready"),
     ).toBe(true);
