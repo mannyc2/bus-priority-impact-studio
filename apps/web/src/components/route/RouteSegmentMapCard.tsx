@@ -278,6 +278,9 @@ export function RouteSegmentMapCard({
     onSearchChange(nextSearch, false);
   };
   const clearPin = (restoreFocus = false) => {
+    /* Clicking the basemap with nothing pinned must not push a history entry
+       for a state that did not change. */
+    if (mapSearch.segment === undefined && localPinId === null) return;
     pin(null);
     if (restoreFocus) requestAnimationFrame(() => mapFrameRef.current?.focus());
   };
