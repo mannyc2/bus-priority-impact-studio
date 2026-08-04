@@ -10404,3 +10404,41 @@ a null spark — which today is every route on the active release — so a
 labelled column read as a rendering bug. It now shows an em dash beside the
 existing "No trend" label. No fabricated flat sparkline: the data half is
 Plan 116's gate, not a client workaround.
+
+## [2026-08-04] engineering | The route page shows one map; the anchored popup is its only click surface
+
+Plan 126, operator direction 2026-08-02. The route page drew the same segment
+speeds twice: a static SVG mini map in Overview's "Route map" card, and the
+interactive `RouteMapLibre` on the Slow-segments tab beside a readout rail.
+That is the no-duplicate-surfaces doctrine violated by the page's own first
+impression — the static map was the first one a visitor met.
+
+The interactive map moved into the Overview card (`RouteSegmentMapCard`, which
+owns the geo and DOT-lane fetches, the direction chips, the overlay toggle and
+the legend). The Slow-segments map column and the whole `SegmentReadout` rail
+retired; the ranked list, which is what that tab is for, goes full width.
+
+The readout's job — describe the selected segment — belongs to the map surface
+itself. Clicking a segment anchors ONE popup to it: label, direction, observed
+all-day speed, rank in the active ranking, lane line with its per-segment
+"What changed" link, and a link into the segment list. Closing is ✕ / Esc /
+background click, with focus restored to the map frame. This is the same
+ruling Plan 125 recorded for the network map, and it now covers both maps:
+future richer content goes INTO the popup or behind its list link, never into
+a parallel panel beside the map.
+
+Consequences worth remembering:
+
+- `?segment=`, `?direction=` and `?lanes=` validate on the Overview tab now,
+  because that is where the map that owns them lives. No new param names; the
+  saved historical period (`month`/`daypart`) stays segments-only, since the
+  ranked list is the only surface that renders it.
+- Retiring the `map` section removed an always-render member from the
+  Slow-segments tab, so that tab now reports its ranked list's real readiness
+  instead of borrowing the map's unconditional render.
+- Direction arrows on the map line were considered and skipped: `mapBaseStyle()
+  ` declares no `glyphs`, so a `symbol-placement: line` text arrow would mean
+  adding a font endpoint. The popup names the direction instead.
+- Segment-grain month history lost its only surface (the rail's sparkline) by
+  operator direction. The data path stays intact; if demand returns, design a
+  surface fresh rather than resurrecting the rail.
