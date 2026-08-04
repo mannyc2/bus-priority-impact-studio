@@ -18,6 +18,12 @@
 
 ## Status
 
+- **Executed**: 2026-08-04 on branch `codex/126-one-route-map`. See the
+  Generation 21 row in `plans/README.md` for the full result and the five
+  recorded deviations (direction chips added rather than moved; arrow layer
+  skipped for want of glyphs; the popup keeps the lane line + per-segment
+  "What changed" link; "Explore route segments" carries the search state;
+  `compact` repurposed as the 380/320 card size).
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED (URL deep-link contract and the gen-18 D2 lane-extent link
@@ -315,6 +321,10 @@ only if Step 2 kept it as fallback). All commands exit 0;
   internals — report the extraction seam instead of copying.
 - The arrow layer would require adding glyph/sprite assets — skip arrows
   (allowed), but report if even the skip path is unclear.
+  **RESOLVED 2026-08-04**: `mapBaseStyle()` declares neither `glyphs` nor
+  `sprite`, so a `symbol-placement: line` `text-field` would have meant
+  adding a font endpoint. Arrows skipped under this clause; the popup's
+  direction line and the map-card chips carry direction instead.
 - Any `?study=`/`?record=`/`?segment=`/`?lanes=` consumer breaks in a way
   that needs a NEW param or a redirect — report; the URL contract may not
   grow here.

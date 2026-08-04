@@ -181,7 +181,6 @@ export function RouteSegmentMapCard({
   evidence = null,
   inventory = null,
   studies = null,
-  onExploreSegments,
 }: {
   data: StudioRouteDetailResponse;
   search: RouteDetailSearch;
@@ -189,7 +188,6 @@ export function RouteSegmentMapCard({
   evidence?: StudioRouteEvidenceBundle | null;
   inventory?: StudioRouteInterventionInventoryBundle | null;
   studies?: RouteStudiesArtifact | null;
-  onExploreSegments: () => void;
 }) {
   const { route, segments } = data;
   const [hoverId, setHoverId] = useState<string | null>(null);
@@ -337,6 +335,9 @@ export function RouteSegmentMapCard({
         })();
 
   const hasLaneEvidence = routeLaneEligibility === "ready";
+  /* Switching tabs through the search state, not the section callback, so the
+     direction and overlay the visitor just set survive the trip to the list. */
+  const exploreSegments = () => onSearchChange({ ...mapSearch, tab: "segments" }, false);
 
   return (
     <SectionCard
@@ -367,7 +368,7 @@ export function RouteSegmentMapCard({
               <span>Painted bus lanes (DOT)</span>
             </label>
           ) : null}
-          <Button type="button" size="sm" variant="secondary" onClick={onExploreSegments}>
+          <Button type="button" size="sm" variant="secondary" onClick={exploreSegments}>
             Explore route segments
           </Button>
         </div>

@@ -146,7 +146,6 @@ export function OverviewSection({
           evidence={evidence}
           inventory={inventory}
           studies={studies}
-          onExploreSegments={() => onNavigate("where-when")}
         />
       </div>
 
