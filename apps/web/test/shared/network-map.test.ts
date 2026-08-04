@@ -316,21 +316,30 @@ describe("legendModel", () => {
 
   test("speed bands carry live counts and one no-data chip", () => {
     const legend = legendModel(fleet, SPEED_ALL, "March 2026");
-    expect(legend.bands.map((band) => band.count)).toEqual([1, 1, 2]);
-    expect(legend.noDataCount).toBe(1);
-    expect(legend.bands[2]?.darkText).toBe(true);
+    expect(legend?.bands.map((band) => band.count)).toEqual([1, 1, 2]);
+    expect(legend?.noDataCount).toBe(1);
+    expect(legend?.bands[2]?.darkText).toBe(true);
+  });
+
+  test("a legend with nothing in any band does not render", () => {
+    /* Every band at (0) asserts that the colours exist, not that any route is
+       in them. Facts absent -> no legend; facts present -> unchanged. */
+    const blank = [feature({ routeId: "GAP", currentMph: null, riderHoursLost: null })];
+    expect(legendModel(blank, SPEED_ALL, "March 2026")).toBeNull();
+    expect(legendModel(blank, DELAY, "March 2026")).toBeNull();
+    expect(legendModel(fleet, SPEED_ALL, "March 2026")).not.toBeNull();
   });
 
   test("delay bands order worst first", () => {
     const legend = legendModel(fleet, DELAY, "March 2026");
-    expect(legend.subtitle).toBe("March 2026");
-    expect(legend.bands.map((band) => band.label)).toEqual([
+    expect(legend?.subtitle).toBe("March 2026");
+    expect(legend?.bands.map((band) => band.label)).toEqual([
       "40k or more",
       "15 to 40k",
       "8 to 15k",
       "under 8k",
     ]);
-    expect(legend.bands.map((band) => band.count)).toEqual([1, 1, 1, 1]);
+    expect(legend?.bands.map((band) => band.count)).toEqual([1, 1, 1, 1]);
   });
 });
 
@@ -363,31 +372,34 @@ describe("insightModel", () => {
       DELAY,
       "March 2026",
     );
-    expect(insight).toEqual({ lead: "Rider delay is unavailable.", rest: "" });
+    expect(insight).toEqual({
+      lead: "Rider delay is unavailable.",
+      rest: "",
+      hint: "Click a route to see its delay exposure.",
+    });
+  });
+
+  test("every encoding carries one standing interaction hint", () => {
+    const fleet = [feature({ routeId: "A", currentMph: 5, riderHoursLost: 50_000 })];
+    expect(insightModel(fleet, SPEED_ALL, "March 2026").hint).toBe(
+      "Click a route for its numbers; pin it to compare.",
+    );
+    expect(insightModel(fleet, DELAY, "March 2026").hint).toBe(
+      "Click a route to see its delay exposure.",
+    );
+    expect(
+      insightModel(fleet, { lens: "speed", period: "am", compare: true }, "March 2026").hint,
+    ).toBe("Click a route to compare peak against all day.");
   });
 });
 
 describe("createHoverIntent", () => {
   function harness() {
     const calls: string[] = [];
-    let pending: (() => void) | null = null;
     const intent = createHoverIntent({
       applyActive: (previous, next) => calls.push(`active:${previous ?? "-"}>${next ?? "-"}`),
-      applyFocus: () => calls.push("focus"),
-      schedule: (fire) => {
-        pending = fire;
-        return 1;
-      },
-      cancel: () => {
-        pending = null;
-      },
     });
-    const fireDwell = () => {
-      const fire = pending;
-      pending = null;
-      fire?.();
-    };
-    return { calls, intent, fireDwell };
+    return { calls, intent };
   }
 
   test("sweeping across routes swaps the light highlight without dimming", () => {
@@ -396,7 +408,6 @@ describe("createHoverIntent", () => {
     intent.move(["B"]);
     intent.move(["C"]);
     expect(calls).toEqual(["active:->A", "active:A>B", "active:B>C"]);
-    expect(intent.dimEngaged()).toBe(false);
   });
 
   test("keeps the hovered route while it is still under the cursor", () => {
@@ -407,47 +418,33 @@ describe("createHoverIntent", () => {
     expect(intent.hovered()).toBe("A");
   });
 
-  test("dwell engages the dim once, then swaps focus instantly", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("resting on one route never escalates into a network-wide dim", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
-    fireDwell();
-    expect(calls).toEqual(["active:->A", "focus"]);
-    expect(intent.dimEngaged()).toBe(true);
-    intent.move(["B"]);
-    expect(calls).toEqual(["active:->A", "focus", "focus"]);
+    intent.move(["A"]);
+    intent.move(["A"]);
+    expect(calls).toEqual(["active:->A"]);
+    expect(intent.hovered()).toBe("A");
   });
 
-  test("leaving before the dwell fires never dims", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("leaving releases the highlight", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
     intent.leave();
-    fireDwell();
     expect(calls).toEqual(["active:->A", "active:A>-"]);
-    expect(intent.dimEngaged()).toBe(false);
     expect(intent.hovered()).toBeNull();
   });
 
-  test("leaving after an engaged dim releases focus", () => {
-    const { calls, intent, fireDwell } = harness();
-    intent.move(["A"]);
-    fireDwell();
-    intent.leave();
-    expect(calls).toEqual(["active:->A", "focus", "focus"]);
-    expect(intent.dimEngaged()).toBe(false);
-  });
-
-  test("an existing pin or list preview keeps focus swaps immediate", () => {
+  test("leaving with nothing hovered is inert", () => {
     const { calls, intent } = harness();
-    intent.move(["A"], true);
-    expect(calls).toEqual(["focus"]);
-    expect(intent.dimEngaged()).toBe(true);
+    intent.leave();
+    expect(calls).toEqual([]);
   });
 
-  test("dispose cancels a pending dwell", () => {
-    const { calls, intent, fireDwell } = harness();
+  test("dispose drops the hovered route", () => {
+    const { calls, intent } = harness();
     intent.move(["A"]);
     intent.dispose();
-    fireDwell();
     expect(calls).toEqual(["active:->A"]);
   });
 });

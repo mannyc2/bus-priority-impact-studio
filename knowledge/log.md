@@ -10331,3 +10331,50 @@ and shared URLs behave. The retired ledger's `status`, `view`, `group`,
 treatment-family vocabulary (`automated-bus-lane-enforcement`, …) is not the
 retired ledger's (`enforcement`, …), and a key the served artifact has no facet
 for reads as no filter rather than as an empty page.
+
+## [2026-08-04] engineering | The network map stops dimming on hover; the title band goes sr-only
+
+Two operator decisions, both previously unlanded and unrecorded, landed by
+Plan 121.
+
+**Hover never dims (operator, 2026-07-26).** Dimming the other 347 routes when
+the pointer crosses one reads as the map being replaced, not as a route being
+pointed at. Pointing at a route — on the canvas or down the ranked list — now
+lights that route alone. The network-wide dim is reserved for the two
+deliberate acts: a pin, and keyboard focus, which is the affordance that
+replaces hover for readers without a pointer. Both now outrank the pointer
+rather than losing to it; previously a pin made things worse by skipping the
+dwell grace entirely.
+
+This SUPERSEDES Plan 080's text, which permitted hover emphasis with a dim.
+Any future map work that reads Plan 080 must read this entry too.
+
+Mechanics removed: the 160 ms `HOVER_DIM_DELAY_MS` dwell, the latch that
+re-fired the dim on every subsequent route with no re-arming, and the second
+dim path through list pointer-preview. Kept: the 18px hit layer and the
+still-hovered hysteresis guard, which are what stop dense areas flickering.
+Added: a 200 ms `line-opacity-transition` on the three network layers so the
+dims that remain ease rather than snap, and a smaller hover width step
+(5.5 → 4px). MapLibre constraint worth remembering: paint-property value
+changes animate with `*-transition`; feature-state-driven expression outputs
+do not, which is why the width step must stay small rather than be timed.
+
+**Title band deleted (operator, 2026-08-02).** The band repeated the nav item,
+restated coverage, and parked a dialog button in dead space, costing a strip
+of canvas. The `<h1>` survives as `sr-only` for assistive technology and SEO;
+the coverage sentence, verified-route count and Data notes button moved into
+the map chrome. They ride with the controls rather than with the legend
+because the legend is now allowed to render nothing. This supersedes the band
+sanctioned by Plans 059/080. The error-branch heading stays visible — it is
+the whole page in that state.
+
+**Chrome honesty (operator bug sweep, 2026-08-02).** A toggle group with one
+option is a label that looks like a button, so it no longer renders; the lens
+and period toggles return by themselves once coverage restores their second
+option. The borough selector is deleted rather than restyled — map pan and
+zoom cover borough focus — but `?borough=` parsing, filtering and camera
+fitting all survive, so inbound shared links still work; nothing writes the
+param any more. The map note reads as three lines (what the colour means, what
+the numbers are, what you can do) instead of one run-on, with one standing
+interaction hint per encoding. A legend whose every band reads `(0)` asserts
+nothing, so it does not render at all; it returns as soon as facts do.

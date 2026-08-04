@@ -128,6 +128,18 @@ describe("canonicalizeNetworkMapSearch", () => {
     });
   });
 
+  test("an inbound ?borough= link still filters after the selector was deleted", () => {
+    /* Plan 121 removed the borough UI on operator direction; nothing writes the
+       param any more, but shared and bookmarked links must keep working. */
+    expect(validateNetworkMapSearch({ borough: "Brooklyn" })).toEqual({ borough: "Brooklyn" });
+    const canonical = canonicalizeNetworkMapSearch(
+      { borough: "Manhattan" },
+      { routes: ROUTES, eligibility: ALL_ELIGIBLE },
+    );
+    expect(canonical.search).toEqual({ borough: "Manhattan" });
+    expect(canonical.notices).toEqual([]);
+  });
+
   test("keeps a cross-borough route in each verified served borough", () => {
     const result = canonicalizeNetworkMapSearch(
       { borough: "Manhattan", route: "q32" },

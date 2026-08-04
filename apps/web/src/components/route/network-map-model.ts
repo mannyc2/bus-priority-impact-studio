@@ -271,15 +271,23 @@ export function periodLabel(period: MapPeriod): string {
   return "all day";
 }
 
+/**
+ * The legend, or nothing at all.
+ *
+ * A legend whose every band reads `(0)` asserts nothing — it says the colours
+ * exist, not that any route is in them — so when no feature classifies, the
+ * legend does not render. It returns as soon as facts do.
+ */
 export function legendModel(
   features: readonly NetworkMapFeature[],
   view: NetworkView,
   coverage: string,
-): LegendModel {
+): LegendModel | null {
   const encoding = viewEncoding(view);
   const classes = features.map((feature) => featureClass(feature, view));
   const noDataCount = classes.filter((cls) => cls === null).length;
   const countOf = (cls: number) => classes.filter((value) => value === cls).length;
+  if (classes.every((cls) => cls === null)) return null;
   if (encoding === "delay") {
     const labels = ["under 8k", "8 to 15k", "15 to 40k", "40k or more"];
     return {
@@ -331,7 +339,18 @@ function medianOf(values: readonly number[]): number | null {
   return sorted[Math.floor(sorted.length / 2)] ?? null;
 }
 
-export type InsightModel = { lead: string; rest: string };
+export type InsightModel = {
+  lead: string;
+  rest: string;
+  /** One standing interaction tip per encoding. Promise only what exists. */
+  hint: string;
+};
+
+const INSIGHT_HINTS = {
+  speed: "Click a route for its numbers; pin it to compare.",
+  delay: "Click a route to see its delay exposure.",
+  delta: "Click a route to compare peak against all day.",
+} as const;
 
 export function insightModel(
   features: readonly NetworkMapFeature[],
@@ -342,7 +361,8 @@ export function insightModel(
   if (encoding === "delay") {
     const ranked = sortFeaturesForView(features, view);
     const top = ranked.find((feature) => featureValue(feature, view) !== null);
-    if (top === undefined) return { lead: "Rider delay is unavailable.", rest: "" };
+    if (top === undefined)
+      return { lead: "Rider delay is unavailable.", rest: "", hint: INSIGHT_HINTS.delay };
     const byBorough = new Map<string, number>();
     for (const feature of features) {
       const delay = feature.properties.riderHoursLost;
@@ -357,6 +377,7 @@ export function insightModel(
       rest: `${compactNumber(top.properties.riderHoursLost)} rider-hours of delay in ${coverage}${
         speed === null ? "" : ` at ${speed.toFixed(1)} mph`
       }. The heaviest corridors are ${boroughs[0]?.[0] ?? "unavailable"} and ${boroughs[1]?.[0] ?? "unavailable"} locals.`,
+      hint: INSIGHT_HINTS.delay,
     };
   }
   if (encoding === "delta") {
@@ -369,6 +390,7 @@ export function insightModel(
     return {
       lead: `${slower} routes`,
       rest: `run at least 0.75 mph slower at ${label} peak than their all-day average; ${faster} run faster. The rest hold steady.`,
+      hint: INSIGHT_HINTS.delta,
     };
   }
   const classAt = (period: MapPeriod, cls: number) =>
@@ -392,6 +414,7 @@ export function insightModel(
     return {
       lead: "Color marks slow routes.",
       rest: `${classAt("all", 0)} run under 7 mph and ${classAt("all", 1)} more under 8; the other ${classAt("all", 2)} ride neutral ink.${medians}`,
+      hint: INSIGHT_HINTS.speed,
     };
   }
   const changed = features.filter((feature) => {
@@ -403,6 +426,7 @@ export function insightModel(
   return {
     lead: `${label} peak: ${classAt(view.period, 0)} routes under 7 mph`,
     rest: `up from ${classAt("all", 0)} all day; ${changed} change band.`,
+    hint: INSIGHT_HINTS.speed,
   };
 }
 
@@ -477,84 +501,49 @@ export function slowestWindow(hourlySpeedMph: readonly (number | null)[]): Slowe
 }
 
 /**
- * Pointer-hover intent for the network canvas. Sweeping the mouse across the
- * dense network must not strobe the whole map: while a route is merely being
- * crossed, only its own line lights up (`applyActive`); the network-wide
- * dim (`applyFocus`) engages after the pointer rests on one route for
- * `HOVER_DIM_DELAY_MS`. Once focus is engaged — by dwell or by an existing
- * pin/list preview — moving between routes swaps focus instantly, and leaving
- * the network releases it. Hysteresis: the hovered route keeps hover while it
- * is still anywhere under the cursor, even when another line is painted above.
+ * Pointer-hover intent for the network canvas.
+ *
+ * Hover only ever lights the route under the cursor. It deliberately does not
+ * dim the other 347: with this many lines on screen at once, a network-wide
+ * dim on hover reads as the map being replaced rather than as one route being
+ * pointed at, and sweeping the pointer across midtown strobes the entire
+ * canvas. Dimming is reserved for the two states the reader asked for — a
+ * pinned route and a keyboard/list focus — where losing the surroundings is
+ * the point.
+ *
+ * Hysteresis: the hovered route keeps hover while it is still anywhere under
+ * the cursor, even when another line is painted above it.
  */
-export const HOVER_DIM_DELAY_MS = 160;
-
 export type HoverIntent = {
-  /** Pointer is over these route IDs (topmost first); `focusElsewhere` marks an active pin/preview. */
-  move: (candidates: readonly string[], focusElsewhere?: boolean) => void;
+  /** Pointer is over these route IDs, topmost first. */
+  move: (candidates: readonly string[]) => void;
   leave: () => void;
   hovered: () => string | null;
-  dimEngaged: () => boolean;
   dispose: () => void;
 };
 
 export function createHoverIntent(host: {
   applyActive: (previous: string | null, next: string | null) => void;
-  applyFocus: () => void;
-  delayMs?: number;
-  schedule?: (fire: () => void, delayMs: number) => unknown;
-  cancel?: (timer: unknown) => void;
 }): HoverIntent {
-  const delayMs = host.delayMs ?? HOVER_DIM_DELAY_MS;
-  const schedule = host.schedule ?? ((fire, ms) => setTimeout(fire, ms));
-  const cancel = host.cancel ?? ((timer) => clearTimeout(timer as ReturnType<typeof setTimeout>));
   let hovered: string | null = null;
-  let engaged = false;
-  let timer: unknown = null;
-  const clearTimer = () => {
-    if (timer !== null) {
-      cancel(timer);
-      timer = null;
-    }
-  };
   return {
-    move(candidates, focusElsewhere = false) {
+    move(candidates) {
       if (hovered !== null && candidates.includes(hovered)) return;
       const next = candidates[0] ?? null;
       if (next === null) return;
       const previous = hovered;
       hovered = next;
-      if (engaged || focusElsewhere) {
-        engaged = true;
-        clearTimer();
-        host.applyFocus();
-        return;
-      }
       host.applyActive(previous, next);
-      clearTimer();
-      timer = schedule(() => {
-        timer = null;
-        engaged = true;
-        host.applyFocus();
-      }, delayMs);
     },
     leave() {
-      clearTimer();
       if (hovered === null) return;
       const previous = hovered;
       hovered = null;
-      if (engaged) {
-        engaged = false;
-        host.applyFocus();
-      } else {
-        host.applyActive(previous, null);
-      }
+      host.applyActive(previous, null);
     },
     hovered: () => hovered,
-    dimEngaged: () => engaged,
     dispose() {
-      clearTimer();
       hovered = null;
-      engaged = false;
     },
   };
 }
