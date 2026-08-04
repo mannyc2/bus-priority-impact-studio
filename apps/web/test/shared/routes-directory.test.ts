@@ -178,9 +178,7 @@ describe("the 12-mo trend cell", () => {
 
   test("draws the series when there is one", async () => {
     const html = await renderWithRouter(
-      createElement(RouteIndexRow, {
-        route: { ...base, spark: [7, 7.4, 7.9], movement6mPct: 1.4 },
-      }),
+      createElement(RouteIndexRow, { route: { ...base, spark: [7, 7.4, 7.9], movement6mPct: 1.4 } }),
     );
     /* Spark is the lazy two-file chart pair, so SSR renders its reserved slot. */
     expect(html).toContain("width:104px");

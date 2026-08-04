@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import type { MapRouteSegmentFeature } from "@bp/domain/maps";
-import { segmentIdsNeedingFeatureState } from "@/components/route/RouteMapLibre.map";
 import {
   geoSpeedColor,
   interactiveRouteSegmentId,
   routeGeoMapModel,
 } from "@/components/route/route-geo-map";
+import { segmentIdsNeedingFeatureState } from "@/components/route/RouteMapLibre.map";
 
 const BOX = { width: 1040, height: 420, padding: 44 };
 
